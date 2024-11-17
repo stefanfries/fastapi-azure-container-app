@@ -5,4 +5,4 @@ router = APIRouter()
 
 @router.get("/", tags=["welcome"])
 async def read_root():
-    return {"message": "Welcome to this fantastic app!"}
+    return {"message": "Welcome, the app is live!"}

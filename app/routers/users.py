@@ -26,5 +26,5 @@ async def get_user_self():
 @router.get("/{user}")
 async def get_user_by_name(user: str):
     """Reply with a welcome message for the user"""
-    logger.info("Hi {user}, you have been logged!")
+    logger.info("Hi %s, you have been logged!", user)
     return {"message": f"Welcome {user} to this fantastic app!"}

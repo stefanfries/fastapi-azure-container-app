@@ -1,5 +1,5 @@
 """
-Global Settuings for Logging
+Global Settings for Logging
 """
 
 import logging

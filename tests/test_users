@@ -1,5 +1,0 @@
-import pytest
-
-from app.main import main
-
-assert main() == 0

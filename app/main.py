@@ -16,6 +16,7 @@ app.include_router(users.router)
 
 def main() -> None:
     """Main entry point of the app"""
+    return
 
 
 if __name__ == "__main__":

@@ -5,5 +5,5 @@ Test the main module.
 from app.main import main
 
 
-def test_main():
-    assert 1 == 1
+def test_main() -> None:
+    assert main() is None

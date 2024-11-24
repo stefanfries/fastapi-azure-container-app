@@ -19,7 +19,7 @@ app.include_router(users.router)
 
 def main() -> None:
     """Main entry point of the app"""
-    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run(main, host="0.0.0.0", port=8080, reload=True)
     return None
 
 

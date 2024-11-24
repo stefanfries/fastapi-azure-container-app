@@ -4,7 +4,8 @@ Global Settings for Logging
 
 import logging
 import logging.config
-from logging.handlers import SysLogHandler
+
+# from logging.handlers import SysLogHandler
 
 PAPERTRAILHOST = "logs2.papertrailapp.com"
 PAPERTRAILPORT = 41485

@@ -25,8 +25,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-# import uvicorn
-# uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
-# The main function is empty, but it is a placeholder for future code.

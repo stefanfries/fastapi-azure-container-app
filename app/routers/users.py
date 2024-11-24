@@ -19,8 +19,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("/me")
 async def get_user_self():
     """Reply with a welcome message for the user"""
-    logger.info("Welcome FAKEUSER to this fantastic app!")
-    return {"message": "Welcome FAKEUSER to this fantastic app!"}
+    logger.info("Welcome USER to this fantastic app!")
+    return {"message": "Welcome USER to this fantastic app!"}
 
 
 @router.get("/{user}")

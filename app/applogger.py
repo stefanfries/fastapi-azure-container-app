@@ -46,6 +46,8 @@ config_dict = {
 
 logging.config.dictConfig(config_dict)
 logger = logging.getLogger(__name__)
+logger.info("Starting FastAPI-Azure-Container-App")
+
 
 # logger.setLevel(logging.INFO)
 # handler = SysLogHandler(address=(PAPERTRAILHOST, PAPERTRAILPORT))
@@ -54,5 +56,3 @@ logger = logging.getLogger(__name__)
 # )
 # handler.setFormatter(formatter)
 # logger.addHandler(handler)
-
-logger.info("Starting FastAPI-Azure-Container-App")

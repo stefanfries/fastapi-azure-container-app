@@ -1,18 +1,9 @@
-# Makefile for FastAPI project
-
-# Variables
-APP_NAME=app
-DOCKER_IMAGE=fastapi-app
-DOCKER_TAG=latest
-
-# Commands
-.PHONY: help run test lint docker-build docker-run
-
-install: ## Install dependencies
-	#install commands pip install -r requirements.txt
-format: ## Format the code
-	#format commands
-lint: ## Lint the code
+install: #Install commands
+	pip install --upgrade pip &&\
+	pip install -r requirements.txt
+format: #Format the code
+	#format code
+lint: #Lint the code
 	#flake8 or pylint
 	#flake8 $(APP_NAME)
 test: ## Run tests

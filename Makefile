@@ -20,7 +20,7 @@ format: #Format the code
 
 lint: #Lint the code
 #	flake8 or pylint
-#	flake8 app
+	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py	
 
 test: ## Run tests
 #	test commands

@@ -1,22 +1,40 @@
+# define variables
+APP_NAME = app
+APP_DIR  = app
+TEST_DIR = tests
+DOCKER_IMAGE=fastapi-docker
+DOCKER_TAG=latest
+
+# define commands
+help: #List available commands
+	@echo "Available commands:"
+# 	@awk 'BEGIN {FS = ":.*?#"}; /^[a-zA-Z0-9_-]+:.*?#/ {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)	
+#	@grep -E '^[a-zA-Z0-9_-]+:.*?#.*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?#"}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
 install: #Install commands
 	pip install --upgrade pip &&\
 	pip install -r requirements.txt
+
 format: #Format the code
-	#format code
+	black $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py
+
 lint: #Lint the code
-	#flake8 or pylint
-	#flake8 $(APP_NAME)
+#	flake8 or pylint
+#	flake8 app
+
 test: ## Run tests
-	#test commands
+#	test commands
+
 deploy: ## Deploy the FastAPI application
-	#deploy commands
+#	deploy commands
+
 all: install lint test deploy ## Run all commands
-	#run: ## Run the FastAPI application
-	#uvicorn $(APP_NAME).main:app --reload
+#	run: ## Run the FastAPI application
+#	uvicorn $(APP_DIR).main:$(APP_DIR) --reload
 	#test: ## Run tests
 	#pytest
 	#lint: ## Lint the code
-	#flake8 $(APP_NAME)
+	#flake8 app
 	#docker-build: ## Build the Docker image
 	#docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 	#docker-run: ## Run the Docker container

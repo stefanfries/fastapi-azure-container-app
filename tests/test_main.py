@@ -21,7 +21,7 @@ def test_main_no_exception() -> None:
     with patch("uvicorn.run") as mock_run:
         try:
             main()
-        except Exception as e:
+        except RuntimeError as e:
             pytest.fail(f"main() raised an exception: {e}")
         mock_run.assert_called_once_with(
             "app.main:app", host="0.0.0.0", port=8080, reload=True

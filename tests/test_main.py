@@ -15,15 +15,6 @@ def test_main(mock_run) -> None:
     mock_run.assert_called_once_with(
         "app.main:app", host="0.0.0.0", port=8080, reload=True
     )
-    return None
-
-
-@patch("uvicorn.run")
-def test_main(mock_run) -> None:
-    main()
-    mock_run.assert_called_once_with(
-        "app.main:app", host="0.0.0.0", port=8080, reload=True
-    )
 
 
 def test_main_no_exception() -> None:

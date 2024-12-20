@@ -1,5 +1,7 @@
 """
-Module to define a root endpoint for health check purposes
+This module defines the welcome router for the FastAPI application.
+It includes a single endpoint that serves as a root endpoint for health check purposes.
+The endpoint logs a welcome message and returns a JSON response indicating that the app is live.
 """
 
 from fastapi import APIRouter

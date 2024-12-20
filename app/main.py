@@ -18,7 +18,16 @@ app.include_router(users.router)
 
 
 def main() -> None:
-    """Main entry point of the app"""
+    """
+    Entry point for running the FastAPI application using Uvicorn.
+    This function starts the Uvicorn server with the specified application instance,
+    host, port, and reload settings.
+    Parameters:
+    None
+    Returns:
+    None
+    """
+
     uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)
     return None
 

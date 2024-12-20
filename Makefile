@@ -22,8 +22,10 @@ lint: #Lint the code
 #	flake8 or pylint
 	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py	
 
-test: ## Run tests
+test: #Run tests
 #	test commands
+
+build: #Build Docker container image
 
 deploy: ## Deploy the FastAPI application
 #	deploy commands

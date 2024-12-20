@@ -12,5 +12,5 @@ router = APIRouter()
 @router.get("/", tags=["welcome"])
 async def read_root():
     """Root endpoint for health check purposes"""
-    logger.info("Welcome, the app is up and running!")
-    return {"message": "Welcome, the app is up and running!"}
+    logger.info("Welcome, the app is live!")
+    return {"message": "Welcome, the app is live!"}

@@ -23,7 +23,7 @@ lint: #Lint the code
 	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py	
 
 test: #Run tests
-#	test commands
+	python -m pytest --verbose --cov=app
 
 build: #Build Docker container image
 

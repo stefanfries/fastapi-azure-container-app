@@ -18,13 +18,27 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me")
 async def get_user_me():
-    """Reply with a welcome message for the user"""
+    """
+    Asynchronous function to get the current user's information.
+    This function logs a welcome message and returns a welcome message
+    for the user.
+    Returns:
+        dict: A dictionary containing a welcome message for the user.
+    """
+
     logger.info("Welcome USER to this fantastic app!")
     return {"message": "Welcome USER to this fantastic app!"}
 
 
 @router.get("/{user}")
 async def get_user_by_name(user: str):
-    """Reply with a welcome message for the user"""
+    """
+    Fetch a user by their name.
+    Args:
+        user (str): The name of the user to fetch.
+    Returns:
+        dict: A dictionary containing a welcome message for the user.
+    """
+
     logger.info("Hi %s, you have been logged!", user)
     return {"message": f"Welcome {user} to this fantastic app!"}

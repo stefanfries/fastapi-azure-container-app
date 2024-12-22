@@ -8,6 +8,11 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
 
+    env:
+      DOCKER_IMAGE: "fastapi-container"
+      DOCKER_TAG: "latest"
+      DOCKER_REGISTRY: "ghcr.io"
+
     permissions:
       contents: read
       packages: write
@@ -22,12 +27,12 @@ jobs:
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
     - name: Build Docker image
-      run: docker build . -t ghcr.io/${{ github.repository }}/python-app:latest
+      run: docker build . -t ghcr.io/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG
 
     - name: Push Docker image
-      run: docker push ghcr.io/${{ github.repository }}/python-app:latest
+      run: docker push ghcr.io/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG
 
     - name: Image digest
-      run: docker inspect ghcr.io/${{ github.repository }}/python-app:latest --format='{{index .RepoDigests 0}}'
+      run: docker inspect ghcr.io/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG --format='{{index .RepoDigests 0}}'
 
     

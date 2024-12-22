@@ -16,11 +16,11 @@ install: #Install commands
 	pip install -r requirements.txt
 
 format: #Format the code
-	black $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py
+	black $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py
 
 lint: #Lint the code
 #	flake8 or pylint
-	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py $(TEST_DIR)/**/*.py	
+	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py
 
 test: #Run tests
 	python -m pytest --verbose --cov=app
@@ -29,9 +29,7 @@ build: #Build Docker container image
 	docker buildx build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 run: #Run Docker container
-#	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
-#	docker run -p 8080:8080 ba2cb09aae72
-	docker run -p 8080:8080 fastapi-container:latest
+	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 deploy: #Deploy the FastAPI application
 #	deploy commands

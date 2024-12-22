@@ -1,0 +1,23 @@
+name: Docker Image CI for GitHub Container Registry
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Login to GitHub Container Registry
+      run:  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build Docker image
+      run: docker build . -t ghcr.io/${{ github.repository }}/python-app:latest
+
+    - name: Push Docker image
+      run: docker push ghcr.io/${{ github.repository }}/python-app:latest
+
+    - name: Image digest
+      run: docker inspect ghcr.io/${{ github.repository }}/python-app:latest --format='{{index .RepoDigests 0}}'
+    

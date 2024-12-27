@@ -49,7 +49,7 @@ jobs:
 
 # Pull image from GitHub Container Registry (Optional for validation)
     - name: Pull Docker image from GHCR
-      run: docker pull ghcr.io/<owner>/<image-name>:<tag>
+      run: docker pull ghcr.io/${{ github.actor }}/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG
 
 # Deploy to Azure Container Apps using GHCR
     - name: Deploy to Azure Container Apps

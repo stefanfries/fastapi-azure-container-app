@@ -58,5 +58,5 @@ jobs:
       run: |
         az containerapp show \
         --name $AZURE_CONTAINER_APP_NAME \
-        --resource-group $AZURE_RESOURCE_GROUP
+        --resource-group $AZURE_RESOURCE_GROUP \
         --query "properties.configuration.ingress.fqdn"

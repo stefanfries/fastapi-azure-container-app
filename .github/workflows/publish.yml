@@ -52,6 +52,7 @@ jobs:
         --registry-server $DOCKER_REGISTRY \
         --registry-username ${{ github.actor }} \
         --registry-password ${{ secrets.GITHUB_TOKEN }}
+        --ingress external --target-port 8080
   
     # Show the deployed Azure Container App
     - name: Verifiy Deployment

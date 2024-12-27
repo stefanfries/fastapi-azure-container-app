@@ -61,3 +61,4 @@ jobs:
         --registry-server $DOCKER_REGISTRY \
         --registry-username ${{ github.actor }} \
         --registry-password ${{ secrets.GITHUB_TOKEN }}
+        --debug

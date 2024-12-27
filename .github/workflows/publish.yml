@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      DOCKER_REGISTRY: "ghcr.io"
       DOCKER_IMAGE: "fastapi-container"
       DOCKER_TAG: "latest"
-      DOCKER_REGISTRY: "ghcr.io"
+      AZURE_CONTAINER_APP_NAME: "ca-fastapi"
+      AZURE_RESOURCE_GROUP: "rg-FastAPI-AzureContainerApp-dev"
 
     permissions:
       contents: read
@@ -35,4 +37,28 @@ jobs:
     - name: Image digest
       run: docker inspect ghcr.io/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG --format='{{index .RepoDigests 0}}'
 
-    
+# Log in to Azure
+    - name: Log in to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+# Log in to GHCR
+    - name: Log in to GHCR
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+# Pull image from GitHub Container Registry (Optional for validation)
+    - name: Pull Docker image from GHCR
+      run: docker pull ghcr.io/<owner>/<image-name>:<tag>
+
+# Deploy to Azure Container Apps using GHCR
+    - name: Deploy to Azure Container Apps
+      run: |
+        az containerapp up \
+        --name $AZURE_CONTAINER_APP_NAME \
+        --resource-group $AZURE_RESOURCE_GROUP \
+        --image $DOCKER_REGISTRY/$OWNER/$DOCKER_IMAGE:$DOCKER_TAG \
+        --environment <environment-name> \
+        --registry-server $DOCKER_REGISTRY \
+        --registry-username ${{ github.actor }} \
+        --registry-password ${{ secrets.GITHUB_TOKEN }}

@@ -15,4 +15,4 @@ router = APIRouter()
 async def read_root():
     """Root endpoint for health check purposes"""
     logger.info("Welcome, the app is live!")
-    return {"message": "Welcome, the app is live!!"}
+    return {"message": "Welcome, the app is live!!!"}

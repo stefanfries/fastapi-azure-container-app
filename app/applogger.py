@@ -28,7 +28,7 @@ config_dict = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "format": "%(asctime)s %(name)s %(levelname)s %(message)s",
+            "format": "%(asctime)s %(name)s %(levelname)s [%(module)s:%(funcName)s:%(lineno)d] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
@@ -60,12 +60,3 @@ config_dict = {
 logging.config.dictConfig(config_dict)
 logger = logging.getLogger(__name__)
 logger.info("Starting FastAPI-Azure-Container-App")
-
-
-# logger.setLevel(logging.INFO)
-# handler = SysLogHandler(address=(PAPERTRAILHOST, PAPERTRAILPORT))
-# formatter = logging.Formatter(
-#     fmt="%(asctime)s %(name)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-# )
-# handler.setFormatter(formatter)
-# logger.addHandler(handler)

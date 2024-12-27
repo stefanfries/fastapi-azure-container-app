@@ -42,6 +42,11 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+     # Pull the Docker image from GHCR
+     - name: Pull Docker image from GHCR
+       run: |
+        docker pull $DOCKER_REGISTRY/${{ github.repository }}/$DOCKER_IMAGE:$DOCKER_TAG
+
     # Deploy to Azure Container Apps (ACA) from GHCR
     - name: Deploy to Azure Container Apps
       run: |

@@ -11,7 +11,7 @@ jobs:
     env:
       DOCKER_REGISTRY: "ghcr.io"
       DOCKER_IMAGE: "fastapi-container"
-      DOCKER_TAG: "latest"
+      DOCKER_TAG: "${{ github.sha }}"
       AZURE_CONTAINER_APP_NAME: "ca-fastapi"
       AZURE_RESOURCE_GROUP: "rg-FastAPI-AzureContainerApp-dev"
 

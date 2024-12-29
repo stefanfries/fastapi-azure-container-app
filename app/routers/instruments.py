@@ -28,9 +28,13 @@ router = APIRouter(prefix="/instruments", tags=["instruments"])
 @router.get("/{instrument_id}")
 async def get_by_instrument_id(instrument_id: str) -> dict:
     """
-    Fetch instrument data by ISIN (International Securities Identification Number).
+    Fetch instrument data by an instrument identifier.
+    This could be:
+        ISIN (International Securities Identification Number), or
+        WKN (German Wertpapierkennnummer) or
+        a general search phrase.
     Args:
-        isin (str): The ISIN of the instrument to fetch.
+        instrument_id (str): The identifier of the instrument to fetch.
     Returns:
         dict: A dictionary containing the instrument data.
     """

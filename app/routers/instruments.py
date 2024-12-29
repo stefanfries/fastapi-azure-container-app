@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.applogger import logger
 
-router = APIRouter(prefix="/instruemts", tags=["instruments"])
+router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
 @router.get("/isin/{isn}")

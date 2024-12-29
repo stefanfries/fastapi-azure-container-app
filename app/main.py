@@ -10,12 +10,13 @@ The main function is empty, but it is a placeholder for future code.
 import uvicorn
 from fastapi import FastAPI
 
-from app.routers import instruments, users, welcome
+from app.routers import depots, instruments, users, welcome
 
 app = FastAPI()
 app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(instruments.router)
+app.include_router(depots.router)
 
 
 def main() -> None:

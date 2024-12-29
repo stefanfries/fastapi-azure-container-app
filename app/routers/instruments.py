@@ -13,6 +13,14 @@ Dependencies:
 from fastapi import APIRouter
 
 from app.applogger import logger
+from app.crud.instruments import (
+    extract_instrument_type_from_response,
+    extract_soup_from_response,
+    extract_wkn_and_isin_from_spoup,
+    get_page_from_url,
+)
+
+# from app.crud.instruments import get_instrument_data_from_web
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -28,10 +36,16 @@ async def get_by_instrument_id(instrument_id: str) -> dict:
     """
 
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
+    # base_data = await get_instrument_data_from_web(instrument_id)
+    response = await get_page_from_url(instrument_id)
+    redirected_url = extract_instrument_type_from_response(response)
+    soup = extract_soup_from_response(response)
+    wkn, isin = extract_wkn_and_isin_from_spoup(soup)
+
+    base_data = {"WKN": wkn, "ISIN": isin}
 
     logger.info(
-        "Retrieved instrument data for instrument_id %s: Apple Corporation",
-        instrument_id,
+        "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
 
-    return {f"{instrument_id}": "Apple Corporation"}
+    return {f"{instrument_id}": base_data}

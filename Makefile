@@ -26,7 +26,6 @@ install: #Install commands
 
 format: #Format the code
 	black $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py
-	@echo "Code formatted successfully"
 
 lint: #Lint the code
 	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py

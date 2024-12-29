@@ -6,7 +6,7 @@ router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
 @router.get("/{instrument_id}")
-async def get_by_instrument_Id(instrument_id: str) -> dict:
+async def get_by_instrument_id(instrument_id: str) -> dict:
     """
     Fetch instrument data by ISIN (International Securities Identification Number).
     Args:
@@ -16,43 +16,9 @@ async def get_by_instrument_Id(instrument_id: str) -> dict:
     """
 
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
-    logger.info("Retrieved instrument data for instrument_id %s: Apple Corporation", instrument_id)
-
-    return {f"{instrument_id}": "Apple Corporation"}
-
-
-"""
-@router.get("/wkn/{wkn}")
-async def get_by_wkn(wkn: str) -> dict:
-    """
-    Fetch instrument data by WKN (Wertpapierkennnummer).
-    Args:
-        wkn (str): The WKN of the instrument to fetch.
-    Returns:
-        dict: A dictionary containing the instrument data.
-    """
-
-    logger.info("Fetching instrument data for WKN %s", wkn)
-    logger.info("Retrieved instrument data for WKN %s: Apple Corporation", wkn)
-
-    return {f"{wkn}": "Apple Corporation"}
-
-
-@router.get("/search/{serach_phrase}")
-async def get_by_search_phrase(search_phrase: str) -> dict:
-    """
-    Fetch instrument data by search phrase.
-    Args:
-        search_phase (str): The search_phrase used to lookup the instrument to fetch.
-    Returns:
-        dict: A dictionary containing the instrument data.
-    """
-
-    logger.info("Fetching instrument data for search phrase %s", search_phrase)
     logger.info(
-        "Retrieved instrument data for search phrase %s: Apple Corporation",
-        search_phrase,
+        "Retrieved instrument data for instrument_id %s: Apple Corporation",
+        instrument_id,
     )
 
-    return {f"{search_phrase}": "Apple Corporation"}
-"""
+    return {f"{instrument_id}": "Apple Corporation"}

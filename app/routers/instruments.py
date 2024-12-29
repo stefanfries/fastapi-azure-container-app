@@ -5,8 +5,8 @@ from app.applogger import logger
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
-@router.get("/isin/{isn}")
-async def get_by_isin(isin: str) -> dict:
+@router.get("/{instrument_id}")
+async def get_by_instrument_Id(instrument_id: str) -> dict:
     """
     Fetch instrument data by ISIN (International Securities Identification Number).
     Args:
@@ -15,12 +15,13 @@ async def get_by_isin(isin: str) -> dict:
         dict: A dictionary containing the instrument data.
     """
 
-    logger.info("Fetching instrument data for ISON %s", isin)
-    logger.info("Retrieved instrument data for ISIN %s: Apple Corporation", isin)
+    logger.info("Fetching instrument data for instrument_id %s", instrument_id)
+    logger.info("Retrieved instrument data for instrument_id %s: Apple Corporation", instrument_id)
 
-    return {f"{isin}": "Apple Corporation"}
+    return {f"{instrument_id}": "Apple Corporation"}
 
 
+"""
 @router.get("/wkn/{wkn}")
 async def get_by_wkn(wkn: str) -> dict:
     """
@@ -54,3 +55,4 @@ async def get_by_search_phrase(search_phrase: str) -> dict:
     )
 
     return {f"{search_phrase}": "Apple Corporation"}
+"""

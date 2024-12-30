@@ -11,7 +11,7 @@ Both endpoints log a message using the logger object when they are called.
 
 from fastapi import APIRouter
 
-from app.applogger import logger
+from app.logging_config import logger
 
 router = APIRouter(prefix="/users", tags=["users"])
 

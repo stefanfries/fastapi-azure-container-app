@@ -18,8 +18,6 @@ Example:
 import logging
 import logging.config
 
-# from logging.handlers import SysLogHandler
-
 PAPERTRAILHOST = "logs2.papertrailapp.com"
 PAPERTRAILPORT = 41485
 
@@ -58,5 +56,5 @@ config_dict = {
 }
 
 logging.config.dictConfig(config_dict)
-logger = logging.getLogger(__name__)
-logger.info("Starting FastAPI-Azure-Container-App")
+logger = logging.getLogger("api_logger")
+logger.info("Starting FastAPI-Azure-Container-App logging")

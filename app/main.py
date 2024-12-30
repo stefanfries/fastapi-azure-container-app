@@ -10,9 +10,11 @@ The main function is empty, but it is a placeholder for future code.
 import uvicorn
 from fastapi import FastAPI
 
+from app.middleware import log_client_ip_middleware
 from app.routers import depots, instruments, users, welcome
 
 app = FastAPI()
+app.middleware("http")(log_client_ip_middleware)
 app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(instruments.router)

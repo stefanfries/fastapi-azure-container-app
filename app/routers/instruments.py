@@ -12,13 +12,13 @@ Dependencies:
 
 from fastapi import APIRouter
 
-from app.applogger import logger
 from app.crud.instruments import (
     extract_instrument_type_from_response,
     extract_soup_from_response,
     extract_wkn_and_isin_from_spoup,
     get_page_from_url,
 )
+from app.logging_config import logger
 
 # from app.crud.instruments import get_instrument_data_from_web
 

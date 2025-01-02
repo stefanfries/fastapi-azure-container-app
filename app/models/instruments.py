@@ -142,7 +142,7 @@ class InstrumentBaseData(BaseModel):
 
     @field_validator("isin")
     @classmethod
-    def isin_validator(cls, v: str) -> str:
+    def isin_validator(cls, v: str) -> str | None:
         """
         Validate the ISIN (International Securities Identification Number) of the instrument.
         Args:

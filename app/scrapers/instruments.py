@@ -97,7 +97,7 @@ def scrape_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
 
     print(f"asset_class: {asset_class.value}")
     headline_h1 = soup.select_one("h1")
-    name = headline_h1.text.replace(asset_class.value, "").strip()
+    name = headline_h1.text.replace(f" {asset_class.value}", "").strip()
     return name
 
 
@@ -123,7 +123,7 @@ def scrape_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     raise ValueError("Unsupported asset class")
 
 
-def scrape_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str:
+def scrape_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     """
     Extracts the ISIN from the given BeautifulSoup object.
     Args:
@@ -137,8 +137,9 @@ def scrape_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str:
         isin = headline_h2.text.strip().split()[3]
         return isin
     if asset_class in special_asset_classes:
-        isin = ""
+        isin = None
         return isin
+    logger.error("Unsupported asset class %s", asset_class)
     raise ValueError("Unsupported asset class")
 
 

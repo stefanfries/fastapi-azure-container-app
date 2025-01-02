@@ -23,17 +23,16 @@ from typing import List
 
 from pydantic import BaseModel
 
-from app.models.instruments import InstrumentId
 
-
-class InstrumentBought(BaseModel):
+class DepotItem(BaseModel):
     """
     Represents an instrument that has been bought.
     Attributes:
-        instrument (InstrumentId): The ID of the instrument that has been purchased.
+        instrument (InstrumentBaseData): The instrument that has been bought.
     """
 
-    instrument: InstrumentId
+    wkn: str
+    # instrument: InstrumentBaseData
 
 
 class Depot(BaseModel):
@@ -50,7 +49,7 @@ class Depot(BaseModel):
 
     id: str
     name: str
-    items: List[InstrumentId]
+    items: List[DepotItem]
     cash: float
     created_at: datetime
     changed_at: datetime

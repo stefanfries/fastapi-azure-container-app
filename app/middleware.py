@@ -13,7 +13,7 @@ async def log_client_ip_middleware(request: Request, call_next):
     """
     Middleware that logs the client's IP address.
     """
-    client_ip = request.headers.get("X-Forwardes-For", request.client.host)
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host)
     logger.info("API called by client IP address: %s", client_ip)
     response = await call_next(request)
     return response

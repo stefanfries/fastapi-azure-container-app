@@ -1,18 +1,17 @@
 """
 This module configures logging for the FastAPI-Azure-Container-App.
-It sets up logging to console, file, and Papertrail using a dictionary configuration.
-The logging configuration includes:
-- A default formatter with a specific format and date format.
-- Handlers for console output, file output, and Papertrail SysLog.
-- A logger for the module with DEBUG level and handlers for file and Papertrail.
-Attributes:
+It sets up logging to console, a file, and Papertrail using the SysLogHandler.
+The logging configuration includes a formatter that specifies the log message format and date format.
+Constants:
     PAPERTRAILHOST (str): The hostname for the Papertrail logging service.
     PAPERTRAILPORT (int): The port number for the Papertrail logging service.
-    config_dict (dict): The dictionary configuration for logging.
-Example:
-    The logger can be used as follows:
-    ```
-    ```
+Configuration Dictionary:
+    config_dict (dict): A dictionary containing the logging configuration.
+Logger:
+    logger (logging.Logger): The logger instance configured for the application.
+Usage:
+    Import this module to configure logging for the application.
+    The logger instance can be used to log messages throughout the application.
 """
 
 import logging
@@ -38,7 +37,7 @@ config_dict = {
         "papertrail": {
             "class": "logging.handlers.SysLogHandler",
             "formatter": "default",
-            "address": ("logs2.papertrailapp.com", 41485),
+            "address": (PAPERTRAILHOST, PAPERTRAILPORT),
         },
         "file": {
             "class": "logging.FileHandler",
@@ -47,9 +46,9 @@ config_dict = {
         },
     },
     "loggers": {
-        __name__: {
+        "api_logger": {
             "level": "DEBUG",
-            "handlers": ["file", "papertrail"],
+            "handlers": ["console", "file", "papertrail"],
             "propagate": False,
         },
     },
@@ -57,4 +56,4 @@ config_dict = {
 
 logging.config.dictConfig(config_dict)
 logger = logging.getLogger("api_logger")
-logger.info("Starting FastAPI-Azure-Container-App logging")
+logger.info("Starting FastAPI logging")

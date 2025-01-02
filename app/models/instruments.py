@@ -1,4 +1,16 @@
-from enum import Enum
+"""
+This module defines data models and validation logic for financial instruments using Pydantic and enumerations.
+Classes:
+    AssetClass (StrEnum): Enumeration of different types of financial instruments.
+    NotationType (Enum): Enumeration for different types of trading notations.
+    NotationInfo (BaseModel): Represents information about a notation.
+    NotationsList (BaseModel): Represents a list of notations.
+    InstrumentBaseData (BaseModel): Represents the base data model for a financial instrument.
+Functions:
+    is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
+"""
+
+from enum import Enum, StrEnum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -37,20 +49,21 @@ def is_valid_isin(isin: str) -> bool:
     return total % 10 == 0
 
 
-class InstrumentType(Enum):
+class AssetClass(StrEnum):
     """
-    Enum representing different types of financial instruments.
+    AssetClass is an enumeration of different types of financial instruments.
+    Each member of the enumeration represents a specific asset class.
     """
 
-    AKTIEN = "Aktie"
-    ANLEIHEN = "Anleihe"
-    ETFS = "ETF"
+    STOCK = "Aktie"
+    BOND = "Anleihe"
+    ETF = "ETF"
     FONDS = "Fonds"
-    OPTIONSSCHEINE = "Optionsschein"
-    ZERTIFIKATE = "Zertifikat"
-    ROHSTOFFE = "Rohstoff"
-    INDIZES = "Index"
-    WAEHRUNGEN = "Währung"
+    WARRANT = "Optionsschein"
+    CERTIFICATE = "Zertifikat"
+    COMMODITY = "Rohstoff"
+    INDEX = "Index"
+    CURRENCY = "Währung"
 
 
 class NotationType(Enum):
@@ -65,14 +78,42 @@ class NotationType(Enum):
     EXCH_TRADING = "Börse"
 
 
-class InstrumentId(BaseModel):
+class NotationInfo(BaseModel):
     """
-    InstrumentId model representing the identification details of a financial instrument.
+    Represents information about a notation.
+    Attributes:
+        notation_name (str): The name of the notation.
+        notation_id (str): The unique identifier for the notation.
+        notation_type (NotationType): The type or category of the notation.
+        notation_link (str): A URL link to more information about the notation.
+    """
+
+    notation_name: str
+    notation_id: str
+    notation_type: NotationType
+    notation_link: str
+
+
+class NotationsList(BaseModel):
+    """
+    Represents a list of notations.
+    Attributes:
+        notations_list (List[NotationInfo]): A list containing notation information.
+    """
+
+    notations_list: List[NotationInfo]
+
+
+class InstrumentBaseData(BaseModel):
+    """
+    InstrumentBaseData represents the base data model for a financial instrument.
     Attributes:
         name (str): Name of the financial instrument.
-        wkn (str): German Wertpapierkennnummer (WKN), a six-character alphanumeric code.
-        isin (str): International Securities Identification Number (ISIN), a twelve-character alphanumeric code.
-        symbol (Optional[str]): Symbol of the instrument/security, default is None.
+        wkn (str): German Wertpapierkennnummer (WKN) with a specific pattern.
+        isin (Optional[str]): International Securities Identification Number (ISIN) with a specific pattern.
+        symbol (Optional[str]): Symbol of the financial instrument.
+    Methods:
+        isin_validator(cls, v: str) -> str: Validates the ISIN of the instrument.
     """
 
     name: str = Field(..., description="Name of the financial instrument")
@@ -81,14 +122,21 @@ class InstrumentId(BaseModel):
         pattern=r"^[A-HJ-NP-Z0-9]{6}$",
         description="German Wertpapierkennnummer",
     )
-    isin: str = Field(
+    isin: Optional[str] = Field(
         ...,
         pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
+        default_factory=None,
         description="International Securities Identification Number",
     )
     symbol: Optional[str] = Field(
         ..., default_factory=None, description="Symbol of the financial instrument"
     )
+    asset_class: AssetClass = Field(
+        ...,
+        description="The asset class of the financial instrument",
+    )
+
+    # notations_list: List[NotationInfo] = Field(default_factory=list)
 
     @field_validator("isin")
     @classmethod
@@ -106,45 +154,3 @@ class InstrumentId(BaseModel):
         if not is_valid_isin(v):
             raise ValueError("Invalid ISIN")
         return v
-
-
-class NotationInfo(BaseModel):
-    """
-    Represents information about a notation.
-    Attributes:
-        notation_name (str): The name of the notation.
-        notation_id (str): The unique identifier for the notation.
-        notation_type (str): The type or category of the notation.
-        notation_link (str): A URL link to more information about the notation.
-    """
-
-    notation_name: str
-    notation_id: str
-    notation_type: str
-    notation_link: str
-
-
-class NotationsList(BaseModel):
-    """
-    A class used to represent a list of notations.
-    Attributes
-    ----------
-    notations_list : List[NotationInfo]
-        A list containing notation information objects.
-    """
-
-    notations_list: List[NotationInfo]
-
-
-class InstrumentBaseData(BaseModel):
-    """
-    InstrumentBaseData is a Pydantic model that represents the base data for an instrument.
-    Attributes:
-        instrument_id (InstrumentId): The unique identifier for the instrument.
-        instrument_type (InstrumentType): The type/category of the instrument.
-        instrument_notations (NotationsList): A list of notations associated with the instrument.
-    """
-
-    instrument_id: InstrumentId
-    instrument_type: InstrumentType
-    instrument_notations: NotationsList

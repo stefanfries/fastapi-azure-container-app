@@ -15,6 +15,7 @@ from app.routers import depots, instruments, users, welcome
 
 app = FastAPI()
 app.middleware("http")(log_client_ip_middleware)
+
 app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(instruments.router)

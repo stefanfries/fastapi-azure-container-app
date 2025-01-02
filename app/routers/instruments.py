@@ -12,23 +12,17 @@ Dependencies:
 
 from fastapi import APIRouter
 
-from app.crud.instruments import (
-    extract_instrument_type_from_response,
-    extract_soup_from_response,
-    extract_wkn_and_isin_from_spoup,
-    get_page_from_url,
-)
 from app.logging_config import logger
-
-# from app.crud.instruments import get_instrument_data_from_web
+from app.models.instruments import InstrumentBaseData
+from app.scrapers.instruments import scrape_instrument_base_data
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
 
-@router.get("/{instrument_id}")
-async def get_by_instrument_id(instrument_id: str) -> dict:
+@router.get("/{instrument_id}", response_model=InstrumentBaseData)
+async def get_instrument_base_data(instrument_id: str) -> InstrumentBaseData:
     """
-    Fetch instrument data by an instrument identifier.
+    Fetch instrument data by an instrument_id.
     This could be:
         ISIN (International Securities Identification Number), or
         WKN (German Wertpapierkennnummer) or
@@ -40,16 +34,8 @@ async def get_by_instrument_id(instrument_id: str) -> dict:
     """
 
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
-    # base_data = await get_instrument_data_from_web(instrument_id)
-    response = await get_page_from_url(instrument_id)
-    redirected_url = extract_instrument_type_from_response(response)
-    soup = extract_soup_from_response(response)
-    wkn, isin = extract_wkn_and_isin_from_spoup(soup)
-
-    base_data = {"WKN": wkn, "ISIN": isin}
-
+    base_data = await scrape_instrument_base_data(instrument_id)
     logger.info(
         "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
-
-    return {f"{instrument_id}": base_data}
+    return base_data

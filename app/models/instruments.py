@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.logging.config import logger
+from app.logging_config import logger
 
 
 def is_valid_isin(isin: str) -> bool:

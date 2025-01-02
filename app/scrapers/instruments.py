@@ -5,6 +5,7 @@ import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
+from app.logging_config import logger
 from app.models.instruments import AssetClass, InstrumentBaseData
 
 BASE_URL = "https://www.comdirect.de"
@@ -71,17 +72,16 @@ def scrape_asset_class_from_response(response: httpx.Response) -> AssetClass:
     Returns:
         AssetClass | None: The extracted asset class if found.
     Raises:
-        HTTPException: If the asset class is not found or not implemented.
+        HTTPException: If the asset class is not found.
     """
 
     redirected_url = str(response.url)
     path = urllib.parse.urlparse(redirected_url).path
     asset_class_identifier = path.split("/")[2]
     if asset_class_identifier not in asset_class_identifier_to_asset_class_map:
-        raise HTTPException(
-            status_code=404,
-            detail="Instrument not found or asset class not implemented",
-        )
+        logger.error("Asset class not found %s", asset_class_identifier)
+        logger.error("Redirected URL: %s", redirected_url)
+        raise HTTPException(status_code=404, detail="Instrument not found")
     asset_class = asset_class_identifier_to_asset_class_map[asset_class_identifier]
     return asset_class
 

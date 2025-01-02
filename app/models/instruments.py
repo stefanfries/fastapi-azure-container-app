@@ -15,6 +15,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.logging.config import logger
+
 
 def is_valid_isin(isin: str) -> bool:
     """
@@ -123,9 +125,9 @@ class InstrumentBaseData(BaseModel):
         description="German Wertpapierkennnummer",
     )
     isin: Optional[str] = Field(
-        ...,
-        pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
-        default_factory=None,
+        None,
+        # pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
+        # default_factory=None,
         description="International Securities Identification Number",
     )
     symbol: Optional[str] = Field(
@@ -150,7 +152,7 @@ class InstrumentBaseData(BaseModel):
         Raises:
             ValueError: If the ISIN is invalid.
         """
-
-        if not is_valid_isin(v):
+        if v is not None and not is_valid_isin(v):
+            logger.error("Invalid ISIN: %s", v)
             raise ValueError("Invalid ISIN")
         return v

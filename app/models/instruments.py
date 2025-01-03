@@ -137,8 +137,14 @@ class InstrumentBaseData(BaseModel):
         ...,
         description="The asset class of the financial instrument",
     )
-
-    # notations_list: List[NotationInfo] = Field(default_factory=list)
+    notation_ids_life_trading: Optional[dict[str, str]] = Field(
+        None,
+        description="A list of notations for the financial instrument",
+    )
+    notation_ids_exchange_trading: Optional[dict[str, str]] = Field(
+        None,
+        description="A list of notations for the financial instrument",
+    )
 
     @field_validator("isin")
     @classmethod

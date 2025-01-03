@@ -167,6 +167,65 @@ def scrape_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         return symbol
 
 
+def scrape_notation_ids(
+    asset_class: AssetClass, soup: BeautifulSoup
+) -> tuple[dict[str, str]] | None:
+    """
+    Extracts the notations from the given BeautifulSoup object based on the asset class.
+    Args:
+        asset_class (AssetClass): The class of the asset, which determines how the notations are extracted.
+        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the notations are to be extracted.
+    Returns:
+        list[str]: The extracted notations or None if notations not available.
+    Raises:
+        ValueError: If the asset class is not supported.
+    """
+
+    if asset_class not in standard_asset_classes:
+        return None
+
+    id_notations_dict = {}
+    id_notations_list = soup.select("#marketSelect option")
+
+    if len(id_notations_list) > 0:
+        # multible trading venues available, therefore list of 'option's found
+        for id_notation in id_notations_list:
+            id_notations_dict[id_notation.attrs["label"]] = id_notation.attrs["value"]
+    else:
+        # only one trading venue, no selection option available, therefore no 'option's and no 'id_notation's found
+        table_rows = soup.select("body div.grid.grid--no-gutter table.simple-table")[
+            0
+        ].select("tr")
+        name = table_rows[0].select("td")[1].text.strip()
+        iden = (
+            table_rows[-1]
+            .select_one("a")
+            .attrs["data-plugin"]
+            .split("ID_NOTATION%3D")[1]
+            .split("%26")[0]
+        )
+        id_notations_dict[name] = iden
+    # print(f"id_notations_dict: {id_notations_dict} \n\n")
+
+    # Extrahieren aller Life Trading Handeslplätze und Ergänzung um ID_Notation aus Dictionary:
+    lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
+    lt_venue_dict = {}
+    for v in lt_venues:
+        venue = v.text.strip()
+        if venue != "--":
+            lt_venue_dict[venue] = id_notations_dict[venue]
+
+    # Extrahieren aller Börsenhandeslplätze und Ergänzung um VenueID aus Dictionary:
+    ex_venues = soup.find_all("td", {"data-label": "Börse"})
+    ex_venue_dict = {}
+    for v in ex_venues:
+        venue = v.text.strip()
+        if venue != "--":
+            ex_venue_dict[venue] = id_notations_dict[venue]
+
+    return lt_venue_dict, ex_venue_dict
+
+
 async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
     """
     Fetches and parses the base data for a given instrument.
@@ -187,8 +246,17 @@ async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
     isin = scrape_isin(asset_class, soup)
     symbol = scrape_symbol(asset_class, soup)
     asset_class = scrape_asset_class_from_response(response)
+    notation_ids_life_trading, notation_ids_exchange_trading = scrape_notation_ids(
+        asset_class, soup
+    )
     base_data = InstrumentBaseData(
-        name=name, wkn=wkn, isin=isin, symbol=symbol, asset_class=asset_class
+        name=name,
+        wkn=wkn,
+        isin=isin,
+        symbol=symbol,
+        asset_class=asset_class,
+        notation_ids_life_trading=notation_ids_life_trading,
+        notation_ids_exchange_trading=notation_ids_exchange_trading,
     )
 
     return base_data

@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+from typing import Dict, Optional, Tuple
 
 import httpx
 from bs4 import BeautifulSoup
@@ -7,6 +8,9 @@ from fastapi import HTTPException
 
 from app.logging_config import logger
 from app.models.instruments import AssetClass, InstrumentBaseData
+
+# from typing import Dict, Optional, Tuple
+
 
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html?"
@@ -95,7 +99,6 @@ def scrape_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
         str: The extracted name of the instrument.
     """
 
-    print(f"asset_class: {asset_class.value}")
     headline_h1 = soup.select_one("h1")
     name = headline_h1.text.replace(f" {asset_class.value}", "").strip()
     return name
@@ -148,7 +151,7 @@ def scrape_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     Extracts the symbol from the given BeautifulSoup object based on the asset class.
     Args:
         asset_class (AssetClass): The class of the asset, which determines how the symbol is extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the symbol is to be extracted.
+        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the symbol extracted.
     Returns:
         str: The extracted symbol.
     Raises:
@@ -169,7 +172,7 @@ def scrape_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
 
 def scrape_notation_ids(
     asset_class: AssetClass, soup: BeautifulSoup
-) -> tuple[dict[str, str]] | None:
+) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
     """
     Extracts the notations from the given BeautifulSoup object based on the asset class.
     Args:
@@ -182,7 +185,7 @@ def scrape_notation_ids(
     """
 
     if asset_class not in standard_asset_classes:
-        return None
+        return None, None
 
     id_notations_dict = {}
     id_notations_list = soup.select("#marketSelect option")
@@ -205,7 +208,6 @@ def scrape_notation_ids(
             .split("%26")[0]
         )
         id_notations_dict[name] = iden
-    # print(f"id_notations_dict: {id_notations_dict} \n\n")
 
     # Extrahieren aller Life Trading Handeslplätze und Ergänzung um ID_Notation aus Dictionary:
     lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
@@ -263,6 +265,16 @@ async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
 
 
 async def main():
+    """
+    Main function to scrape and print the base data of a financial instrument.
+    This function asynchronously retrieves the base data for a specified financial instrument
+    using its instrument ID and prints the retrieved data.
+    Args:
+        None
+    Returns:
+        None
+    """
+
     instrument_id = "DE000A0D9PT0"
     base_data = await scrape_instrument_base_data(instrument_id)
     print(base_data)

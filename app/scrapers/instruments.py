@@ -199,7 +199,8 @@ def scrape_notation_ids(
         table_rows = soup.select("body div.grid.grid--no-gutter table.simple-table")[
             0
         ].select("tr")
-        name = table_rows[0].select("td")[1].text.strip()
+        # Originalzeile: name = table_rows[0].select("td")[1].text.strip()
+        name = table_rows[0].select("td")[0].text.strip()
         iden = (
             table_rows[-1]
             .select_one("a")

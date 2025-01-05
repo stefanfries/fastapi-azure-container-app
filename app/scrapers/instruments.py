@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from app.logging_config import logger
-from app.models.instruments import AssetClass, InstrumentBaseData
+from app.models.instruments import AssetClass, BaseData
 from app.scrapers.helper_functions import convert_to_int
 
 BASE_URL = "https://www.comdirect.de"
@@ -331,13 +331,13 @@ def extract_preferred_notation_id_exchange_trading(
     return notation_id
 
 
-async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
+async def scrape_instrument_base_data(instrument: str) -> BaseData:
     """
     Fetches and parses the base data for a given instrument.
     Args:
         instrument_id (str): The ID of the instrument to fetch data for.
     Returns:
-        InstrumentBaseData: An object containing the base data of the instrument.
+        BaseData: An object containing the base data of the instrument.
     Raises:
         HTTPException: If the request to fetch the instrument data fails.
         ValueError: If the instrument type or ID cannot be extracted from the response.
@@ -362,7 +362,7 @@ async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
             asset_class, notation_ids_exchange_trading, soup
         )
     )
-    base_data = InstrumentBaseData(
+    base_data = BaseData(
         name=name,
         wkn=wkn,
         isin=isin,

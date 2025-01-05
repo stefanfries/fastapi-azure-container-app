@@ -5,7 +5,7 @@ Classes:
     NotationType (Enum): Enumeration for different types of trading notations.
     NotationInfo (BaseModel): Represents information about a notation.
     NotationsList (BaseModel): Represents a list of notations.
-    InstrumentBaseData (BaseModel): Represents the base data model for a financial instrument.
+    BaseData (BaseModel): Represents the base data model for a financial instrument.
 Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
 """
@@ -104,9 +104,9 @@ class NotationsList(BaseModel):
     notations_list: List[NotationInfo]
 
 
-class InstrumentBaseData(BaseModel):
+class BaseData(BaseModel):
     """
-    InstrumentBaseData represents the base data model for a financial instrument.
+    BaseData represents the base data model for a financial instrument.
     Attributes:
         name (str): Name of the financial instrument.
         wkn (str): German Wertpapierkennnummer (WKN) with a specific pattern.

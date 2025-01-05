@@ -13,14 +13,14 @@ Dependencies:
 from fastapi import APIRouter
 
 from app.logging_config import logger
-from app.models.instruments import InstrumentBaseData
+from app.models.instruments import BaseData
 from app.scrapers.instruments import scrape_instrument_base_data
 
-router = APIRouter(prefix="/instruments", tags=["instruments"])
+router = APIRouter(prefix="", tags=["instruments"])
 
 
-@router.get("/{instrument_id}", response_model=InstrumentBaseData)
-async def get_instrument_base_data(instrument_id: str) -> InstrumentBaseData:
+@router.get("/basedata/{instrument_id}", response_model=BaseData)
+async def get_instrument_base_data(instrument_id: str) -> BaseData:
     """
     Fetch instrument data by an instrument_id.
     This could be:
@@ -39,3 +39,8 @@ async def get_instrument_base_data(instrument_id: str) -> InstrumentBaseData:
         "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
     return base_data
+
+
+@router.get("/pricedata/{instrument_id}")
+async def get_instrument_price_data(instrument_id: str) -> dict:
+    return {"price": 100.0, "currency": "EUR"}

@@ -8,9 +8,7 @@ from fastapi import HTTPException
 
 from app.logging_config import logger
 from app.models.instruments import AssetClass, InstrumentBaseData
-
-# from typing import Dict, Optional, Tuple
-
+from app.scrapers.helper_functions import convert_to_int
 
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html?"
@@ -49,11 +47,14 @@ asset_class_identifier_to_asset_class_map = {
 }
 
 
-async def get_page_for_instrument(instrument: str) -> httpx.Response:
+async def get_page_for_instrument(
+    instrument: str, query: Dict | None = None
+) -> httpx.Response:
     """
     Fetches a page for a given instrument from a remote server.
     Args:
         instrument (str): The identifier of the instrument to search for.
+        query (dict | None): Optional. Additional query parameters to include in the request.
     Returns:
         httpx.Response: The HTTP response from the server containing the page data.
     Raises:
@@ -61,8 +62,15 @@ async def get_page_for_instrument(instrument: str) -> httpx.Response:
     """
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
+        # Base query parameters
         params = {"SEARCH_VALUE": instrument}
+        if query:
+            params.update(query)
+
+        # Construct the request URL
         url = f"{BASE_URL}{SEARCH_PATH}"
+
+        # Send the GET request
         response = await client.get(url, params=params)
         response.raise_for_status()
         return response
@@ -210,7 +218,7 @@ def scrape_notation_ids(
         )
         id_notations_dict[name] = iden
 
-    # Extrahieren aller Life Trading Handeslplätze und Ergänzung um ID_Notation aus Dictionary:
+    # Extract Life Trading venues, add ID_Notation from Dictionary:
     lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
     lt_venue_dict = {}
     for v in lt_venues:
@@ -218,7 +226,7 @@ def scrape_notation_ids(
         if venue != "--":
             lt_venue_dict[venue] = id_notations_dict[venue]
 
-    # Extrahieren aller Börsenhandeslplätze und Ergänzung um VenueID aus Dictionary:
+    # Extract Exchange Trading venues, add ID_Notation from Dictionary:
     ex_venues = soup.find_all("td", {"data-label": "Börse"})
     ex_venue_dict = {}
     for v in ex_venues:
@@ -227,6 +235,100 @@ def scrape_notation_ids(
             ex_venue_dict[venue] = id_notations_dict[venue]
 
     return lt_venue_dict, ex_venue_dict
+
+
+def extract_preferred_notation_id_life_trading(
+    asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
+) -> str | None:
+
+    if asset_class not in standard_asset_classes:
+        return None
+
+    # extract Life Trading venues:
+    venues_list = [
+        venue.text.strip()
+        for venue in soup.find_all("td", {"data-label": "LiveTrading"})
+        if venue.text.strip() != "--"
+    ]
+
+    # extract number of price fixings:
+    price_fixings_list = [
+        convert_to_int(price_fixing.text.strip().replace(".", ""))
+        for price_fixing in soup.find_all("td", {"data-label": "Gestellte Kurse"})
+        if price_fixing.text.strip() != "--"
+    ]
+
+    # create dictionary with venue as key and notation_id and price_fixings as values:
+    venue_dict = {
+        venue: {
+            "notation_id": id_notations_dict[venue],
+            "price_fixings": price_fixing,
+        }
+        for venue, price_fixing in zip(venues_list, price_fixings_list)
+    }
+
+    # Sort life trading venues according to the number of price settings:
+    venue_dict = dict(
+        sorted(
+            venue_dict.items(),
+            key=lambda item: int(item[1]["price_fixings"]),
+            reverse=True,
+        )
+    )
+
+    # select and return trading venue with highes number of price setting:
+    notation_id = None
+    if len(venue_dict) > 0:
+        notation_id = list(venue_dict.values())[0]["notation_id"]
+
+    return notation_id
+
+
+def extract_preferred_notation_id_exchange_trading(
+    asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
+) -> str | None:
+
+    if asset_class not in standard_asset_classes:
+        return None
+
+    # extract Exchange Trading venues:
+    venues_list = [
+        venue.text.strip()
+        for venue in soup.find_all("td", {"data-label": "Börse"})
+        if venue.text.strip() != "--"
+    ]
+
+    # extract number of price fixings:
+    price_fixings_list = [
+        convert_to_int(price_fixing.text.strip().replace(".", ""))
+        for price_fixing in soup.find_all("td", {"data-label": "Anzahl Kurse"})
+        if price_fixing.text.strip() != "--"
+    ]
+
+    # create dictionary with venue as key and notation_id and price_fixings as values:
+    venue_dict = {
+        venue: {
+            "notation_id": id_notations_dict[venue],
+            "price_fixings": price_fixing,
+        }
+        for venue, price_fixing in zip(venues_list, price_fixings_list)
+    }
+
+    # Sort life trading venues according to the number of price settings:
+    venue_dict = dict(
+        sorted(
+            venue_dict.items(),
+            key=lambda item: int(item[1]["price_fixings"]),
+            reverse=True,
+        )
+    )
+
+    # select and return trading venue with highes number of price setting:
+    notation_id = None
+    if len(venue_dict) > 0:
+        notation_id = list(venue_dict.values())[0]["notation_id"]
+
+    return notation_id
 
 
 async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
@@ -252,6 +354,14 @@ async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
     notation_ids_life_trading, notation_ids_exchange_trading = scrape_notation_ids(
         asset_class, soup
     )
+    preferred_notation_id_life_trading = extract_preferred_notation_id_life_trading(
+        asset_class, notation_ids_life_trading, soup
+    )
+    preferred_notation_id_exchange_trading = (
+        extract_preferred_notation_id_exchange_trading(
+            asset_class, notation_ids_exchange_trading, soup
+        )
+    )
     base_data = InstrumentBaseData(
         name=name,
         wkn=wkn,
@@ -260,6 +370,8 @@ async def scrape_instrument_base_data(instrument: str) -> InstrumentBaseData:
         asset_class=asset_class,
         notation_ids_life_trading=notation_ids_life_trading,
         notation_ids_exchange_trading=notation_ids_exchange_trading,
+        preferred_notation_id_life_trading=preferred_notation_id_life_trading,
+        preferred_notation_id_exchange_trading=preferred_notation_id_exchange_trading,
     )
 
     return base_data

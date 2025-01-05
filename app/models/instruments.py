@@ -86,13 +86,11 @@ class NotationInfo(BaseModel):
     Attributes:
         notation_name (str): The name of the notation.
         notation_id (str): The unique identifier for the notation.
-        notation_type (NotationType): The type or category of the notation.
         notation_link (str): A URL link to more information about the notation.
     """
 
     notation_name: str
     notation_id: str
-    notation_type: NotationType
     notation_link: str
 
 
@@ -144,6 +142,14 @@ class InstrumentBaseData(BaseModel):
     notation_ids_exchange_trading: Optional[dict[str, str]] = Field(
         None,
         description="A list of notations for the financial instrument",
+    )
+    preferred_notation_id_life_trading: Optional[str] = Field(
+        None,
+        description="The preferred notation for live trading",
+    )
+    preferred_notation_id_exchange_trading: Optional[str] = Field(
+        None,
+        description="The preferred notation for exchange trading",
     )
 
     @field_validator("isin")

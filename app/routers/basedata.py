@@ -13,8 +13,8 @@ Dependencies:
 from fastapi import APIRouter
 
 from app.logging_config import logger
-from app.models.instruments import BaseData
-from app.scrapers.instruments import scrape_instrument_base_data
+from app.models.basedata import BaseData
+from app.parsers.basedata import parse_base_data
 
 router = APIRouter(prefix="", tags=["instruments"])
 
@@ -34,7 +34,7 @@ async def get_instrument_base_data(instrument_id: str) -> BaseData:
     """
 
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
-    base_data = await scrape_instrument_base_data(instrument_id)
+    base_data = await parse_base_data(instrument_id)
     logger.info(
         "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
@@ -43,4 +43,20 @@ async def get_instrument_base_data(instrument_id: str) -> BaseData:
 
 @router.get("/pricedata/{instrument_id}")
 async def get_instrument_price_data(instrument_id: str) -> dict:
-    return {"price": 100.0, "currency": "EUR"}
+    """
+    Fetch instrument price data for instrument_id.
+    This could be:
+        ISIN (International Securities Identification Number), or
+        WKN (German Wertpapierkennnummer) or
+        a general search phrase.
+    """
+    return {
+        "instrument_id": instrument_id,
+        "ask": 100.0,
+        "bid": 100.0,
+        "spread": 0.01,
+        "currency": "EUR",
+        "timestamp": "2021-01-01T00:00:00Z",
+        "source: ": "LT Societe Generale",
+        "notation_id": "1234",
+    }

@@ -1,5 +1,14 @@
 def convert_to_int(value: str) -> int:
-    # Remove leading and trailing spaces
+    """
+    Convert a string representation of a number to an integer.
+    This function handles strings with the abbreviation 'Mio' (which stands for million)
+    by removing the abbreviation and converting the remaining number to an integer,
+    multiplying by 1,000,000. It also handles commas and periods in the string.
+    Args:
+        value (str): The string representation of the number to convert.
+    Returns:
+        int: The integer representation of the input string.
+    """
     value = value.strip()
 
     # Handle 'Mio.' and similar abbreviations

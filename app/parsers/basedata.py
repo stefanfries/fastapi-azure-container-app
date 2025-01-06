@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from app.logging_config import logger
-from app.models.instruments import AssetClass, BaseData
+from app.models.basedata import AssetClass, BaseData
 from app.scrapers.helper_functions import convert_to_int
+from app.scrapers.scrape_url import fetch_one
 
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html?"
@@ -47,36 +48,7 @@ asset_class_identifier_to_asset_class_map = {
 }
 
 
-async def get_page_for_instrument(
-    instrument: str, query: Dict | None = None
-) -> httpx.Response:
-    """
-    Fetches a page for a given instrument from a remote server.
-    Args:
-        instrument (str): The identifier of the instrument to search for.
-        query (dict | None): Optional. Additional query parameters to include in the request.
-    Returns:
-        httpx.Response: The HTTP response from the server containing the page data.
-    Raises:
-        httpx.HTTPStatusError: If the response status code indicates an error.
-    """
-
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        # Base query parameters
-        params = {"SEARCH_VALUE": instrument}
-        if query:
-            params.update(query)
-
-        # Construct the request URL
-        url = f"{BASE_URL}{SEARCH_PATH}"
-
-        # Send the GET request
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response
-
-
-def scrape_asset_class_from_response(response: httpx.Response) -> AssetClass:
+def parse_asset_class(response: httpx.Response) -> AssetClass:
     """
     Extracts the asset class from the given HTTP response.
     Args:
@@ -98,7 +70,7 @@ def scrape_asset_class_from_response(response: httpx.Response) -> AssetClass:
     return asset_class
 
 
-def scrape_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
+def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     """
     Extracts the name of the instrument from the given HTTP response.
     Args:
@@ -112,7 +84,7 @@ def scrape_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     return name
 
 
-def scrape_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
+def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     """
     Extracts the WKN (Wertpapierkennnummer) from the given BeautifulSoup object based on the asset class.
     Args:
@@ -134,7 +106,7 @@ def scrape_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     raise ValueError("Unsupported asset class")
 
 
-def scrape_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
+def parse_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     """
     Extracts the ISIN from the given BeautifulSoup object.
     Args:
@@ -154,7 +126,7 @@ def scrape_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     raise ValueError("Unsupported asset class")
 
 
-def scrape_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
+def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     """
     Extracts the symbol from the given BeautifulSoup object based on the asset class.
     Args:
@@ -178,7 +150,7 @@ def scrape_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         return symbol
 
 
-def scrape_notation_ids(
+def parse_notation_ids(
     asset_class: AssetClass, soup: BeautifulSoup
 ) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
     """
@@ -209,14 +181,14 @@ def scrape_notation_ids(
         ].select("tr")
         # Originalzeile: name = table_rows[0].select("td")[1].text.strip()
         name = table_rows[0].select("td")[0].text.strip()
-        iden = (
+        notation_id = (
             table_rows[-1]
             .select_one("a")
             .attrs["data-plugin"]
             .split("ID_NOTATION%3D")[1]
             .split("%26")[0]
         )
-        id_notations_dict[name] = iden
+        id_notations_dict[name] = notation_id
 
     # Extract Life Trading venues, add ID_Notation from Dictionary:
     lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
@@ -237,21 +209,21 @@ def scrape_notation_ids(
     return lt_venue_dict, ex_venue_dict
 
 
-def extract_preferred_notation_id_life_trading(
+def parse_preferred_notation_id_life_trading(
     asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
 ) -> str | None:
 
     if asset_class not in standard_asset_classes:
         return None
 
-    # extract Life Trading venues:
+    # parse Life Trading venues:
     venues_list = [
         venue.text.strip()
         for venue in soup.find_all("td", {"data-label": "LiveTrading"})
         if venue.text.strip() != "--"
     ]
 
-    # extract number of price fixings:
+    # parse number of price fixings:
     price_fixings_list = [
         convert_to_int(price_fixing.text.strip().replace(".", ""))
         for price_fixing in soup.find_all("td", {"data-label": "Gestellte Kurse"})
@@ -284,7 +256,7 @@ def extract_preferred_notation_id_life_trading(
     return notation_id
 
 
-def extract_preferred_notation_id_exchange_trading(
+def parse_preferred_notation_id_exchange_trading(
     asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
 ) -> str | None:
 
@@ -331,7 +303,7 @@ def extract_preferred_notation_id_exchange_trading(
     return notation_id
 
 
-async def scrape_instrument_base_data(instrument: str) -> BaseData:
+async def parse_base_data(instrument: str) -> BaseData:
     """
     Fetches and parses the base data for a given instrument.
     Args:
@@ -343,22 +315,21 @@ async def scrape_instrument_base_data(instrument: str) -> BaseData:
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
 
-    response = await get_page_for_instrument(instrument)
+    response = await fetch_one(instrument)
     soup = BeautifulSoup(response.content, "html.parser")
-    asset_class = scrape_asset_class_from_response(response)
-    name = scrape_name(asset_class, soup)
-    wkn = scrape_wkn(asset_class, soup)
-    isin = scrape_isin(asset_class, soup)
-    symbol = scrape_symbol(asset_class, soup)
-    asset_class = scrape_asset_class_from_response(response)
-    notation_ids_life_trading, notation_ids_exchange_trading = scrape_notation_ids(
+    asset_class = parse_asset_class(response)
+    name = parse_name(asset_class, soup)
+    wkn = parse_wkn(asset_class, soup)
+    isin = parse_isin(asset_class, soup)
+    symbol = parse_symbol(asset_class, soup)
+    notation_ids_life_trading, notation_ids_exchange_trading = parse_notation_ids(
         asset_class, soup
     )
-    preferred_notation_id_life_trading = extract_preferred_notation_id_life_trading(
+    preferred_notation_id_life_trading = parse_preferred_notation_id_life_trading(
         asset_class, notation_ids_life_trading, soup
     )
     preferred_notation_id_exchange_trading = (
-        extract_preferred_notation_id_exchange_trading(
+        parse_preferred_notation_id_exchange_trading(
             asset_class, notation_ids_exchange_trading, soup
         )
     )
@@ -379,7 +350,7 @@ async def scrape_instrument_base_data(instrument: str) -> BaseData:
 
 async def main():
     """
-    Main function to scrape and print the base data of a financial instrument.
+    Main function to parse and print the base data of a financial instrument.
     This function asynchronously retrieves the base data for a specified financial instrument
     using its instrument ID and prints the retrieved data.
     Args:
@@ -389,7 +360,7 @@ async def main():
     """
 
     instrument_id = "DE000A0D9PT0"
-    base_data = await scrape_instrument_base_data(instrument_id)
+    base_data = await parse_base_data(instrument_id)
     print(base_data)
 
 

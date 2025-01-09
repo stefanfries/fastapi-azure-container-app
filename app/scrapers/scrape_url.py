@@ -40,7 +40,6 @@ async def fetch_one(instrument: str, query: Dict | None = None) -> httpx.Respons
     async def fetch_many(
         urls: List[str], query: Dict | None = None
     ) -> AsyncIterator[httpx.Response]:
-        '''
         Fetches multiple pages asynchronously.
         Args:
             urls (List[str]): A list of URLs to fetch.
@@ -49,7 +48,6 @@ async def fetch_one(instrument: str, query: Dict | None = None) -> httpx.Respons
             AsyncIterator[httpx.Response]: An iterator of HTTP responses.
         Raises:
             httpx.HTTPStatusError: If any response status code indicates an error.
-        '''
         async with httpx.AsyncClient(follow_redirects=True) as client:
             for url in urls:
                 params = {}

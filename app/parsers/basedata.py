@@ -1,13 +1,13 @@
 import re
 import urllib.parse
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from app.logging_config import logger
-from app.models.basedata import AssetClass, BaseData
+from app.models.basedata import AssetClass, BaseData, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
 
@@ -209,6 +209,46 @@ def parse_notation_ids(
     return lt_venue_dict, ex_venue_dict
 
 
+def parse_venues(notation_type: NotationType, soup: BeautifulSoup) -> List[str]:
+    """
+    Extracts the venues from the given BeautifulSoup object based on the notation type.
+    Args:
+        notation_type (NotationType): The type of the notation, which determines how the venues are extracted.
+        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the venues are to be extracted.
+    Returns:
+        list[str]: The extracted venues.
+    """
+    venues = [
+        venue.text.strip()
+        for venue in soup.find_all("td", {"data-label": f"{notation_type.value}"})
+        if venue.text.strip() != "--"
+    ]
+    return venues
+
+
+def parse_price_fixings(notation_type: NotationType, soup: BeautifulSoup) -> List[int]:
+    """
+    Extracts the number of price fixings from the given BeautifulSoup object based on the notation type.
+    Args:
+        notation_type (NotationType): The type of the notation, which determines how the price fixings are extracted.
+        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the price fixings are to be extracted.
+    Returns:
+        list[int]: The extracted number of price fixings.
+    """
+    data_label = (
+        "Gestellte Kurse"
+        if notation_type == NotationType.LIFE_TRADING
+        else "Anzahl Kurse"
+    )
+    price_fixings_list = [
+        convert_to_int(price_fixing.text.strip().replace(".", ""))
+        for price_fixing in soup.find_all("td", {"data-label": f"{data_label}"})
+        if price_fixing.text.strip() != "--"
+    ]
+
+    return price_fixings_list
+
+
 def parse_preferred_notation_id_life_trading(
     asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
 ) -> str | None:
@@ -217,18 +257,10 @@ def parse_preferred_notation_id_life_trading(
         return None
 
     # parse Life Trading venues:
-    venues_list = [
-        venue.text.strip()
-        for venue in soup.find_all("td", {"data-label": "LiveTrading"})
-        if venue.text.strip() != "--"
-    ]
+    venues_list = parse_venues(NotationType.LIFE_TRADING, soup)
 
     # parse number of price fixings:
-    price_fixings_list = [
-        convert_to_int(price_fixing.text.strip().replace(".", ""))
-        for price_fixing in soup.find_all("td", {"data-label": "Gestellte Kurse"})
-        if price_fixing.text.strip() != "--"
-    ]
+    price_fixings_list = parse_price_fixings(NotationType.LIFE_TRADING, soup)
 
     # create dictionary with venue as key and notation_id and price_fixings as values:
     venue_dict = {
@@ -264,18 +296,10 @@ def parse_preferred_notation_id_exchange_trading(
         return None
 
     # extract Exchange Trading venues:
-    venues_list = [
-        venue.text.strip()
-        for venue in soup.find_all("td", {"data-label": "Börse"})
-        if venue.text.strip() != "--"
-    ]
+    venues_list = parse_venues(NotationType.EXCH_TRADING, soup)
 
     # extract number of price fixings:
-    price_fixings_list = [
-        convert_to_int(price_fixing.text.strip().replace(".", ""))
-        for price_fixing in soup.find_all("td", {"data-label": "Anzahl Kurse"})
-        if price_fixing.text.strip() != "--"
-    ]
+    price_fixings_list = parse_price_fixings(NotationType.EXCH_TRADING, soup)
 
     # create dictionary with venue as key and notation_id and price_fixings as values:
     venue_dict = {

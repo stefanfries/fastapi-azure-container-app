@@ -51,7 +51,7 @@ async def parse_price_data(instrument_id: str) -> PriceData:
         .find_next("span", class_="realtime-indicator--value")
         .text
     )
-    bid = float(bid_str.replace(",", "."))
+    bid = float(bid_str.replace(".", "").replace(",", "."))
     print(f"Bid Price: {bid}")
 
     # Extract Ask Price
@@ -60,7 +60,8 @@ async def parse_price_data(instrument_id: str) -> PriceData:
         .find_next("span", class_="realtime-indicator--value")
         .text
     )
-    ask = float(ask_str.replace(",", "."))
+
+    ask = float(ask_str.replace(".", "").replace(",", "."))
     print(f"Ask Price: {ask}")
 
     spread_percent = (ask - bid) / ((ask + bid) / 2) * 100

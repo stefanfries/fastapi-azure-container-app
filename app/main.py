@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.middleware import log_client_ip_middleware
-from app.routers import basedata, depots, users, welcome
+from app.routers import basedata, depots, pricedata, users, welcome
 
 app = FastAPI()
 
@@ -23,6 +23,7 @@ app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(basedata.router)
 app.include_router(depots.router)
+app.include_router(pricedata.router)
 
 
 def main() -> None:

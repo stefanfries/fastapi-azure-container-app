@@ -1,26 +1,28 @@
-from typing import Optional
+from datetime import datetime
 
-from DateTime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PriceData(BaseModel):
     """
-    PriceData represents the price data model for a financial instrument.
+    PriceData model representing financial price data.
     Attributes:
-        ask (float): The asking price for the instrument.
-        bid (float): The bidding price for the instrument.
-        spread (float): The spread between the asking and bidding prices.
-        currency (str): The currency in which the prices are quoted.
-        timestamp (str): The timestamp when the prices were last updated.
-        source (str): The source of the price data.
-        notation_id (Optional[str]): The notation ID associated with the price data.
+        wkn (str): The WKN (Wertpapierkennnummer) of the financial instrument, must be a 6-character alphanumeric string.
+        bid (float): The bid price of the financial instrument.
+        ask (float): The ask price of the financial instrument.
+        spread_percent (float): The spread percentage, must be greater than or equal to 0.
+        currency (str): The currency of the financial instrument, must be one of 'EUR', 'USD', or 'CHF'.
+        timestamp (datetime): The timestamp of the price data.
+        venue (str): The trading venue of the financial instrument.
+        id_notation (str): The notation ID of the financial instrument.
     """
 
-    ask: float
+    name: str
+    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")
     bid: float
-    spread: float
-    currency: str
+    ask: float
+    spread_percent: float = Field(..., ge=0)
+    currency: str = Field(..., pattern="^EUR|USD|CHF$")
     timestamp: datetime
-    venue: str
-    notation_id: Optional[str] = None
+    trading_venue: str
+    id_notation: str

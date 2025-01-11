@@ -11,9 +11,6 @@ from app.models.basedata import AssetClass, BaseData, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
 
-BASE_URL = "https://www.comdirect.de"
-SEARCH_PATH = "/inf/search/all.html?"
-
 standard_asset_classes = [
     AssetClass.STOCK,
     AssetClass.BOND,

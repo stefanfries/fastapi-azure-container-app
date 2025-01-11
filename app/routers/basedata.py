@@ -39,24 +39,3 @@ async def get_instrument_base_data(instrument_id: str) -> BaseData:
         "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
     return base_data
-
-
-@router.get("/pricedata/{instrument_id}")
-async def get_instrument_price_data(instrument_id: str) -> dict:
-    """
-    Fetch instrument price data for instrument_id.
-    This could be:
-        ISIN (International Securities Identification Number), or
-        WKN (German Wertpapierkennnummer) or
-        a general search phrase.
-    """
-    return {
-        "instrument_id": instrument_id,
-        "ask": 100.0,
-        "bid": 100.0,
-        "spread": 0.01,
-        "currency": "EUR",
-        "timestamp": "2021-01-01T00:00:00Z",
-        "source: ": "LT Societe Generale",
-        "notation_id": "1234",
-    }

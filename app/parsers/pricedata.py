@@ -3,14 +3,16 @@ from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
+from fastapi import HTTPException, status
 
 # from app.logging_config import logger
+from app.models.basedata import AssetClass
 from app.models.pricedata import PriceData
 from app.parsers.basedata import parse_asset_class, parse_name, parse_wkn
-from app.scrapers.scrape_url import fetch_one
+from app.scrapers.scrape_url import fetch_base_one, fetch_details_one
 
 
-async def parse_price_data(instrument_id: str) -> PriceData:
+async def parse_price_data(instrument_id: str, id_notation: str | None) -> PriceData:
     """
     Parses price data for a given financial instrument.
     Args:
@@ -21,17 +23,25 @@ async def parse_price_data(instrument_id: str) -> PriceData:
         ValueError: If the response does not contain the expected data.
     """
 
-    response = await fetch_one(instrument_id)
+    response = await fetch_base_one(instrument_id)
 
     # extract ID_NOTATION from query string of redirected URL
-    redirected_url = str(response.url)
-    query = urlparse(redirected_url).query
-    params = parse_qs(query)
-    id_notation = params.get("ID_NOTATION", [None])[0]
+    if id_notation is None:
+        redirected_url = str(response.url)
+        query = urlparse(redirected_url).query
+        params = parse_qs(query)
+        id_notation = params.get("ID_NOTATION", [None])[0]
 
     # extract asset class from response
     asset_class = parse_asset_class(response)
 
+    if asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=f"Price Data for asset class {asset_class} not implemented",
+        )
+
+    response = await fetch_details_one(instrument_id, asset_class, id_notation)
     soup = BeautifulSoup(response.content, "html.parser")
 
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
@@ -47,7 +57,7 @@ async def parse_price_data(instrument_id: str) -> PriceData:
 
     # Extract Bid Price
     bid_str = (
-        table.find("th", string="Geld")
+        table.find("th", text=re.compile("Geld"))
         .find_next("span", class_="realtime-indicator--value")
         .text
     )
@@ -56,7 +66,7 @@ async def parse_price_data(instrument_id: str) -> PriceData:
 
     # Extract Ask Price
     ask_str = (
-        table.find("th", string="Brief")
+        table.find("th", text=re.compile("Brief"))
         .find_next("span", class_="realtime-indicator--value")
         .text
     )
@@ -67,7 +77,7 @@ async def parse_price_data(instrument_id: str) -> PriceData:
     spread_percent = (ask - bid) / ((ask + bid) / 2) * 100
 
     # Extract Timestamp
-    timestamp_str = table.find("th", string="Zeit").find_next("td").text
+    timestamp_str = table.find("th", text=re.compile("Zeit")).find_next("td").text
 
     # Use regular expression to remove unnecessary spaces and newlines
     cleaned_timestamp_str = re.sub(r"\s+", " ", timestamp_str).strip()

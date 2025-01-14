@@ -8,7 +8,9 @@ router = APIRouter(prefix="", tags=["instruments"])
 
 
 @router.get("/pricedata/{instrument_id}", response_model=PriceData)
-async def get_instrument_price_data(instrument_id: str) -> PriceData:
+async def get_price_data(
+    instrument_id: str, id_notation: str | None = None
+) -> PriceData:
     """
     Fetch instrument price data for instrument_id.
     This could be:
@@ -17,7 +19,7 @@ async def get_instrument_price_data(instrument_id: str) -> PriceData:
         a general search phrase.
     """
     logger.info("Fetching pricedata for instrument_id %s", instrument_id)
-    price_data = await parse_price_data(instrument_id)
+    price_data = await parse_price_data(instrument_id, id_notation)
     logger.info(
         "Retrieved pricedata for instrument_id %s: %s", instrument_id, price_data
     )

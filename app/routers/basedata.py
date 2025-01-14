@@ -20,7 +20,7 @@ router = APIRouter(prefix="", tags=["instruments"])
 
 
 @router.get("/basedata/{instrument_id}", response_model=BaseData)
-async def get_instrument_base_data(instrument_id: str) -> BaseData:
+async def get_base_data(instrument_id: str) -> BaseData:
     """
     Fetch instrument data by an instrument_id.
     This could be:

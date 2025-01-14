@@ -6,43 +6,15 @@ import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
+from app.core.constants import (
+    asset_class_identifier_to_asset_class_map,
+    special_asset_classes,
+    standard_asset_classes,
+)
 from app.logging_config import logger
 from app.models.basedata import AssetClass, BaseData, NotationType
 from app.scrapers.helper_functions import convert_to_int
-from app.scrapers.scrape_url import fetch_one
-
-standard_asset_classes = [
-    AssetClass.STOCK,
-    AssetClass.BOND,
-    AssetClass.ETF,
-    AssetClass.FONDS,
-    AssetClass.WARRANT,
-    AssetClass.CERTIFICATE,
-]
-
-special_asset_classes = [
-    AssetClass.INDEX,
-    AssetClass.COMMODITY,
-    AssetClass.CURRENCY,
-]
-
-asset_classes = standard_asset_classes + special_asset_classes
-
-asset_class_to_asset_class_identifier_map = {
-    AssetClass.STOCK: "aktien",
-    AssetClass.BOND: "anleihen",
-    AssetClass.ETF: "etfs",
-    AssetClass.FONDS: "fonds",
-    AssetClass.WARRANT: "optionsscheine",
-    AssetClass.CERTIFICATE: "zertifikate",
-    AssetClass.INDEX: "indizes",
-    AssetClass.COMMODITY: "rohstoffe",
-    AssetClass.CURRENCY: "waehrungen",
-}
-
-asset_class_identifier_to_asset_class_map = {
-    v: k for k, v in asset_class_to_asset_class_identifier_map.items()
-}
+from app.scrapers.scrape_url import fetch_base_one
 
 
 def parse_asset_class(response: httpx.Response) -> AssetClass:
@@ -336,7 +308,7 @@ async def parse_base_data(instrument: str) -> BaseData:
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
 
-    response = await fetch_one(instrument)
+    response = await fetch_base_one(instrument)
     soup = BeautifulSoup(response.content, "html.parser")
     asset_class = parse_asset_class(response)
     name = parse_name(asset_class, soup)

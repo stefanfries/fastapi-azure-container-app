@@ -135,21 +135,25 @@ class BaseData(BaseModel):
         ...,
         description="The asset class of the financial instrument",
     )
-    notation_ids_life_trading: Optional[dict[str, str]] = Field(
+    id_notations_life_trading: Optional[dict[str, str]] = Field(
         None,
-        description="A list of notations for the financial instrument",
+        description="A list of id notations for the financial instrument",
     )
-    notation_ids_exchange_trading: Optional[dict[str, str]] = Field(
+    id_notations_exchange_trading: Optional[dict[str, str]] = Field(
         None,
-        description="A list of notations for the financial instrument",
+        description="A list of id notations for the financial instrument",
     )
-    preferred_notation_id_life_trading: Optional[str] = Field(
+    preferred_id_notation_life_trading: Optional[str] = Field(
         None,
-        description="The preferred notation for live trading",
+        description="The preferred id notation for live trading",
     )
-    preferred_notation_id_exchange_trading: Optional[str] = Field(
+    preferred_id_notation_exchange_trading: Optional[str] = Field(
         None,
-        description="The preferred notation for exchange trading",
+        description="The preferred id notation for exchange trading",
+    )
+    default_id_notation: Optional[str] = Field(
+        None,
+        description="The default id notation for live trading",
     )
 
     @field_validator("isin")

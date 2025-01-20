@@ -1,3 +1,5 @@
+from urllib.parse import urlencode, urljoin, urlparse
+
 import httpx
 
 from app.core.constants import ASSET_CLASS_DETAILS_PATH, BASE_URL, SEARCH_PATH
@@ -6,84 +8,64 @@ from app.models.basedata import AssetClass
 # from typing import AsyncGenerator, AsyncIterator, Dict, List
 
 
-async def fetch_base_one(instrument_id: str) -> httpx.Response:
+def compose_url(
+    instrument_id: str,
+    asset_class: AssetClass | None = None,
+    id_notation: str | None = None,
+) -> str:
     """
-    Fetches data for a given instrument ID from a base URL.
+    Composes a URL for a given instrument ID.
     Args:
         instrument_id (str): The ID of the instrument to search for.
+        asset_class (AssetClass, optional): The asset class of the instrument. Defaults to None.
+        id_notation (str, optional): The ID notation of the instrument. Defaults to None.
     Returns:
-        httpx.Response: The HTTP response object containing the fetched data.
-    Raises:
-        httpx.HTTPStatusError: If the response status code indicates an error.
+        str: The composed URL.
     """
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        # Base query parameters
+    if asset_class is None:
+        return f"{BASE_URL}{SEARCH_PATH}?SEARCH_VALUE={instrument_id}"
+    else:
+        path = ASSET_CLASS_DETAILS_PATH.get(asset_class, SEARCH_PATH)
         params = {"SEARCH_VALUE": instrument_id}
-
-        # Construct the request URL
-        url = f"{BASE_URL}{SEARCH_PATH}"
-
-        # Send the GET request
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        print(f"redirected URL: {response.url}")
-        return response
+        if id_notation:
+            params["ID_NOTATION"] = id_notation
+        base_url = urljoin(BASE_URL, path)
+        query_string = urlencode(params)
+        url = f"{base_url}?{query_string}"
+        print(f"Full_URL: {url}")
+        return url
 
 
-async def fetch_details_one(
-    instrument_id: str, asset_class: AssetClass, id_notation: str | None = None
+async def fetch_one(
+    instrument_id: str,
+    asset_class: AssetClass | None = None,
+    id_notation: str | None = None,
 ) -> httpx.Response:
     """
-    Fetch details for a given financial instrument.
+    Fetch data from a URL composed of the given parameters.
     Args:
-        instrument_id (str): The unique identifier for the financial instrument.
-        asset_class (AssetClass): The asset class of the financial instrument.
-        id_notation (str, optional): An optional notation ID for the instrument. Defaults to None.
+        instrument_id (str): The ID of the instrument to fetch data for.
+        asset_class (AssetClass | None, optional): The asset class of the instrument. Defaults to None.
+        id_notation (str | None, optional): The notation ID of the instrument. Defaults to None.
     Returns:
-        httpx.Response: The HTTP response object containing the details of the financial instrument.
+        httpx.Response: The HTTP response from the GET request.
     Raises:
         httpx.HTTPStatusError: If the HTTP request returned an unsuccessful status code.
     """
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        # Base query parameters
-        params = {"SEARCH_VALUE": instrument_id}
-        if id_notation:
-            params.update({"ID_NOTATION": id_notation})
 
-        print(f"Params: {params}")
-
-        # Construct the request URL
-        path = ASSET_CLASS_DETAILS_PATH.get(asset_class, SEARCH_PATH)
-        url = f"{BASE_URL}{path}"
+        url = compose_url(instrument_id, asset_class, id_notation)
+        print(f"instrument_id: {instrument_id}")
+        print(f"asset_class: {asset_class}")
+        print(f"id_notation: {id_notation}")
         print(f"URL: {url}")
-
+        print(f"URL: {urlparse(url)}")
+        print()
+        print()
         # Send the GET request
-        response = await client.get(url, params=params)
+        response = await client.get(url)
         response.raise_for_status()
         print(f"redirected URL: {response.url}")
         return response
-
-
-"""
-    async def base_fetch_many(
-        urls: List[str], query: Dict | None = None
-    ) -> AsyncIterator[httpx.Response]:
-        Fetches multiple pages asynchronously.
-        Args:
-            urls (List[str]): A list of URLs to fetch.
-            query (dict | None): Optional. Additional query parameters to include in the request.
-        Returns:
-            AsyncIterator[httpx.Response]: An iterator of HTTP responses.
-        Raises:
-            httpx.HTTPStatusError: If any response status code indicates an error.
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            for url in urls:
-                params = {}
-                if query:
-                    params.update(query)
-                response = await client.get(url, params=params)
-                response.raise_for_status()
-                yield response
-"""

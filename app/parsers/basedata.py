@@ -14,7 +14,7 @@ from app.core.constants import (
 from app.logging_config import logger
 from app.models.basedata import AssetClass, BaseData, NotationType
 from app.scrapers.helper_functions import convert_to_int
-from app.scrapers.scrape_url import fetch_base_one
+from app.scrapers.scrape_url import fetch_one
 
 
 def parse_asset_class(response: httpx.Response) -> AssetClass:
@@ -37,6 +37,21 @@ def parse_asset_class(response: httpx.Response) -> AssetClass:
         raise HTTPException(status_code=404, detail="Instrument not found")
     asset_class = asset_class_identifier_to_asset_class_map[asset_class_identifier]
     return asset_class
+
+
+def parse_default_id_notation(response: httpx.Response) -> str | None:
+    """
+    Extracts the default ID notation from the given HTTP response.
+    Args:
+        response (httpx.Response): The HTTP response object from which to extract the default notation ID.
+    Returns:
+        str: The extracted default notation ID.
+    """
+    redirected_url = str(response.url)
+    default_id_notation = urllib.parse.parse_qs(
+        urllib.parse.urlparse(redirected_url).query
+    ).get("ID_NOTATION", [None])[0]
+    return default_id_notation
 
 
 def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
@@ -308,22 +323,23 @@ async def parse_base_data(instrument: str) -> BaseData:
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
 
-    response = await fetch_base_one(instrument)
+    response = await fetch_one(instrument)
     soup = BeautifulSoup(response.content, "html.parser")
     asset_class = parse_asset_class(response)
+    default_id_notation = parse_default_id_notation(response)
     name = parse_name(asset_class, soup)
     wkn = parse_wkn(asset_class, soup)
     isin = parse_isin(asset_class, soup)
     symbol = parse_symbol(asset_class, soup)
-    notation_ids_life_trading, notation_ids_exchange_trading = parse_notation_ids(
+    id_notations_life_trading, id_notations_exchange_trading = parse_notation_ids(
         asset_class, soup
     )
-    preferred_notation_id_life_trading = parse_preferred_notation_id_life_trading(
-        asset_class, notation_ids_life_trading, soup
+    preferred_id_notation_life_trading = parse_preferred_notation_id_life_trading(
+        asset_class, id_notations_life_trading, soup
     )
-    preferred_notation_id_exchange_trading = (
+    preferred_id_notation_exchange_trading = (
         parse_preferred_notation_id_exchange_trading(
-            asset_class, notation_ids_exchange_trading, soup
+            asset_class, id_notations_exchange_trading, soup
         )
     )
     base_data = BaseData(
@@ -332,12 +348,12 @@ async def parse_base_data(instrument: str) -> BaseData:
         isin=isin,
         symbol=symbol,
         asset_class=asset_class,
-        notation_ids_life_trading=notation_ids_life_trading,
-        notation_ids_exchange_trading=notation_ids_exchange_trading,
-        preferred_notation_id_life_trading=preferred_notation_id_life_trading,
-        preferred_notation_id_exchange_trading=preferred_notation_id_exchange_trading,
+        id_notations_life_trading=id_notations_life_trading,
+        id_notations_exchange_trading=id_notations_exchange_trading,
+        preferred_id_notation_life_trading=preferred_id_notation_life_trading,
+        preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
+        default_id_notation=default_id_notation,
     )
-
     return base_data
 
 

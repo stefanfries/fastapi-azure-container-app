@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
@@ -8,8 +7,19 @@ from fastapi import HTTPException, status
 # from app.logging_config import logger
 from app.models.basedata import AssetClass
 from app.models.pricedata import PriceData
-from app.parsers.basedata import parse_asset_class, parse_name, parse_wkn
-from app.scrapers.scrape_url import fetch_base_one, fetch_details_one
+from app.parsers.basedata import parse_base_data, parse_name, parse_wkn
+from app.scrapers.scrape_url import fetch_one
+
+
+def check_id_notation_valid(basedata, id_notation):
+    if (
+        id_notation not in basedata.id_notations_life_trading.values()
+        and id_notation not in basedata.id_notations_exchange_trading.values()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid id_notation {id_notation} for instrument {basedata.instrument_id}",
+        )
 
 
 async def parse_price_data(instrument_id: str, id_notation: str | None) -> PriceData:
@@ -23,34 +33,44 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
         ValueError: If the response does not contain the expected data.
     """
 
-    response = await fetch_base_one(instrument_id)
+    # as basedata are not known, parse them first
+    # TODO: implement basedata fetch from database
+    # TODO: implement basedata caching
+    basedata = await parse_base_data(instrument_id)
 
-    # extract ID_NOTATION from query string of redirected URL
-    if id_notation is None:
-        redirected_url = str(response.url)
-        query = urlparse(redirected_url).query
-        params = parse_qs(query)
-        id_notation = params.get("ID_NOTATION", [None])[0]
-
-    # extract asset class from response
-    asset_class = parse_asset_class(response)
-
-    if asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):
+    if basedata.asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=f"Price Data for asset class {asset_class} not implemented",
+            detail=f"Pricedata for asset class {basedata.asset_class} not implemented",
         )
 
-    response = await fetch_details_one(instrument_id, asset_class, id_notation)
+    match id_notation:
+        case None:
+            id_notation = basedata.default_id_notation
+        case "preferred_id_notation_exchange_trading":
+            id_notation = basedata.preferred_id_notation_exchange_trading
+        case "preferred_id_notation_life_trading":
+            id_notation = basedata.preferred_id_notation_life_trading
+        case "default_id_notation":
+            id_notation = basedata.default_id_notation
+        case _:
+            check_id_notation_valid(basedata, id_notation)
+
+    # fetch instrument data from the web for the given id_notation
+    response = await fetch_one(basedata.wkn, basedata.asset_class, id_notation)
     soup = BeautifulSoup(response.content, "html.parser")
+
+    # extract currency from soup object
+    currency = soup.find_all("meta", itemprop="priceCurrency")
+    print(f"length: {len(currency)}")
 
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
     print(f"Currency: {currency}")
 
     # extract name from soup object
-    name = parse_name(asset_class, soup)
+    name = parse_name(basedata.asset_class, soup)
     # extract WKN from soup object
-    wkn = parse_wkn(asset_class, soup)
+    wkn = parse_wkn(basedata.asset_class, soup)
 
     # extract Table "Kursdaten" from soup object
     table = soup.find("h2", text=re.compile("Kursdaten")).parent.find("table")

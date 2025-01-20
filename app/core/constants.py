@@ -34,11 +34,25 @@ asset_class_identifier_to_asset_class_map = {
 }
 
 ASSET_CLASS_DETAILS_PATH = {
+    AssetClass.STOCK: "/inf/aktien/detail/uebersicht.html",
+    AssetClass.BOND: "/inf/anleihen/detail/uebersicht.html",
+    AssetClass.ETF: "/inf/etfs/detail/uebersicht.html",
+    AssetClass.FONDS: "/inf/fonds/detail/uebersicht.html",
+    AssetClass.WARRANT: "/inf/optionsscheine/detail/uebersicht/uebersicht.html",
+    AssetClass.CERTIFICATE: "/inf/zertifikate/detail/uebersicht.html",
+    AssetClass.INDEX: "/inf/indizes/detail/uebersicht.html",
+    AssetClass.COMMODITY: "/inf/rohstoffe/detail/uebersicht.html",
+    AssetClass.CURRENCY: "/inf/waehrungen/detail/uebersicht.html",
+}
+
+"""
+ASSET_CLASS_DETAILS_PATH = {
     asset_class: "/inf/"
     + asset_class_to_asset_class_identifier_map[asset_class]
     + "/detail/uebersicht.html"
     for asset_class in asset_classes
 }
+"""
 
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html"

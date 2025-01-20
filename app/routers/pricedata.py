@@ -18,9 +18,16 @@ async def get_price_data(
         WKN (German Wertpapierkennnummer) or
         a general search phrase.
     """
-    logger.info("Fetching pricedata for instrument_id %s", instrument_id)
+    logger.info(
+        "Fetching pricedata for instrument_id %s and id_notation %s",
+        instrument_id,
+        id_notation,
+    )
     price_data = await parse_price_data(instrument_id, id_notation)
     logger.info(
-        "Retrieved pricedata for instrument_id %s: %s", instrument_id, price_data
+        "Retrieved pricedata for instrument_id %s and id_notation %s:\n %s",
+        instrument_id,
+        id_notation,
+        price_data,
     )
     return price_data

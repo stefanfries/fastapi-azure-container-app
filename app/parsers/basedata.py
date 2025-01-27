@@ -134,7 +134,7 @@ def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         return symbol
 
 
-def parse_notation_ids(
+def parse_id_notations(
     asset_class: AssetClass, soup: BeautifulSoup
 ) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
     """
@@ -255,6 +255,7 @@ def parse_preferred_notation_id_life_trading(
         for venue, price_fixing in zip(venues_list, price_fixings_list)
     }
 
+    # TODO: change subsequent code to use the max function instead of sorting and picking the first element
     # Sort life trading venues according to the number of price settings:
     venue_dict = dict(
         sorted(
@@ -294,6 +295,7 @@ def parse_preferred_notation_id_exchange_trading(
         for venue, price_fixing in zip(venues_list, price_fixings_list)
     }
 
+    # TODO: change subsequent code to use the max function instead of sorting and picking the first element
     # Sort life trading venues according to the number of price settings:
     venue_dict = dict(
         sorted(
@@ -331,7 +333,7 @@ async def parse_base_data(instrument: str) -> BaseData:
     wkn = parse_wkn(asset_class, soup)
     isin = parse_isin(asset_class, soup)
     symbol = parse_symbol(asset_class, soup)
-    id_notations_life_trading, id_notations_exchange_trading = parse_notation_ids(
+    id_notations_life_trading, id_notations_exchange_trading = parse_id_notations(
         asset_class, soup
     )
     preferred_id_notation_life_trading = parse_preferred_notation_id_life_trading(
@@ -369,8 +371,8 @@ async def main():
     """
 
     instrument_id = "DE000A0D9PT0"
-    base_data = await parse_base_data(instrument_id)
-    print(base_data)
+    basedata = await parse_base_data(instrument_id)
+    print(basedata)
 
 
 if __name__ == "__main__":

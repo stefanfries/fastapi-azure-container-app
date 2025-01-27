@@ -56,3 +56,4 @@ ASSET_CLASS_DETAILS_PATH = {
 
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html"
+HISTORY_PATH = "/inf/kursdaten/historic.csv"

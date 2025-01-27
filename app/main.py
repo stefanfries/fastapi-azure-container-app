@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.middleware import log_client_ip_middleware
-from app.routers import basedata, depots, pricedata, users, welcome  # , history
+from app.routers import basedata, depots, history, pricedata, users, welcome
 
 app = FastAPI()
 
@@ -24,7 +24,7 @@ app.include_router(users.router)
 app.include_router(basedata.router)
 app.include_router(depots.router)
 app.include_router(pricedata.router)
-# app.include_router(history.router)
+app.include_router(history.router)
 
 
 def main() -> None:
@@ -38,7 +38,7 @@ def main() -> None:
     None
     """
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=False)
     return None
 
 

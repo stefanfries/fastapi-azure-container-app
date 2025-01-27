@@ -1,17 +1,33 @@
 from datetime import datetime
+from typing import List
 
 # import pandas as pd
 from pydantic import BaseModel, Field
+from typing_extensions import Literal
+
+type ValidInterval = Literal[
+    "all", "5min", "15min", "30min", "1hour", "1day", "1week", "1month"
+]
+
+type Currency = Literal["EUR", "USD", "CHF"]
+
+
+class HistoryRecord(BaseModel):
+    datetime: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
 
 
 class HistoryData(BaseModel):
-    name: str
     wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")
-    starttime: datetime
-    endtime: datetime
-    trading_venue: str
+    name: str
     id_notation: str
-    currency: str = Field(..., pattern="^EUR|USD|CHF$")
-
-
-#    data: pd.DataFrame
+    trading_venue: str
+    currency: Currency
+    start: datetime
+    end: datetime
+    interval: ValidInterval
+    data: List[HistoryRecord]

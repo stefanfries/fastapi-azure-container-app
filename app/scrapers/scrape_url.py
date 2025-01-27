@@ -1,4 +1,4 @@
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import urlencode, urljoin
 
 import httpx
 
@@ -57,15 +57,6 @@ async def fetch_one(
     async with httpx.AsyncClient(follow_redirects=True) as client:
 
         url = compose_url(instrument_id, asset_class, id_notation)
-        print(f"instrument_id: {instrument_id}")
-        print(f"asset_class: {asset_class}")
-        print(f"id_notation: {id_notation}")
-        print(f"URL: {url}")
-        print(f"URL: {urlparse(url)}")
-        print()
-        print()
-        # Send the GET request
         response = await client.get(url)
         response.raise_for_status()
-        print(f"redirected URL: {response.url}")
         return response

@@ -5,9 +5,7 @@ from typing import List
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-type ValidInterval = Literal[
-    "all", "5min", "15min", "30min", "1hour", "1day", "1week", "1month"
-]
+type Interval = Literal["5min", "15min", "30min", "hour", "day", "week", "month"]
 
 type Currency = Literal["EUR", "USD", "CHF"]
 
@@ -29,5 +27,5 @@ class HistoryData(BaseModel):
     currency: Currency
     start: datetime
     end: datetime
-    interval: ValidInterval
+    interval: Interval
     data: List[HistoryRecord]

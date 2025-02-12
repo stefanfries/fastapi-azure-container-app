@@ -10,7 +10,7 @@ Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
 """
 
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -51,7 +51,7 @@ def is_valid_isin(isin: str) -> bool:
     return total % 10 == 0
 
 
-class AssetClass(StrEnum):
+class AssetClass(str, Enum):
     """
     AssetClass is an enumeration of different types of financial instruments.
     Each member of the enumeration represents a specific asset class.
@@ -68,7 +68,7 @@ class AssetClass(StrEnum):
     CURRENCY = "Währung"
 
 
-class NotationType(Enum):
+class NotationType(str, Enum):
     """
     Enumeration for different types of trading notations.
     Attributes:

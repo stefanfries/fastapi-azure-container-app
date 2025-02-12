@@ -11,7 +11,6 @@ Dependencies:
 """
 
 from fastapi import APIRouter
-from fastapi.responses import Response
 
 from app.logging_config import logger
 from app.models.basedata import BaseData
@@ -39,7 +38,4 @@ async def get_base_data(instrument_id: str) -> BaseData:
     logger.info(
         "Retrieved instrument data for instrument_id %s: %s", instrument_id, base_data
     )
-    return Response(
-        content=base_data.model_dump_json(),
-        media_type="application/json; charset=utf-8",
-    )
+    return base_data

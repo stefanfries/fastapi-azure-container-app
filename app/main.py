@@ -9,12 +9,25 @@ The main function is empty, but it is a placeholder for future code.
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.middleware import log_client_ip_middleware
 from app.routers import basedata, depots, history, pricedata, users, welcome
 
-app = FastAPI()
+
+class CustomJSONResponse(JSONResponse):
+    """
+    Custom JSON response class that sets the media type to "application/json; charset=utf-8".
+    This is necessary to ensure that the JSON response (containing German Umlauts) is correctly formatted, especially for Apple devices.
+    Attributes:
+        media_type (str): The media type for the response, set to "application/json; charset=utf-8".
+    """
+
+    media_type = "application/json; charset=utf-8"
+
+
+app = FastAPI(default_response_class=CustomJSONResponse)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.middleware("http")(log_client_ip_middleware)

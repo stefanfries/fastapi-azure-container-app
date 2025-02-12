@@ -24,12 +24,39 @@ interval_identifier = {
 
 
 def is_intraday(interval: Interval) -> bool:
+    """
+    Check if the given interval is an intraday interval.
+    Args:
+        interval (Interval): The interval to check.
+    Returns:
+        bool: True if the interval is one of "5min", "15min", "30min", or "hour", indicating it is an intraday interval; False otherwise.
+    """
+
     return interval in ["5min", "15min", "30min", "hour"]
 
 
 async def parse_history_data(
     instrument_id: str, start, end, interval: Interval
 ) -> HistoryData:
+    """
+    Parses historical data for a given financial instrument.
+    Args:
+        instrument_id (str): The ID of the financial instrument.
+        start (datetime): The start date for the historical data.
+        end (datetime): The end date for the historical data.
+        interval (Interval): The interval for the historical data (e.g., day, week, month).
+    Returns:
+        HistoryData: An object containing the parsed historical data.
+    Raises:
+        httpx.HTTPStatusError: If the HTTP request to fetch data fails.
+    Notes:
+        - If `interval` is None, it defaults to "day".
+        - If `end` is None or greater than the current datetime, it defaults to the current datetime.
+        - If `start` is None, greater than `end`, or if the interval is intraday, it defaults to 14 days before `end`.
+        - The function fetches data in chunks with an offset, concatenates the data into a DataFrame, and processes it based on the interval.
+        - The DataFrame is converted to a list of dictionaries and returned as part of the `HistoryData` object.
+        - The function also determines the trading venue and currency for the given instrument.
+    """
 
     logger.info("parse_history_data: %s", instrument_id)
     basedata = await parse_base_data(instrument_id)
@@ -132,8 +159,8 @@ async def parse_history_data(
 
     # build a dict of all id_notations
     id_notations_dict = {
-        **basedata.id_notations_life_trading,
-        **basedata.id_notations_exchange_trading,
+        **basedata.id_notations_life_trading,  # type: ignore
+        **basedata.id_notations_exchange_trading,  # type: ignore
     }
 
     # find the trading_venue for a given id_notation
@@ -157,5 +184,5 @@ async def parse_history_data(
         start=start,
         end=end,
         interval=interval,
-        data=data,
+        data=data,  # type: ignore
     )

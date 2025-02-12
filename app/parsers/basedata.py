@@ -255,20 +255,12 @@ def parse_preferred_notation_id_life_trading(
         for venue, price_fixing in zip(venues_list, price_fixings_list)
     }
 
-    # TODO: change subsequent code to use the max function instead of sorting and picking the first element
-    # Sort life trading venues according to the number of price settings:
-    venue_dict = dict(
-        sorted(
-            venue_dict.items(),
-            key=lambda item: int(item[1]["price_fixings"]),
-            reverse=True,
-        )
-    )
-
     # select and return trading venue with highes number of price setting:
-    notation_id = None
-    if len(venue_dict) > 0:
-        notation_id = list(venue_dict.values())[0]["notation_id"]
+    if venue_dict:
+        top_venue = max(venue_dict.values(), key=lambda v: int(v["price_fixings"]))
+        notation_id = top_venue["notation_id"]
+    else:
+        notation_id = None
 
     return notation_id
 
@@ -295,20 +287,12 @@ def parse_preferred_notation_id_exchange_trading(
         for venue, price_fixing in zip(venues_list, price_fixings_list)
     }
 
-    # TODO: change subsequent code to use the max function instead of sorting and picking the first element
-    # Sort life trading venues according to the number of price settings:
-    venue_dict = dict(
-        sorted(
-            venue_dict.items(),
-            key=lambda item: int(item[1]["price_fixings"]),
-            reverse=True,
-        )
-    )
-
     # select and return trading venue with highes number of price setting:
-    notation_id = None
-    if len(venue_dict) > 0:
-        notation_id = list(venue_dict.values())[0]["notation_id"]
+    if venue_dict:
+        top_venue = max(venue_dict.values(), key=lambda v: int(v["price_fixings"]))
+        notation_id = top_venue["notation_id"]
+    else:
+        notation_id = None
 
     return notation_id
 

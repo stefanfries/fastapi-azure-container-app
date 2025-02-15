@@ -2,8 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.basedata import Wkn
-
 
 class PriceData(BaseModel):
     """
@@ -20,8 +18,7 @@ class PriceData(BaseModel):
     """
 
     name: str
-    wkn: Wkn
-    # wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")
+    wkn: str = Field(..., pattern=r"^[A-HJ-NPR-Z0-9]{6}$")
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)

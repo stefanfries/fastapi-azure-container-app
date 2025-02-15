@@ -8,31 +8,8 @@ from fastapi import HTTPException, status
 from app.models.basedata import AssetClass
 from app.models.pricedata import PriceData
 from app.parsers.basedata import parse_base_data, parse_name, parse_wkn
+from app.parsers.utils import check_valid_id_notation
 from app.scrapers.scrape_url import fetch_one
-
-
-def check_id_notation_valid(basedata, id_notation):
-    """
-    Validates the given id_notation against the basedata.
-    This function checks if the provided id_notation is present in either
-    the id_notations_life_trading or id_notations_exchange_trading values
-    of the basedata. If the id_notation is not found in either, an HTTPException
-    is raised with a 400 status code.
-    Args:
-        basedata: An object containing id_notations_life_trading and id_notations_exchange_trading.
-        id_notation: The id_notation to be validated.
-    Raises:
-        HTTPException: If the id_notation is not valid for the given basedata.
-    """
-
-    if (
-        id_notation not in basedata.id_notations_life_trading.values()
-        and id_notation not in basedata.id_notations_exchange_trading.values()
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid id_notation {id_notation} for instrument {basedata.instrument_id}",
-        )
 
 
 async def parse_price_data(instrument_id: str, id_notation: str | None) -> PriceData:
@@ -49,6 +26,7 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
     # as basedata are not known, parse them first
     # TODO: implement basedata fetch from database
     # TODO: implement basedata caching
+
     basedata = await parse_base_data(instrument_id)
 
     if basedata.asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):
@@ -67,7 +45,7 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
         case "default_id_notation":
             id_notation = basedata.default_id_notation
         case _:
-            check_id_notation_valid(basedata, id_notation)
+            check_valid_id_notation(basedata, id_notation)
 
     # fetch instrument data from the web for the given id_notation
     response = await fetch_one(str(basedata.wkn), basedata.asset_class, id_notation)
@@ -76,7 +54,6 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
     # extract currency from soup object
     currency = soup.find_all("meta", itemprop="priceCurrency")
     print(f"length: {len(currency)}")
-
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
     print(f"Currency: {currency}")
 

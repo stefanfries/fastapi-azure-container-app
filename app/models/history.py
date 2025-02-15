@@ -4,8 +4,6 @@ from typing import List
 from pydantic import BaseModel
 from typing_extensions import Literal
 
-from app.models.basedata import Wkn
-
 type Interval = Literal["5min", "15min", "30min", "hour", "day", "week", "month"]
 
 type Currency = Literal["EUR", "USD", "CHF"]
@@ -46,7 +44,7 @@ class HistoryData(BaseModel):
         data (List[HistoryRecord]): A list of historical records for the financial instrument.
     """
 
-    wkn: Wkn
+    wkn: str
     name: str
     id_notation: str
     trading_venue: str

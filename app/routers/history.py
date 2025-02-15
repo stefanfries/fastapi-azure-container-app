@@ -16,6 +16,7 @@ async def get_history_data(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     interval: Interval = "day",
+    id_notation: Optional[str] = None,
 ) -> HistoryData:
     """
     Fetches historical price data for a given instrument.
@@ -28,7 +29,13 @@ async def get_history_data(
     """
 
     logger.info("Fetching history data for instrument_id %s", instrument_id)
-    history_data = await parse_history_data(instrument_id, start, end, interval)
+    history_data = await parse_history_data(
+        instrument_id=instrument_id,
+        start=start,
+        end=end,
+        interval=interval,
+        id_notation=id_notation,
+    )
     logger.info(
         "successfully retrieved history data for instrument_id %s", instrument_id
     )

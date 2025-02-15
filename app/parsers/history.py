@@ -1,4 +1,3 @@
-# import re
 from datetime import datetime, timedelta
 from io import StringIO
 from urllib.parse import urljoin
@@ -10,6 +9,7 @@ from app.core.constants import BASE_URL, HISTORY_PATH
 from app.logging_config import logger
 from app.models.history import HistoryData, Interval
 from app.parsers.basedata import parse_base_data
+from app.parsers.utils import check_valid_id_notation, get_trading_venue
 
 interval_identifier = {
     # "all": "0",
@@ -36,39 +36,51 @@ def is_intraday(interval: Interval) -> bool:
 
 
 async def parse_history_data(
-    instrument_id: str, start, end, interval: Interval
+    instrument_id: str,
+    start: datetime | None,
+    end: datetime | None,
+    interval: Interval,
+    id_notation: str | None,
 ) -> HistoryData:
     """
     Parses historical data for a given financial instrument.
     Args:
         instrument_id (str): The ID of the financial instrument.
-        start (datetime): The start date for the historical data.
-        end (datetime): The end date for the historical data.
-        interval (Interval): The interval for the historical data (e.g., day, week, month).
+        start (datetime | None): The start date for the historical data. If None, defaults to 14 days before the end date.
+        end (datetime | None): The end date for the historical data. If None or in the future, defaults to the current date.
+        interval (Interval): The interval for the historical data (e.g., daily, weekly).
+        id_notation (str | None): The notation ID. If None, defaults to the instrument's default notation ID.
     Returns:
-        HistoryData: An object containing the parsed historical data.
+        HistoryData: An object containing the parsed historical data, including metadata such as WKN, name, trading venue, currency, and the data itself.
     Raises:
-        httpx.HTTPStatusError: If the HTTP request to fetch data fails.
+        httpx.HTTPStatusError: If the HTTP request for historical data fails.
     Notes:
-        - If `interval` is None, it defaults to "day".
-        - If `end` is None or greater than the current datetime, it defaults to the current datetime.
-        - If `start` is None, greater than `end`, or if the interval is intraday, it defaults to 14 days before `end`.
-        - The function fetches data in chunks with an offset, concatenates the data into a DataFrame, and processes it based on the interval.
-        - The DataFrame is converted to a list of dictionaries and returned as part of the `HistoryData` object.
-        - The function also determines the trading venue and currency for the given instrument.
+        - If the start date is None, greater than the end date, or if the interval is intraday, the start date defaults to 14 days before the end date.
+        - The function fetches data in chunks with an offset, concatenates the results, and processes the data into a DataFrame.
+        - The DataFrame is then converted to a list of dictionaries for the final output.
+        - The function also determines the trading venue and currency for the given notation ID.
     """
 
-    logger.info("parse_history_data: %s", instrument_id)
+    logger.info("parsing basedata for instrument_id: %s", instrument_id)
     basedata = await parse_base_data(instrument_id)
-
-    if interval is None:
-        interval = "day"
 
     if end is None or end > datetime.now():
         end = datetime.now()
 
     if start is None or start > end or is_intraday(interval):
         start = end - timedelta(days=14)
+
+    match id_notation:
+        case None:
+            id_notation = basedata.default_id_notation
+        case "preferred_id_notation_exchange_trading":
+            id_notation = basedata.preferred_id_notation_exchange_trading
+        case "preferred_id_notation_life_trading":
+            id_notation = basedata.preferred_id_notation_life_trading
+        case "default_id_notation":
+            id_notation = basedata.default_id_notation
+        case _:
+            check_valid_id_notation(basedata, id_notation)
 
     url = urljoin(BASE_URL, HISTORY_PATH)
 
@@ -82,7 +94,7 @@ async def parse_history_data(
         "DATETIME_TZ_END_RANGE_FORMATED": end.strftime("%d.%m.%Y"),
         "DATETIME_TZ_START_RANGE": int(start.timestamp()),
         "DATETIME_TZ_START_RANGE_FORMATED": start.strftime("%d.%m.%Y"),
-        "ID_NOTATION": basedata.default_id_notation,
+        "ID_NOTATION": id_notation,
         "INTERVALL": interval_identifier.get(interval, "1day"),
         "WITH_EARNINGS": False,
         "OFFSET": 0,
@@ -110,8 +122,7 @@ async def parse_history_data(
                 decimal=",",
                 encoding="iso-8859-15",
             )
-            # if df.empty:
-            #     break
+
             df_list.append(df)
             offset += 1
 
@@ -155,31 +166,13 @@ async def parse_history_data(
     # Convert the DataFrame to a list of dictionaries
     data = df.to_dict(orient="records")
 
-    # TODO: implement a function to find the trading_venue for a given id_notation in parsers.basedata
-
-    # build a dict of all id_notations
-    id_notations_dict = {
-        **basedata.id_notations_life_trading,  # type: ignore
-        **basedata.id_notations_exchange_trading,  # type: ignore
-    }
-
-    # find the trading_venue for a given id_notation
-    # keys = [key for key, val in d.items() if val == tar]
-    trading_venues = [
-        trading_venue
-        for trading_venue, id_notation in id_notations_dict.items()
-        if id_notation == basedata.default_id_notation
-    ]
-
-    print(f"trading_venue: {trading_venues[0]}")
-
-    # TODO: implement a function to find the currency for a given id_notation in parsers.basedata
+    trading_venue = get_trading_venue(basedata, id_notation)
 
     return HistoryData(
         wkn=basedata.wkn,
         name=basedata.name,
-        id_notation=str(basedata.default_id_notation),
-        trading_venue=str(trading_venues[0]),
+        id_notation=str(id_notation),
+        trading_venue=trading_venue,
         currency="USD",
         start=start,
         end=end,

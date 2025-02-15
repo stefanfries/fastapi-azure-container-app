@@ -54,51 +54,6 @@ def is_valid_isin(isin: str) -> bool:
     return total % 10 == 0
 
 
-class Wkn(BaseModel):
-    """
-    Represents a WKN (Wertpapierkennnummer) for a financial instrument.
-    Attributes:
-        wkn (str): The WKN of the financial instrument.
-    """
-
-    wkn: str = Field(
-        ...,
-        pattern=r"^[A-HJ-NP-Z0-9]{6}$",
-        description="German Wertpapierkennnummer",
-    )
-
-
-class Isin(BaseModel):
-    """
-    Represents an ISIN (International Securities Identification Number) for a financial instrument.
-    Attributes:
-        isin (str): The ISIN of the financial instrument.
-    """
-
-    isin: str = Field(
-        ...,
-        pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
-        description="International Securities Identification Number",
-    )
-
-    @field_validator("isin")
-    @classmethod
-    def isin_validator(cls, v: str) -> str | None:
-        """
-        Validate the ISIN (International Securities Identification Number) of the instrument.
-        Args:
-            v: The ISIN to validate.
-        Returns:
-            The validated ISIN.
-        Raises:
-            ValueError: If the ISIN is invalid.
-        """
-        if v is not None and not is_valid_isin(v):
-            logger.error("Invalid ISIN: %s", v)
-            raise ValueError("Invalid ISIN")
-        return v
-
-
 class AssetClass(str, Enum):
     """
     AssetClass is an enumeration of different types of financial instruments.
@@ -146,9 +101,17 @@ class BaseData(BaseModel):
 
     name: str = Field(..., description="Name of the financial instrument")
 
-    wkn: Wkn = Field(..., description="WKN of the financial instrument")
+    wkn: str = Field(
+        ...,
+        pattern=r"^[A-HJ-NPR-Z0-9]{6}$",
+        description="WKN of the financial instrument",
+    )
 
-    isin: Optional[Isin] = Field(None, description="ISIN of the financial instrument")
+    isin: Optional[str] = Field(
+        None,
+        pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
+        description="International Securities Identification Number",
+    )
 
     symbol: Optional[str] = Field(
         None,
@@ -180,3 +143,20 @@ class BaseData(BaseModel):
         None,
         description="The default id_notation for live trading",
     )
+
+    @field_validator("isin")
+    @classmethod
+    def isin_validator(cls, v: str) -> str | None:
+        """
+        Validate the ISIN (International Securities Identification Number) of the instrument.
+        Args:
+            v: The ISIN to validate.
+        Returns:
+            The validated ISIN.
+        Raises:
+            ValueError: If the ISIN is invalid.
+        """
+        if v is not None and not is_valid_isin(v):
+            logger.error("Invalid ISIN: %s", v)
+            raise ValueError("Invalid ISIN")
+        return v

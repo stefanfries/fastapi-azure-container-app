@@ -12,9 +12,26 @@ from app.core.constants import (
     standard_asset_classes,
 )
 from app.logging_config import logger
-from app.models.basedata import AssetClass, BaseData, Isin, NotationType, Wkn
+from app.models.basedata import AssetClass, BaseData, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
+
+
+def valid_id_notation(basedata: BaseData, id_notation: str) -> bool:
+    """
+    Check if the given id_notation is valid within the provided BaseData instance.
+    Args:
+        basedata (BaseData): An instance of BaseData containing id notations.
+        id_notation (str): The id notation to be validated.
+    Returns:
+        bool: True if the id_notation is found in either id_notations_life_trading or
+              id_notations_exchange_trading of the basedata, False otherwise.
+    """
+
+    return (
+        id_notation in basedata.id_notations_life_trading.values()
+        or id_notation in basedata.id_notations_exchange_trading.values()
+    )
 
 
 def parse_asset_class(response: httpx.Response) -> AssetClass:
@@ -68,7 +85,7 @@ def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     return name
 
 
-def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> Wkn:
+def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     """
     Extracts the WKN (Wertpapierkennnummer) from the given BeautifulSoup object based on the asset class.
     Args:
@@ -83,11 +100,11 @@ def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> Wkn:
     headline_h2 = soup.select_one("h2")
     if asset_class in standard_asset_classes:
         wkn = headline_h2.text.strip().split()[1]
-        return Wkn(wkn=wkn)
+        return wkn
     if asset_class in special_asset_classes:
         wkn = headline_h2.text.strip().split()[2]
-        return Wkn(wkn=wkn)
-
+        return wkn
+    logger.error("Unsupported asset class %s", asset_class)
     raise ValueError("Unsupported asset class")
 
 
@@ -103,10 +120,9 @@ def parse_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     headline_h2 = soup.select_one("h2")
     if asset_class in standard_asset_classes:
         isin = headline_h2.text.strip().split()[3]
-        return Isin(isin=isin)
+        return isin
     if asset_class in special_asset_classes:
         isin = None
-        return Isin(isin=isin)
     logger.error("Unsupported asset class %s", asset_class)
     raise ValueError("Unsupported asset class")
 

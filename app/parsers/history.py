@@ -4,12 +4,14 @@ from urllib.parse import urljoin
 
 import httpx
 import pandas as pd
+from bs4 import BeautifulSoup
 
 from app.core.constants import BASE_URL, HISTORY_PATH
 from app.logging_config import logger
 from app.models.history import HistoryData, Interval
 from app.parsers.basedata import parse_base_data
 from app.parsers.utils import check_valid_id_notation, get_trading_venue
+from app.scrapers.scrape_url import fetch_one
 
 interval_identifier = {
     # "all": "0",
@@ -64,12 +66,6 @@ async def parse_history_data(
     logger.info("parsing basedata for instrument_id: %s", instrument_id)
     basedata = await parse_base_data(instrument_id)
 
-    if end is None or end > datetime.now():
-        end = datetime.now()
-
-    if start is None or start > end or is_intraday(interval):
-        start = end - timedelta(days=14)
-
     match id_notation:
         case None:
             id_notation = basedata.default_id_notation
@@ -82,12 +78,26 @@ async def parse_history_data(
         case _:
             check_valid_id_notation(basedata, id_notation)
 
-    url = urljoin(BASE_URL, HISTORY_PATH)
+    # fetch instrument data from the web for the given id_notation
+    response = await fetch_one(str(basedata.wkn), basedata.asset_class, id_notation)
+    soup = BeautifulSoup(response.content, "html.parser")
 
+    # extract currency from soup object
+    currency = soup.find_all("meta", itemprop="priceCurrency")
+    print(f"length: {len(currency)}")
+    currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
+    print(f"Currency: {currency}")
+
+    if end is None or end > datetime.now():
+        end = datetime.now()
+    if start is None or start > end or is_intraday(interval):
+        start = end - timedelta(days=14)
     end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
     start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # TODO: check exact DATETIME_TZ_END_RANGE and DATETIME_TZ_START_RANGE values in comdirect page for different intervals (weeks, months, etc.)
+
+    url = urljoin(BASE_URL, HISTORY_PATH)
 
     query_params = {
         "DATETIME_TZ_END_RANGE": int(end.timestamp()),
@@ -173,7 +183,7 @@ async def parse_history_data(
         name=basedata.name,
         id_notation=str(id_notation),
         trading_venue=trading_venue,
-        currency="USD",
+        currency=currency,
         start=start,
         end=end,
         interval=interval,

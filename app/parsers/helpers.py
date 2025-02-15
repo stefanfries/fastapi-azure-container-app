@@ -33,7 +33,7 @@ def round_datetime(datetime_str: str, up: bool = False) -> str:
     match len(date_str_split):
         case 3:  # date & time strings are ok, leave them unchanged
             pass
-        case 2:  # append first of day of month depending on value of up
+        case 2:  # append first day of month depending on value of up
             year, month = int(date_str_split[0]), int(date_str_split[1])
             _, days_in_month = monthrange(year, month)
             date_str = date_str + "-" + str(days_in_month) if up else date_str + "-01"

@@ -45,15 +45,6 @@ ASSET_CLASS_DETAILS_PATH = {
     AssetClass.CURRENCY: "/inf/waehrungen/detail/uebersicht.html",
 }
 
-"""
-ASSET_CLASS_DETAILS_PATH = {
-    asset_class: "/inf/"
-    + asset_class_to_asset_class_identifier_map[asset_class]
-    + "/detail/uebersicht.html"
-    for asset_class in asset_classes
-}
-"""
-
 BASE_URL = "https://www.comdirect.de"
 SEARCH_PATH = "/inf/search/all.html"
 HISTORY_PATH = "/inf/kursdaten/historic.csv"

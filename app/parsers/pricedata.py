@@ -12,6 +12,19 @@ from app.scrapers.scrape_url import fetch_one
 
 
 def check_id_notation_valid(basedata, id_notation):
+    """
+    Validates the given id_notation against the basedata.
+    This function checks if the provided id_notation is present in either
+    the id_notations_life_trading or id_notations_exchange_trading values
+    of the basedata. If the id_notation is not found in either, an HTTPException
+    is raised with a 400 status code.
+    Args:
+        basedata: An object containing id_notations_life_trading and id_notations_exchange_trading.
+        id_notation: The id_notation to be validated.
+    Raises:
+        HTTPException: If the id_notation is not valid for the given basedata.
+    """
+
     if (
         id_notation not in basedata.id_notations_life_trading.values()
         and id_notation not in basedata.id_notations_exchange_trading.values()
@@ -57,7 +70,7 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
             check_id_notation_valid(basedata, id_notation)
 
     # fetch instrument data from the web for the given id_notation
-    response = await fetch_one(basedata.wkn, basedata.asset_class, id_notation)
+    response = await fetch_one(str(basedata.wkn), basedata.asset_class, id_notation)
     soup = BeautifulSoup(response.content, "html.parser")
 
     # extract currency from soup object
@@ -69,6 +82,7 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
 
     # extract name from soup object
     name = parse_name(basedata.asset_class, soup)
+
     # extract WKN from soup object
     wkn = parse_wkn(basedata.asset_class, soup)
 

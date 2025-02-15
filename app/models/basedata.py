@@ -1,17 +1,20 @@
 """
+Module: basedata
 This module defines data models and validation logic for financial instruments using Pydantic and enumerations.
+It includes classes for representing asset classes, trading notations, WKNs, ISINs, and base data for financial instruments.
+The module also provides a function to validate ISINs using the Luhn algorithm.
 Classes:
-    AssetClass (StrEnum): Enumeration of different types of financial instruments.
-    NotationType (Enum): Enumeration for different types of trading notations.
-    NotationInfo (BaseModel): Represents information about a notation.
-    NotationsList (BaseModel): Represents a list of notations.
-    BaseData (BaseModel): Represents the base data model for a financial instrument.
+    AssetClass: Enumeration of different types of financial instruments.
+    NotationType: Enumeration for different types of trading notations.
+    Wkn: Represents a WKN (Wertpapierkennnummer) for a financial instrument.
+    Isin: Represents an ISIN (International Securities Identification Number) for a financial instrument.
+    BaseData: Represents the base data model for a financial instrument.
 Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
 """
 
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -51,6 +54,51 @@ def is_valid_isin(isin: str) -> bool:
     return total % 10 == 0
 
 
+class Wkn(BaseModel):
+    """
+    Represents a WKN (Wertpapierkennnummer) for a financial instrument.
+    Attributes:
+        wkn (str): The WKN of the financial instrument.
+    """
+
+    wkn: str = Field(
+        ...,
+        pattern=r"^[A-HJ-NP-Z0-9]{6}$",
+        description="German Wertpapierkennnummer",
+    )
+
+
+class Isin(BaseModel):
+    """
+    Represents an ISIN (International Securities Identification Number) for a financial instrument.
+    Attributes:
+        isin (str): The ISIN of the financial instrument.
+    """
+
+    isin: str = Field(
+        ...,
+        pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
+        description="International Securities Identification Number",
+    )
+
+    @field_validator("isin")
+    @classmethod
+    def isin_validator(cls, v: str) -> str | None:
+        """
+        Validate the ISIN (International Securities Identification Number) of the instrument.
+        Args:
+            v: The ISIN to validate.
+        Returns:
+            The validated ISIN.
+        Raises:
+            ValueError: If the ISIN is invalid.
+        """
+        if v is not None and not is_valid_isin(v):
+            logger.error("Invalid ISIN: %s", v)
+            raise ValueError("Invalid ISIN")
+        return v
+
+
 class AssetClass(str, Enum):
     """
     AssetClass is an enumeration of different types of financial instruments.
@@ -80,56 +128,33 @@ class NotationType(str, Enum):
     EXCH_TRADING = "Börse"
 
 
-class NotationInfo(BaseModel):
-    """
-    Represents information about a notation.
-    Attributes:
-        notation_name (str): The name of the notation.
-        notation_id (str): The unique identifier for the notation.
-        notation_link (str): A URL link to more information about the notation.
-    """
-
-    notation_name: str
-    notation_id: str
-    notation_link: str
-
-
-class NotationsList(BaseModel):
-    """
-    Represents a list of notations.
-    Attributes:
-        notations_list (List[NotationInfo]): A list containing notation information.
-    """
-
-    notations_list: List[NotationInfo]
-
-
 class BaseData(BaseModel):
     """
-    BaseData represents the base data model for a financial instrument.
+    BaseData model representing the basic data of a financial instrument.
     Attributes:
         name (str): Name of the financial instrument.
-        wkn (str): German Wertpapierkennnummer (WKN) with a specific pattern.
-        isin (Optional[str]): International Securities Identification Number (ISIN) with a specific pattern.
-        symbol (Optional[str]): Symbol of the financial instrument.
-    Methods:
-        isin_validator(cls, v: str) -> str: Validates the ISIN of the instrument.
+        wkn (Wkn): WKN of the financial instrument.
+        isin (Optional[Isin]): ISIN of the financial instrument.
+        symbol (Optional[str]): Symbol of the financial instrument, with a minimum length of 2 and a maximum length of 5.
+        asset_class (AssetClass): The asset class of the financial instrument.
+        id_notations_life_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in live trading.
+        id_notations_exchange_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in exchange trading.
+        preferred_id_notation_life_trading (Optional[str]): The preferred id_notation for live trading.
+        preferred_id_notation_exchange_trading (Optional[str]): The preferred id_notation for exchange trading.
+        default_id_notation (Optional[str]): The default id_notation for live trading.
     """
 
     name: str = Field(..., description="Name of the financial instrument")
-    wkn: str = Field(
-        ...,
-        pattern=r"^[A-HJ-NP-Z0-9]{6}$",
-        description="German Wertpapierkennnummer",
-    )
-    isin: Optional[str] = Field(
-        None,
-        # pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
-        # default_factory=None,
-        description="International Securities Identification Number",
-    )
+
+    wkn: Wkn = Field(..., description="WKN of the financial instrument")
+
+    isin: Optional[Isin] = Field(None, description="ISIN of the financial instrument")
+
     symbol: Optional[str] = Field(
-        ..., default_factory=None, description="Symbol of the financial instrument"
+        None,
+        description="Symbol of the financial instrument",
+        min_length=2,
+        max_length=5,
     )
     asset_class: AssetClass = Field(
         ...,
@@ -155,20 +180,3 @@ class BaseData(BaseModel):
         None,
         description="The default id_notation for live trading",
     )
-
-    @field_validator("isin")
-    @classmethod
-    def isin_validator(cls, v: str) -> str | None:
-        """
-        Validate the ISIN (International Securities Identification Number) of the instrument.
-        Args:
-            v: The ISIN to validate.
-        Returns:
-            The validated ISIN.
-        Raises:
-            ValueError: If the ISIN is invalid.
-        """
-        if v is not None and not is_valid_isin(v):
-            logger.error("Invalid ISIN: %s", v)
-            raise ValueError("Invalid ISIN")
-        return v

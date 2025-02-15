@@ -12,7 +12,7 @@ from app.core.constants import (
     standard_asset_classes,
 )
 from app.logging_config import logger
-from app.models.basedata import AssetClass, BaseData, NotationType
+from app.models.basedata import AssetClass, BaseData, Isin, NotationType, Wkn
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
 
@@ -68,7 +68,7 @@ def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     return name
 
 
-def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
+def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> Wkn:
     """
     Extracts the WKN (Wertpapierkennnummer) from the given BeautifulSoup object based on the asset class.
     Args:
@@ -83,10 +83,11 @@ def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     headline_h2 = soup.select_one("h2")
     if asset_class in standard_asset_classes:
         wkn = headline_h2.text.strip().split()[1]
-        return wkn
+        return Wkn(wkn=wkn)
     if asset_class in special_asset_classes:
         wkn = headline_h2.text.strip().split()[2]
-        return wkn
+        return Wkn(wkn=wkn)
+
     raise ValueError("Unsupported asset class")
 
 
@@ -102,10 +103,10 @@ def parse_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     headline_h2 = soup.select_one("h2")
     if asset_class in standard_asset_classes:
         isin = headline_h2.text.strip().split()[3]
-        return isin
+        return Isin(isin=isin)
     if asset_class in special_asset_classes:
         isin = None
-        return isin
+        return Isin(isin=isin)
     logger.error("Unsupported asset class %s", asset_class)
     raise ValueError("Unsupported asset class")
 

@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.logging_config import logger
 from app.models.history import HistoryData, Interval
@@ -13,10 +12,10 @@ router = APIRouter(prefix="", tags=["instruments"])
 @router.get("/history/{instrument_id}", response_model=HistoryData)
 async def get_history_data(
     instrument_id: str,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    interval: Interval = "day",
-    id_notation: Optional[str] = None,
+    start: datetime = Query(None),
+    end: datetime = Query(None),
+    interval: Interval = Query("day"),
+    id_notation: str = Query(None),
 ) -> HistoryData:
     """
     Fetches historical price data for a given instrument.
@@ -28,12 +27,8 @@ async def get_history_data(
         Logs the process of fetching and retrieving the historical data.
     """
 
-    logger.info(
-        "Fetching history data for instrument_id %s from start %s to end %s",
-        instrument_id,
-        start,
-        end,
-    )
+    logger.info("Fetching history data for instrument_id %s", instrument_id)
+
     history_data = await parse_history_data(
         instrument_id=instrument_id,
         start=start,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.logging_config import logger
 from app.models.pricedata import PriceData
@@ -9,7 +9,8 @@ router = APIRouter(prefix="", tags=["instruments"])
 
 @router.get("/pricedata/{instrument_id}", response_model=PriceData)
 async def get_price_data(
-    instrument_id: str, id_notation: str | None = None
+    instrument_id: str,
+    id_notation: str = Query(None),
 ) -> PriceData:
     """
     Fetch instrument price data for instrument_id.

@@ -28,7 +28,12 @@ async def get_history_data(
         Logs the process of fetching and retrieving the historical data.
     """
 
-    logger.info("Fetching history data for instrument_id %s", instrument_id)
+    logger.info(
+        "Fetching history data for instrument_id %s from start %s to end %s",
+        instrument_id,
+        start,
+        end,
+    )
     history_data = await parse_history_data(
         instrument_id=instrument_id,
         start=start,

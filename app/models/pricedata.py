@@ -22,7 +22,7 @@ class PriceData(BaseModel):
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)
-    currency: str = Field(..., pattern="^EUR|USD|CHF$")
+    currency: str = Field(..., pattern=r"^EUR|USD|CHF$")
     timestamp: datetime
     trading_venue: str
     id_notation: str

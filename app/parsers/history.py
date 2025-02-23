@@ -119,7 +119,6 @@ async def parse_history_data(
             try:
                 response = await client.get(url, params=query_params)
                 response.raise_for_status()
-                print(f"redirected url: {response.url}")
             except httpx.HTTPStatusError as e:
                 logger.error("HTTP status error: %s", e)
                 break

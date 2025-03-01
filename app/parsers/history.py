@@ -90,8 +90,14 @@ async def parse_history_data(
 
     if end is None or end > datetime.now():
         end = datetime.now()
-    if start is None or start > end or is_intraday(interval):
-        start = end - timedelta(days=14)
+    if start is None or start > end:
+        start = end - timedelta(days=28)
+    if (end - start).days < 1:
+        start = end - timedelta(days=1)  # ensure at least one day of data
+    if is_intraday(interval):
+        start = max(
+            start, end - timedelta(days=14)
+        )  # intraday data is only available for the last 14 days
     end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
     start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -105,7 +111,7 @@ async def parse_history_data(
         "DATETIME_TZ_START_RANGE": int(start.timestamp()),
         "DATETIME_TZ_START_RANGE_FORMATED": start.strftime("%d.%m.%Y"),
         "ID_NOTATION": id_notation,
-        "INTERVALL": interval_identifier.get(interval, "1day"),
+        "INTERVALL": interval_identifier.get(interval, "16"),
         "WITH_EARNINGS": False,
         "OFFSET": 0,
     }

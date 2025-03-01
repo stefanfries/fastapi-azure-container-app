@@ -103,7 +103,7 @@ class BaseData(BaseModel):
 
     wkn: str = Field(
         ...,
-        pattern=r"^[A-HJ-NPR-Z0-9]{6}$",
+        pattern=r"^[A-HJ-NP-Z0-9]{6}$",  # WKNs are 6 characters long and do not contain the letters I and O
         description="WKN of the financial instrument",
     )
 

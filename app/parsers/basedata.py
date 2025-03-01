@@ -81,7 +81,7 @@ def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     """
 
     headline_h1 = soup.select_one("h1")
-    name = headline_h1.text.replace(f" {asset_class.value}", "").strip()
+    name = headline_h1.text.replace(f"{asset_class.value}", "").strip()
     return name
 
 

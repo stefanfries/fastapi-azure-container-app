@@ -83,10 +83,7 @@ async def parse_history_data(
     soup = BeautifulSoup(response.content, "html.parser")
 
     # extract currency from soup object
-    currency = soup.find_all("meta", itemprop="priceCurrency")
-    print(f"length: {len(currency)}")
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
-    print(f"Currency: {currency}")
 
     if end is None or end > datetime.now():
         end = datetime.now()
@@ -137,7 +134,6 @@ async def parse_history_data(
                 decimal=",",
                 encoding="iso-8859-15",
             )
-
             df_list.append(df)
             offset += 1
 
@@ -169,6 +165,16 @@ async def parse_history_data(
         df["datetime"] = pd.to_datetime(
             df["datetime"], format="%d.%m.%Y", errors="coerce"
         )
+
+        # Convert German number format to float for open, high, low, and close columns
+        for col in ["open", "high", "low", "close"]:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(".", "", regex=False)
+                .str.replace(",", ".", regex=False)
+                .astype(float)
+            )
 
         df["volume"] = (
             df["volume"]

@@ -131,7 +131,6 @@ async def parse_history_data(
                 skiprows=2,
                 delimiter=";",
                 quotechar='"',
-                decimal=",",
                 encoding="iso-8859-15",
             )
             df_list.append(df)
@@ -165,7 +164,8 @@ async def parse_history_data(
         df["datetime"] = pd.to_datetime(
             df["datetime"], format="%d.%m.%Y", errors="coerce"
         )
-
+        print("before conversion")
+        print(df.head())
         # Convert German number format to float for open, high, low, and close columns
         for col in ["open", "high", "low", "close"]:
             df[col] = (
@@ -175,6 +175,8 @@ async def parse_history_data(
                 .str.replace(",", ".", regex=False)
                 .astype(float)
             )
+        print("after conversion")
+        print(df.head())
 
         df["volume"] = (
             df["volume"]

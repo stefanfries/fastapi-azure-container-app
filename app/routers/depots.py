@@ -45,7 +45,7 @@ async def get_all_depots() -> List[Depot]:
     )
     depot2 = Depot(
         id="1",
-        name="Depot Timo",
+        name="Depot Stefan",
         items=[],
         cash=1000.0,
         created_at=datetime(2022, 8, 28, 18, 0, 0),

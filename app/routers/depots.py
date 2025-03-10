@@ -10,15 +10,19 @@ Routes:
     pass
 """
 
+from datetime import datetime
+from typing import List
+
 from fastapi import APIRouter
 
 from app.logging_config import logger
+from app.models.depots import Depot
 
 router = APIRouter(prefix="/depots", tags=["depots"])
 
 
 @router.get("/")
-async def get_all_depots() -> dict:
+async def get_all_depots() -> List[Depot]:
     """
     Fetch the list of all depots.
     Args:
@@ -31,11 +35,19 @@ async def get_all_depots() -> dict:
 
     logger.info("Retrieved list of all depots")
 
-    return {"List of all depots": "['Depot A', 'Depot B', '...']"}
+    depot = Depot(
+        id="1",
+        name="MegaTrendFolger Depot",
+        items=[],
+        cash=1000.0,
+        created_at=datetime(2021, 7, 7, 18, 0, 0),
+        changed_at=datetime(2021, 7, 7, 18, 0, 0),
+    )
+    return [depot]
 
 
 @router.get("/{depot_id}")
-async def get_by_depot_id(depot_id: str) -> dict:
+async def get_by_depot_id(depot_id: str) -> Depot:
     """
     Fetch instrument data by ISIN (International Securities Identification Number).
     Args:
@@ -50,5 +62,12 @@ async def get_by_depot_id(depot_id: str) -> dict:
         "Retrieved depot infos for depot_id %s: Timo´s Depot",
         depot_id,
     )
-
-    return {f"{depot_id}": "Timo´s Depot"}
+    depot = Depot(
+        id="1",
+        name="MegaTrendFolger Depot",
+        items=[],
+        cash=1000.0,
+        created_at=datetime(2021, 7, 7, 18, 0, 0),
+        changed_at=datetime(2021, 7, 7, 18, 0, 0),
+    )
+    return depot

@@ -32,7 +32,9 @@ class DepotItem(BaseModel):
     """
 
     wkn: str
-    # instrument: InstrumentBaseData
+    amount: int
+    buy_price: float
+    buy_date: datetime
 
 
 class Depot(BaseModel):

@@ -35,15 +35,24 @@ async def get_all_depots() -> List[Depot]:
 
     logger.info("Retrieved list of all depots")
 
-    depot = Depot(
+    depot1 = Depot(
         id="1",
-        name="MegaTrendFolger Depot",
+        name="Depot MegaTrendFolger",
         items=[],
         cash=1000.0,
-        created_at=datetime(2021, 7, 7, 18, 0, 0),
+        created_at=datetime(2018, 1, 1, 18, 0, 0),
         changed_at=datetime(2021, 7, 7, 18, 0, 0),
     )
-    return [depot]
+    depot2 = Depot(
+        id="1",
+        name="Depot Timo",
+        items=[],
+        cash=1000.0,
+        created_at=datetime(2022, 8, 28, 18, 0, 0),
+        changed_at=datetime(2025, 2, 28, 18, 0, 0),
+    )
+
+    return [depot1, depot2]
 
 
 @router.get("/{depot_id}")

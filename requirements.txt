@@ -1,5 +1,4 @@
 beautifulsoup4==4.12.3
-bson==0.5.10
 black==24.10.0
 DateTime==5.5
 fastapi==0.115.5

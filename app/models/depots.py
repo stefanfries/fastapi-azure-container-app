@@ -21,7 +21,7 @@ Classes:
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DepotItem(BaseModel):
@@ -31,7 +31,12 @@ class DepotItem(BaseModel):
         instrument (InstrumentBaseData): The instrument that has been bought.
     """
 
-    wkn: str
+    wkn: str = Field(
+        ...,
+        pattern=r"^[A-HJ-NP-Z0-9]{6}$",  # WKNs are 6 characters long and do not contain the letters I and O
+        description="WKN of the financial instrument",
+    )
+    name: str
     amount: int
     buy_price: float
     buy_date: datetime

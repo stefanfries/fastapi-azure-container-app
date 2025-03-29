@@ -14,8 +14,6 @@ jobs:
       DOCKER_TAG: "${{ github.sha }}"
       AZURE_CONTAINER_APP_NAME: "ca-fastapi"
       AZURE_RESOURCE_GROUP: "rg-FastAPI-AzureContainerApp-dev"
-      AZURE_MIN_REPLICAS: 1
-      AZURE_MAX_REPLICAS: 5
 
     permissions:
       contents: read
@@ -52,12 +50,6 @@ jobs:
     - name: Check Azure CLI version
       run: az --version
 
-    # Install Azure CLI Container Apps extension
-    - name: Install Azure CLI Container Apps extension
-      run: |
-        az extension add --name containerapp --yes
-        az extension list --query "[?name=='containerapp']"
-
     # Deploy to Azure Container Apps (ACA) from GHCR
     - name: Deploy to Azure Container Apps
       run: |
@@ -70,15 +62,6 @@ jobs:
         --registry-password ${{ secrets.GITHUB_TOKEN }} \
         --ingress external --target-port 8080
   
-    # Set scaling parameters for Azure Container Apps (ACA)
-    - name: Set scaling parameters for Azure Container Apps
-      run: |
-        az containerapp update \
-        --name $AZURE_CONTAINER_APP_NAME \
-        --resource-group $AZURE_RESOURCE_GROUP \
-        --set template.scale.minReplicas=$AZURE_MIN_REPLICAS \
-        --set template.scale.maxReplicas=$AZURE_MAX_REPLICAS
-
     # Show the deployed Azure Container App!
     - name: Verifiy Deployment
       run: |

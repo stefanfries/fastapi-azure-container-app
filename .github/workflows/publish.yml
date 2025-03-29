@@ -62,10 +62,18 @@ jobs:
         --registry-server $DOCKER_REGISTRY \
         --registry-username ${{ github.actor }} \
         --registry-password ${{ secrets.GITHUB_TOKEN }} \
-        --ingress external --target-port 8080 \
-        --min-replicas ${{ env.AZURE_MIN_REPLICAS }} \
-        --max-replicas ${{ env.AZURE_MAX_REPLICAS }}
-  
+        --ingress external --target-port 8080
+
+    # Set scaling for Azure Container Apps
+    - name: Configure Scaling for Azure Container Apps
+      run: |
+        az containerapp scale \
+          set \
+          --name $AZURE_CONTAINER_APP_NAME \
+          --resource-group $AZURE_RESOURCE_GROUP \
+          --min-replicas $AZURE_MIN_REPLICAS \
+          --max-replicas $AZURE_MAX_REPLICAS
+
     # Show the deployed Azure Container App!
     - name: Verifiy Deployment
       run: |

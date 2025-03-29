@@ -49,6 +49,9 @@ def main() -> None:
     None
     Returns:
     None
+    Raises:
+    None
+    Example:
     """
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=False)

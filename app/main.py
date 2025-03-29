@@ -47,11 +47,6 @@ def main() -> None:
     host, port, and reload settings.
     Parameters:
     None
-    Returns:
-    None
-    Raises:
-    None
-    Example:
     """
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=False)

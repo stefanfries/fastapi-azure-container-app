@@ -62,7 +62,7 @@ jobs:
         --registry-server $DOCKER_REGISTRY \
         --registry-username ${{ github.actor }} \
         --registry-password ${{ secrets.GITHUB_TOKEN }} \
-        --ingress external --target-port 8080
+        --ingress external --target-port 8080 \
         --min-replicas ${{ env.AZURE_MIN_REPLICAS }} \
         --max-replicas ${{ env.AZURE_MAX_REPLICAS }}
   

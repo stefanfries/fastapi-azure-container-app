@@ -76,8 +76,8 @@ jobs:
         az containerapp update \
         --name $AZURE_CONTAINER_APP_NAME \
         --resource-group $AZURE_RESOURCE_GROUP \
-        --set scale.minReplicas=$AZURE_MIN_REPLICAS \
-        --set scale.maxReplicas=$AZURE_MAX_REPLICAS
+        --set template.scale.minReplicas=$AZURE_MIN_REPLICAS \
+        --set template.scale.maxReplicas=$AZURE_MAX_REPLICAS
 
     # Show the deployed Azure Container App!
     - name: Verifiy Deployment

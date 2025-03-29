@@ -14,6 +14,8 @@ jobs:
       DOCKER_TAG: "${{ github.sha }}"
       AZURE_CONTAINER_APP_NAME: "ca-fastapi"
       AZURE_RESOURCE_GROUP: "rg-FastAPI-AzureContainerApp-dev"
+      AZURE_MIN_REPLICAS: 1
+      AZURE_MAX_REPLICAS: 5
 
     permissions:
       contents: read
@@ -61,6 +63,8 @@ jobs:
         --registry-username ${{ github.actor }} \
         --registry-password ${{ secrets.GITHUB_TOKEN }} \
         --ingress external --target-port 8080
+        --min-replicas ${{ env.AZURE_MIN_REPLICAS }} \
+        --max-replicas ${{ env.AZURE_MAX_REPLICAS }}
   
     # Show the deployed Azure Container App!
     - name: Verifiy Deployment

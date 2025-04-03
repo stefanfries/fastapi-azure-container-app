@@ -46,6 +46,7 @@ def main() -> None:
     This function starts the Uvicorn server with the specified application instance,
     host, port, and reload settings.
     Parameters:
+        none
 
 
     None

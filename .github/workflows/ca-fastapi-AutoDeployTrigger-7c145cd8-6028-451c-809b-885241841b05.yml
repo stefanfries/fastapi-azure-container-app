@@ -41,7 +41,7 @@ jobs:
           registryPassword: ${{ secrets.CAFASTAPI_REGISTRY_PASSWORD }}
           containerAppName: ca-fastapi
           resourceGroup: rg-FastAPI-AzureContainerApp-dev
-          imageToBuild: ghcr.io/ca-fastapi:${{ github.sha }}
+          imageToBuild: ghcr.io/stefanfries/fastapi-azure-container-app/fastapi-container:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
 

@@ -35,14 +35,11 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
           registryUrl: ghcr.io
           registryUsername: ${{ secrets.CAFASTAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.CAFASTAPI_REGISTRY_PASSWORD }}
           containerAppName: ca-fastapi
           resourceGroup: rg-FastAPI-AzureContainerApp-dev
           imageToBuild: ghcr.io/${{ github.repository }}/fastapi-container:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
 
 

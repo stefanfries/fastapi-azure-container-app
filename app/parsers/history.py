@@ -113,7 +113,7 @@ async def parse_history_data(
         "OFFSET": 0,
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         df_list = []
         offset = 0
 

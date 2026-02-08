@@ -7,6 +7,8 @@ uvicorn --host 127.0.0.1 --port 8080 --reload app.main:app
 The main function is empty, but it is a placeholder for future code.
 """
 
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
@@ -43,7 +45,8 @@ app.include_router(history.router)
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Serve the favicon.ico file from the static directory."""
-    return FileResponse("app/static/favicon.ico")
+    favicon_path = Path(__file__).parent / "static" / "favicon.ico"
+    return FileResponse(favicon_path, media_type="image/x-icon")
 
 
 def main() -> None:
@@ -52,8 +55,6 @@ def main() -> None:
     This function starts the Uvicorn server with the specified application instance,
     host, port, and reload settings.
     Parameters:
-        None
-        None
         None
     """
 

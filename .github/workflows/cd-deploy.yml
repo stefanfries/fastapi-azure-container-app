@@ -62,10 +62,12 @@ jobs:
 
       - name: Deploy to Azure Container Apps
         run: |
+          IMAGE_TAG="${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:main-${{ github.sha }}"
+          echo "Deploying image: $IMAGE_TAG"
           az containerapp update \
             --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+            --image $IMAGE_TAG
 
       - name: Get application URL
         id: get-url

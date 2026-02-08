@@ -12,6 +12,11 @@ from bs4 import BeautifulSoup
 
 from app.models.basedata import AssetClass
 from app.parsers.plugins.base_parser import BaseDataParser
+from app.parsers.plugins.parsing_utils import (
+    extract_after_label,
+    extract_from_h1,
+    extract_wkn_from_h2,
+)
 
 
 class StockParser(BaseDataParser):
@@ -48,11 +53,9 @@ class StockParser(BaseDataParser):
         For standard assets, the name is in the H1 tag with the asset class
         name removed.
         """
-        headline_h1 = soup.select_one("h1")
-        if not headline_h1:
+        name = extract_from_h1(soup, remove_suffix=self.asset_class.value)
+        if not name:
             raise ValueError("Could not find H1 headline")
-        
-        name = headline_h1.text.replace(f"{self.asset_class.value}", "").strip()
         return name
     
     def parse_wkn(self, soup: BeautifulSoup) -> str:
@@ -62,27 +65,10 @@ class StockParser(BaseDataParser):
         For standard assets, WKN is in the H2 tag, extracted from patterns like:
         "WKN: 123456 / ISIN: DE0001234567"
         """
-        headline_h2 = soup.select_one("h2")
-        if not headline_h2:
-            raise ValueError("Could not find H2 with WKN")
-        
-        h2_text = headline_h2.text
-        
-        # Extract WKN from patterns like "WKN: 123456" or "WKN 123456"
-        if "WKN" in h2_text or "wkn" in h2_text.lower():
-            # Split by / to get the WKN part (before ISIN)
-            parts = h2_text.split("/")
-            wkn_part = parts[0]  # WKN is typically before the "/"
-            
-            # Remove "WKN:" or "WKN" prefix and clean up
-            wkn = wkn_part.replace("WKN:", "").replace("WKN", "").replace("wkn:", "").strip()
-            
-            # Clean up any remaining whitespace or newlines
-            wkn = wkn.split()[0] if wkn.split() else wkn
-            
-            return wkn
-        
-        raise ValueError(f"Could not extract WKN from H2: {h2_text}")
+        wkn = extract_wkn_from_h2(soup)
+        if not wkn:
+            raise ValueError("Could not extract WKN from H2")
+        return wkn
     
     def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
         """
@@ -90,21 +76,7 @@ class StockParser(BaseDataParser):
         
         For standard assets, ISIN is in the H2 tag after "ISIN:"
         """
-        headline_h2 = soup.select_one("h2")
-        if not headline_h2:
-            return None
-        
-        h2_text = headline_h2.text
-        
-        # Extract ISIN from patterns like "ISIN: US67066G1040" or "ISIN US67066G1040"
-        if "ISIN" in h2_text or "isin" in h2_text.lower():
-            # Remove "ISIN:" or "ISIN" label and extract the code
-            isin_part = h2_text.split("ISIN:")[-1] if "ISIN:" in h2_text else h2_text.split("ISIN")[-1]
-            # Clean up whitespace and newlines, take first token (the ISIN code)
-            isin = isin_part.strip().split()[0] if isin_part.strip() else None
-            return isin if isin and len(isin) == 12 else None  # ISIN is always 12 characters
-        
-        return None
+        return extract_after_label(soup, "ISIN:", max_length=12)
     
     def parse_id_notations(
         self,

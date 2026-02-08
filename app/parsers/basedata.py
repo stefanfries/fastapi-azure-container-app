@@ -445,25 +445,3 @@ async def _parse_base_data_legacy(
         default_id_notation=default_id_notation,
     )
     return base_data
-
-
-async def main():
-    """
-    Main function to parse and print the base data of a financial instrument.
-    This function asynchronously retrieves the base data for a specified financial instrument
-    using its instrument ID and prints the retrieved data.
-    Args:
-        None
-    Returns:
-        None
-    """
-
-    instrument_id = "DE000A0D9PT0"
-    basedata = await parse_base_data(instrument_id)
-    print(basedata)
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())

@@ -11,6 +11,11 @@ from bs4 import BeautifulSoup
 
 from app.models.basedata import AssetClass
 from app.parsers.plugins.base_parser import BaseDataParser
+from app.parsers.plugins.parsing_utils import (
+    extract_from_h1,
+    extract_after_label,
+    extract_wkn_from_h2
+)
 
 
 class WarrantParser(BaseDataParser):
@@ -36,11 +41,9 @@ class WarrantParser(BaseDataParser):
         
         For warrants, the name is in the H1 tag with "Optionsschein" removed.
         """
-        headline_h1 = soup.select_one("h1")
-        if not headline_h1:
+        name = extract_from_h1(soup, remove_suffix="Optionsschein")
+        if not name:
             raise ValueError("Could not find H1 headline")
-        
-        name = headline_h1.text.replace("Optionsschein", "").strip()
         return name
     
     def parse_wkn(self, soup: BeautifulSoup) -> str:
@@ -49,27 +52,10 @@ class WarrantParser(BaseDataParser):
         
         For warrants, WKN is in the H2 tag.
         """
-        headline_h2 = soup.select_one("h2")
-        if not headline_h2:
-            raise ValueError("Could not find H2 with WKN")
-        
-        h2_text = headline_h2.text
-        
-        # Extract WKN from patterns like "WKN: 123456" or "WKN 123456"
-        if "WKN" in h2_text or "wkn" in h2_text.lower():
-            # Split by / to get the WKN part (before ISIN)
-            parts = h2_text.split("/")
-            wkn_part = parts[0]  # WKN is typically before the "/"
-            
-            # Remove "WKN:" or "WKN" prefix and clean up
-            wkn = wkn_part.replace("WKN:", "").replace("WKN", "").replace("wkn:", "").strip()
-            
-            # Clean up any remaining whitespace or newlines
-            wkn = wkn.split()[0] if wkn.split() else wkn
-            
-            return wkn
-        
-        raise ValueError(f"Could not extract WKN from H2: {h2_text}")
+        wkn = extract_wkn_from_h2(soup)
+        if not wkn:
+            raise ValueError("Could not extract WKN from H2")
+        return wkn
     
     def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
         """
@@ -77,21 +63,7 @@ class WarrantParser(BaseDataParser):
         
         For warrants, ISIN is in the H2 tag after "ISIN:"
         """
-        headline_h2 = soup.select_one("h2")
-        if not headline_h2:
-            return None
-        
-        h2_text = headline_h2.text
-        
-        # Extract ISIN from patterns like "ISIN: DE0001234567"
-        if "ISIN" in h2_text or "isin" in h2_text.lower():
-            parts = h2_text.split("/")
-            if len(parts) > 1:
-                isin_part = parts[1]  # ISIN is typically after the "/"
-                isin = isin_part.replace("ISIN:", "").replace("ISIN", "").replace("isin:", "").strip()
-                return isin
-        
-        return None
+        return extract_after_label(soup, "ISIN:", max_length=12)
     
     def parse_id_notations(
         self,

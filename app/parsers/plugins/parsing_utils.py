@@ -156,10 +156,10 @@ def extract_table_cell_by_label(soup: BeautifulSoup, table_header: str, cell_lab
 
 def clean_numeric_value(value: str) -> Optional[int]:
     """
-    Clean and convert a numeric string to integer.
+    Clean and convert a numeric string to integer, handling German format with suffixes.
     
     Args:
-        value: String containing a number (may have dots, commas, etc.)
+        value: String containing a number (may have dots, commas, suffixes like Mio., Mrd., etc.)
         
     Returns:
         Integer value or None if conversion fails
@@ -167,14 +167,46 @@ def clean_numeric_value(value: str) -> Optional[int]:
     Example:
         clean_numeric_value("1.234") -> 1234
         clean_numeric_value("1,234") -> 1234
+        clean_numeric_value("3,10 Mio.") -> 3100000
+        clean_numeric_value("42,34 Mrd.") -> 42340000000
+        clean_numeric_value("51,11 Mio.") -> 51110000
     """
     if not value or value.strip() == "--":
         return None
     
     try:
-        # Remove common thousand separators
-        cleaned = value.replace(".", "").replace(",", "").strip()
-        return int(cleaned)
+        value = value.strip()
+        
+        # Check for magnitude suffixes (German format)
+        multiplier = 1
+        if "Mrd." in value or "Mrd" in value:
+            # Billion (Milliarde)
+            multiplier = 1_000_000_000
+            value = value.replace("Mrd.", "").replace("Mrd", "").strip()
+        elif "Mio." in value or "Mio" in value:
+            # Million
+            multiplier = 1_000_000
+            value = value.replace("Mio.", "").replace("Mio", "").strip()
+        elif "Tsd." in value or "Tsd" in value:
+            # Thousand (Tausend)
+            multiplier = 1_000
+            value = value.replace("Tsd.", "").replace("Tsd", "").strip()
+        
+        # Handle German number format: "3,10" means 3.10 (comma is decimal separator)
+        # and "1.234" means 1234 (dot is thousand separator)
+        if "," in value:
+            # Has decimal separator - convert to float first
+            value = value.replace(".", "")  # Remove thousand separators
+            value = value.replace(",", ".")  # Convert decimal separator
+            numeric_value = float(value)
+        else:
+            # Only thousand separators
+            value = value.replace(".", "")  # Remove thousand separators
+            numeric_value = int(value)
+        
+        # Apply multiplier and convert to integer
+        return int(numeric_value * multiplier)
+        
     except (ValueError, AttributeError):
         return None
 

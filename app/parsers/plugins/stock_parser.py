@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from app.models.basedata import AssetClass
 from app.parsers.plugins.base_parser import BaseDataParser
 from app.parsers.plugins.parsing_utils import (
+    clean_numeric_value,
     extract_after_label,
     extract_from_h1,
     extract_wkn_from_h2,
@@ -228,10 +229,9 @@ class StockParser(BaseDataParser):
                         for cell in cells:
                             if cell.get("data-label") == "Gestellte Kurse":
                                 gestellte_text = cell.get_text(strip=True)
-                                # Convert "6.844" to integer 6844
-                                try:
-                                    gestellte_value = int(gestellte_text.replace(".", "").replace(",", ""))
-                                except (ValueError, AttributeError):
+                                # Convert using utility (handles "6.844" and "3,10 Mio.")
+                                gestellte_value = clean_numeric_value(gestellte_text)
+                                if gestellte_value is None:
                                     gestellte_value = 0
                                 break
                         
@@ -311,10 +311,9 @@ class StockParser(BaseDataParser):
                         for cell in cells:
                             if cell.get("data-label") == "Anzahl Kurse":
                                 anzahl_text = cell.get_text(strip=True)
-                                # Convert "18.087" to integer 18087
-                                try:
-                                    anzahl_value = int(anzahl_text.replace(".", "").replace(",", ""))
-                                except (ValueError, AttributeError):
+                                # Convert using utility (handles "18.087" and "3,10 Mio.")
+                                anzahl_value = clean_numeric_value(anzahl_text)
+                                if anzahl_value is None:
                                     anzahl_value = 0
                                 break
                         

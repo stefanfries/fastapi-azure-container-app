@@ -9,7 +9,7 @@ The main function is empty, but it is a placeholder for future code.
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.middleware import log_client_ip_middleware
@@ -38,6 +38,12 @@ app.include_router(basedata.router)
 app.include_router(depots.router)
 app.include_router(pricedata.router)
 app.include_router(history.router)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve the favicon.ico file from the static directory."""
+    return FileResponse("app/static/favicon.ico")
 
 
 def main() -> None:

@@ -44,7 +44,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --verbose --cov=app --cov-report=xml --cov-report=term
+          pytest tests/ --verbose --cov=app --cov-report=xml --cov-report=term
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

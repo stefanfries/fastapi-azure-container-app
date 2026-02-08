@@ -316,19 +316,95 @@ def parse_preferred_notation_id_exchange_trading(
 
 async def parse_base_data(instrument: str) -> BaseData:
     """
-    Fetches and parses the base data for a given instrument.
+    Fetches and parses the base data for a given instrument using the plugin system.
+    
+    This function uses a plugin-based architecture where each asset class has its own
+    parser implementation. This allows for flexible handling of different HTML structures
+    across asset classes.
+    
     Args:
-        instrument_id (str): The ID of the instrument to fetch data for.
+        instrument: The ID of the instrument to fetch data for (WKN, ISIN, etc.)
+        
     Returns:
         BaseData: An object containing the base data of the instrument.
+        
     Raises:
         HTTPException: If the request to fetch the instrument data fails.
-        ValueError: If the instrument type or ID cannot be extracted from the response.
+        ValueError: If the instrument type or ID cannot be extracted from the response,
+                   or if no parser is available for the asset class.
     """
-
+    from app.parsers.plugins.factory import ParserFactory
+    
+    # First fetch to determine asset class and get initial data
     response = await fetch_one(instrument)
     soup = BeautifulSoup(response.content, "html.parser")
     asset_class = parse_asset_class(response)
+    
+    # Get the appropriate parser for this asset class
+    if not ParserFactory.is_registered(asset_class):
+        # Fall back to legacy parsing for unregistered asset classes
+        logger.warning(
+            "No parser plugin registered for %s, falling back to legacy parsing",
+            asset_class
+        )
+        return await _parse_base_data_legacy(instrument, response, soup, asset_class)
+    
+    parser = ParserFactory.get_parser(asset_class)
+    
+    # Get default ID_NOTATION from URL
+    default_id_notation = parser.parse_default_id_notation_from_url(response)
+    
+    # Check if we need to refetch with ID_NOTATION
+    if parser.needs_id_notation_refetch() and default_id_notation:
+        logger.info(
+            "Asset class %s requires refetch with ID_NOTATION %s",
+            asset_class,
+            default_id_notation
+        )
+        # Refetch with ID_NOTATION to get complete data
+        response = await fetch_one(instrument, asset_class, default_id_notation)
+        soup = BeautifulSoup(response.content, "html.parser")
+    
+    # Parse all fields using the plugin
+    name = parser.parse_name(soup)
+    wkn = parser.parse_wkn(soup)
+    isin = parser.parse_isin(soup)
+    symbol = parse_symbol(asset_class, soup)  # Still using legacy for symbol
+    
+    (
+        id_notations_life_trading, 
+        id_notations_exchange_trading,
+        preferred_id_notation_life_trading,
+        preferred_id_notation_exchange_trading
+    ) = parser.parse_id_notations(soup, default_id_notation)
+    
+    base_data = BaseData(
+        name=name,
+        wkn=wkn,
+        isin=isin,
+        symbol=symbol,
+        asset_class=asset_class,
+        id_notations_life_trading=id_notations_life_trading,
+        id_notations_exchange_trading=id_notations_exchange_trading,
+        preferred_id_notation_life_trading=preferred_id_notation_life_trading,
+        preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
+        default_id_notation=default_id_notation,
+    )
+    return base_data
+
+
+async def _parse_base_data_legacy(
+    instrument: str, 
+    response: httpx.Response, 
+    soup: BeautifulSoup, 
+    asset_class: AssetClass
+) -> BaseData:
+    """
+    Legacy parsing function for asset classes without plugin support.
+    
+    This maintains backward compatibility for asset classes that haven't been
+    migrated to the plugin system yet.
+    """
     default_id_notation = parse_default_id_notation(response)
     name = parse_name(asset_class, soup)
     wkn = parse_wkn(asset_class, soup)

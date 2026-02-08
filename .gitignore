@@ -123,12 +123,26 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Secrets and credentials
+*.key
+*.pem
+secrets/
+
+# Azure deployment artifacts
+job-config.yaml
+
+# Application logs
+*.log
+app.log
 
 # Spyder project settings
 .spyderproject

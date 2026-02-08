@@ -1,3 +1,93 @@
-*.log
+# Python bytecode and cache
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+*.so
+*.egg
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+app.log
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+LICENSE
+docs/
+DEPLOYMENT_ANALYSIS.md
+DIAGNOSTIC_REPORT.md
+INVESTIGATION_RESOLUTION_REPORT.md
+PLUGIN_SYSTEM_DOCUMENTATION.md
+PREFERRED_ID_NOTATION_GUIDE.md
+QUICK_START_NEW_PARSER.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+analyze_*.py
+check_*.py
+debug_*.py
+examine_*.py
+extract_*.py
+find_*.py
+investigate_*.py
+warrant_page.html
+
+# CI/CD
+.github/
+.gitlab/
+.circleci/
+azure-pipelines.yml
+
+# Development tools
+Makefile
+.editorconfig
+.pre-commit-config.yaml
+pyrightconfig.json
+setup.py
+setup.cfg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Other
+scripts/

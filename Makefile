@@ -1,60 +1,37 @@
-# Load environment variables from .env file
-ifneq (,$(wildcard .env))
-    include .env
-    export
-endif
+# Makefile for local development
+# Docker build/push/deploy is handled by GitHub Actions CI/CD
+
+.PHONY: help install format lint test check run-local clean all
 
 # Define variables
-APP_NAME = app
-APP_DIR  = app
+APP_DIR = app
 TEST_DIR = tests
-DOCKER_IMAGE=fastapi-container
-DOCKER_TAG=latest
-DOCKER_REGISTRY=ghcr.io
-DOCKER_REPOSITORY=fastapi-azure-container-app
 
-# Define commands
-# help: #List available commands
-#	@echo "Available commands:"
-# 	@awk 'BEGIN {FS = ":.*?#"}; /^[a-zA-Z0-9_-]+:.*?#/ {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)	
-#	@grep -E '^[a-zA-Z0-9_-]+:.*?#.*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?#"}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+help: ## Show this help message
+	@echo "Available commands:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
+install: ## Install Python dependencies
+	uv sync
 
-install: #Install commands
-	pip install --upgrade pip && \
-	pip install -r requirements.txt
+format: ## Format code with black
+	black $(APP_DIR) $(TEST_DIR)
 
-format: #Format the code
-	black $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py
+lint: ## Run pylint checks
+	pylint --disable=R,C $(APP_DIR) $(TEST_DIR)
 
-lint: #Lint the code
-	pylint --disable=R,C $(APP_DIR)/*.py $(APP_DIR)/**/*.py $(TEST_DIR)/*.py
+test: ## Run tests with coverage
+	python -m pytest --verbose --cov=app tests/
 
-test: #Run tests
-	python -m pytest --verbose --cov=app
+check: format lint test ## Run format, lint, and tests
 
-build: #Build Docker container image
-	docker buildx build -t $(DOCKER_REGISTRY)/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+run-local: ## Run FastAPI app locally
+	uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
-push: #Push Docker container image to GitHub Container Registry
-	docker login --username $(DOCKER_OWNER) --password $(DOCKER_PASSWORD) $(DOCKER_REGISTRY)
-	docker push $(DOCKER_REGISTRY)/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+clean: ## Remove Python cache files
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".coverage" -exec rm -rf {} + 2>/dev/null || true
 
-pull: #Pull Docker container image from GitHub Container Registry
-	docker pull $(DOCKER_REGISTRY)/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
-
-run: #Run Docker container
-	docker run -p 8080:8080 $(DOCKER_REGISTRY)/$(DOCKER_OWNER)/$(DOCKER_REPOSITORY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
-
-deploy: #Deploy the FastAPI application
-#	deploy commands
-
-all: install lint test deploy #Run all commands
-	#test: ## Run tests
-	#pytest
-	#lint: ## Lint the code
-	#flake8 app
-	#docker-build: ## Build the Docker image
-	#docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
-	#docker-run: ## Run the Docker container
-	#docker run -p 8000:8000 $(DOCKER_IMAGE):$(DOCKER_TAG)
+all: install check ## Install dependencies and run all checks

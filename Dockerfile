@@ -5,13 +5,14 @@ RUN mkdir -p /code
 # Set the working directory
 WORKDIR /code
 
-# Copy the requirements file first to leverage Docker cache
-COPY requirements.txt /code/
+# Install uv for faster dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install dependencies and clean up pip cache
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt&& \
-    rm -rf /root/.cache/pip
+# Copy dependency files first to leverage Docker cache
+COPY pyproject.toml /code/
+
+# Install dependencies using uv (much faster than pip)
+RUN uv pip install --system --no-cache -r pyproject.toml
 
 # Copy the application source code
 COPY ./app /code/app/

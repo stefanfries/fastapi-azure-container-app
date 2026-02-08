@@ -134,14 +134,14 @@ Deleted the old, partially disabled workflow files:
 
 ## 🔐 Security Improvements
 
-### Before:
+### Before
 
 - ❌ Hardcoded GitHub token in `.env` file
 - ❌ Token exposed in repository
 - ❌ Multiple workflow files with different auth methods
 - ❌ Inconsistent secret management
 
-### After:
+### After
 
 - ✅ `.env` properly git-ignored
 - ✅ `.env.example` template provided
@@ -153,7 +153,7 @@ Deleted the old, partially disabled workflow files:
 
 ## 📋 Next Steps
 
-### Required Actions Before Deployment:
+### Required Actions Before Deployment
 
 1. **Remove the exposed token from `.env`**:
 
@@ -188,7 +188,7 @@ Deleted the old, partially disabled workflow files:
 
 ## 🎨 Architecture Comparison
 
-### Old Setup (3 workflows):
+### Old Setup (3 workflows)
 
 ```text
 devops.yml          → Disabled (test only)
@@ -196,9 +196,9 @@ publish.yml         → Disabled (GHCR + Azure deployment)
 ca-fastapi-...yml   → Active (GHCR + Azure deployment)
 ```
 
-### New Setup (2 workflows):
+### New Setup (2 workflows)
 
-```
+```text
 ci-quality.yml      → Active (runs on all pushes/PRs)
 cd-deploy.yml       → Active (deploys on main branch)
 ```

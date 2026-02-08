@@ -41,7 +41,7 @@ function Format-Code {
     black $APP_DIR $TEST_DIR
 }
 
-function Lint-Code {
+function Invoke-Linter {
     Write-Host "Running pylint..." -ForegroundColor Yellow
     pylint --disable=R,C $APP_DIR $TEST_DIR
 }
@@ -53,16 +53,16 @@ function Test-Code {
 
 function Check-All {
     Format-Code
-    Lint-Code
+    Invoke-Linter
     Test-Code
 }
 
-function Run-Local {
+function Start-Local {
     Write-Host "Starting FastAPI locally..." -ForegroundColor Yellow
     uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 }
 
-function Clean-Cache {
+function Clear-Cache {
     Write-Host "Cleaning Python cache files..." -ForegroundColor Yellow
     Get-ChildItem -Path . -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
     Get-ChildItem -Path . -Recurse -File -Filter "*.pyc" | Remove-Item -Force
@@ -71,7 +71,7 @@ function Clean-Cache {
     Write-Host "Cleanup complete!" -ForegroundColor Green
 }
 
-function Run-All {
+function Invoke-All {
     Install-Dependencies
     Check-All
 }
@@ -81,12 +81,12 @@ switch ($Command.ToLower()) {
     "help" { Show-Help }
     "install" { Install-Dependencies }
     "format" { Format-Code }
-    "lint" { Lint-Code }
+    "lint" { Invoke-Linter }
     "test" { Test-Code }
     "check" { Check-All }
-    "run-local" { Run-Local }
-    "clean" { Clean-Cache }
-    "all" { Run-All }
+    "run-local" { Start-Local }
+    "clean" { Clear-Cache }
+    "all" { Invoke-All }
     default {
         Write-Host "Unknown command: $Command" -ForegroundColor Red
         Write-Host ""

@@ -61,7 +61,7 @@ Write-Host "   Image: $DOCKER_IMAGE" -ForegroundColor Cyan
 
 # Check if logged into Azure
 Write-Host "`n🔐 Checking Azure CLI authentication..." -ForegroundColor Cyan
-$azAccount = az account show 2>$null
+az account show 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Not logged into Azure CLI" -ForegroundColor Red
     Write-Host "💡 Please run: az login" -ForegroundColor Yellow
@@ -81,7 +81,7 @@ Write-Host "✅ Resource group exists" -ForegroundColor Green
 
 # Check if Container Apps environment exists
 Write-Host "`n🌍 Checking Container Apps environment..." -ForegroundColor Cyan
-$envExists = az containerapp env show --name $ENVIRONMENT --resource-group $RESOURCE_GROUP 2>$null
+az containerapp env show --name $ENVIRONMENT --resource-group $RESOURCE_GROUP 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Container Apps environment '$ENVIRONMENT' does not exist" -ForegroundColor Red
     Write-Host "💡 Create it with:" -ForegroundColor Yellow
@@ -92,7 +92,7 @@ Write-Host "✅ Container Apps environment exists" -ForegroundColor Green
 
 # Check if the container app already exists
 Write-Host "`n🔍 Checking if Container App exists..." -ForegroundColor Cyan
-$appExists = az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP 2>$null
+az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP 2>$null | Out-Null
 $isUpdate = $LASTEXITCODE -eq 0
 
 if ($isUpdate) {

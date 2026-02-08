@@ -47,13 +47,13 @@ az containerapp env create \
 
 Add these secrets in **GitHub Repository → Settings → Secrets and variables → Actions**:
 
-#### Required Secrets for Azure OIDC Authentication:
+#### Required Secrets for Azure OIDC Authentication
 
 1. **`AZURE_CLIENT_ID`** - Application (client) ID
 2. **`AZURE_TENANT_ID`** - Directory (tenant) ID
 3. **`AZURE_SUBSCRIPTION_ID`** - Azure subscription ID
 
-#### How to Create Azure Service Principal with OIDC:
+#### How to Create Azure Service Principal with OIDC
 
 ```powershell
 # Set variables
@@ -125,6 +125,7 @@ git push origin main
 ```
 
 GitHub Actions will automatically:
+
 1. ✅ Run tests and quality checks
 2. ✅ Build Docker image
 3. ✅ Push to GHCR
@@ -217,6 +218,7 @@ az containerapp revision restart \
 ### Azure Portal
 
 View metrics and logs in Azure Portal:
+
 - Navigate to: Resource Groups → rg-FastAPI-AzureContainerApp-dev → ca-fastapi
 - Monitor: Requests, Response time, CPU, Memory
 

@@ -114,15 +114,26 @@ def parse_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     Args:
         soup (BeautifulSoup): A BeautifulSoup object containing the HTML content.
     Returns:
-        str: The ISIN as a string.
+        str: The ISIN as a string or None if not found.
     """
 
     headline_h2 = soup.select_one("h2")
     if asset_class in standard_asset_classes:
-        isin = headline_h2.text.strip().split()[3]
-        return isin
+        if not headline_h2:
+            logger.warning("H2 element not found for asset class %s", asset_class)
+            return None
+        h2_text = headline_h2.text.strip()
+        logger.debug("H2 text for ISIN extraction: %s", h2_text)
+        h2_parts = h2_text.split()
+        logger.debug("H2 parts: %s", h2_parts)
+        if len(h2_parts) > 3:
+            isin = h2_parts[3]
+            return isin
+        else:
+            logger.warning("Not enough parts in H2 text to extract ISIN: %s", h2_parts)
+            return None
     if asset_class in special_asset_classes:
-        isin = None
+        return None
     logger.error("Unsupported asset class %s", asset_class)
     raise ValueError("Unsupported asset class")
 
@@ -408,7 +419,9 @@ async def _parse_base_data_legacy(
     default_id_notation = parse_default_id_notation(response)
     name = parse_name(asset_class, soup)
     wkn = parse_wkn(asset_class, soup)
+    logger.info("About to parse ISIN for asset_class=%s", asset_class)
     isin = parse_isin(asset_class, soup)
+    logger.info("Parsed ISIN: %s", isin)
     symbol = parse_symbol(asset_class, soup)
     id_notations_life_trading, id_notations_exchange_trading = parse_id_notations(
         asset_class, soup

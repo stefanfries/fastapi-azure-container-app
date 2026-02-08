@@ -96,13 +96,13 @@ class StockParser(BaseDataParser):
         
         h2_text = headline_h2.text
         
-        # Extract ISIN from patterns like "ISIN: DE0001234567"
+        # Extract ISIN from patterns like "ISIN: US67066G1040" or "ISIN US67066G1040"
         if "ISIN" in h2_text or "isin" in h2_text.lower():
-            parts = h2_text.split("/")
-            if len(parts) > 1:
-                isin_part = parts[1]  # ISIN is typically after the "/"
-                isin = isin_part.replace("ISIN:", "").replace("ISIN", "").replace("isin:", "").strip()
-                return isin
+            # Remove "ISIN:" or "ISIN" label and extract the code
+            isin_part = h2_text.split("ISIN:")[-1] if "ISIN:" in h2_text else h2_text.split("ISIN")[-1]
+            # Clean up whitespace and newlines, take first token (the ISIN code)
+            isin = isin_part.strip().split()[0] if isin_part.strip() else None
+            return isin if isin and len(isin) == 12 else None  # ISIN is always 12 characters
         
         return None
     

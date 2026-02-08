@@ -419,9 +419,7 @@ async def _parse_base_data_legacy(
     default_id_notation = parse_default_id_notation(response)
     name = parse_name(asset_class, soup)
     wkn = parse_wkn(asset_class, soup)
-    logger.info("About to parse ISIN for asset_class=%s", asset_class)
     isin = parse_isin(asset_class, soup)
-    logger.info("Parsed ISIN: %s", isin)
     symbol = parse_symbol(asset_class, soup)
     id_notations_life_trading, id_notations_exchange_trading = parse_id_notations(
         asset_class, soup

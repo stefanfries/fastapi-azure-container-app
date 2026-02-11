@@ -1,5 +1,6 @@
 {
     // Python  settings
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "python.analysis.autoSearchPaths": true,
     "python.analysis.extraPaths": [
         "${workspaceFolder}",
@@ -11,11 +12,26 @@
     "python.envFile": "${workspaceFolder}/.env",
     "python.terminal.activateEnvironment": true,
     "python.venvPath": "${workspaceFolder}/.venv",
+    
+    // Terminal settings for auto-activation
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "args": [
+                "-NoExit",
+                "-Command",
+                "& { if (Test-Path '${workspaceFolder}/.venv/Scripts/Activate.ps1') { & '${workspaceFolder}/.venv/Scripts/Activate.ps1' } }"
+            ]
+        }
+    },
+    
     // Python settings
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
     "python.testing.cwd": "${workspaceFolder}/tests",
-    "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+    "python.testing.pytestPath": "${workspaceFolder}/.venv/Scripts/pytest.exe",
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
     "files.autoSave": "off"
 }

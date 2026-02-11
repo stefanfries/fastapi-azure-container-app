@@ -18,7 +18,7 @@ class PriceData(BaseModel):
     """
 
     name: str
-    wkn: str = Field(..., pattern=r"^[A-HJ-NPR-Z0-9]{6}$")
+    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)

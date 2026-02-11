@@ -19,12 +19,14 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 ### Local Development
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/stefanfries/fastapi-azure-container-app.git
    cd fastapi-azure-container-app
    ```
 
 2. **Create and activate virtual environment**:
+
    ```bash
    python -m venv .venv
    ./.venv/Scripts/activate  # Windows
@@ -32,19 +34,21 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
    ```
 
 3. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Run the application**:
+
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
    ```
 
 5. **Access the API**:
-   - Application: http://localhost:8080
-   - API Documentation: http://localhost:8080/docs
-   - Alternative docs: http://localhost:8080/redoc
+   - Application: <http://localhost:8080>
+   - API Documentation: <http://localhost:8080/docs>
+   - Alternative docs: <http://localhost:8080/redoc>
 
 ### Using Make Commands
 
@@ -96,6 +100,7 @@ git push origin main
 ```
 
 GitHub Actions will automatically:
+
 1. Run tests and quality checks
 2. Build Docker image
 3. Push to GitHub Container Registry

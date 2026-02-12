@@ -186,6 +186,10 @@ async def parse_history_data(
             .astype(int)
         )
 
+    # Sort by datetime in ascending order (oldest first)
+    df.sort_values(by="datetime", ascending=True, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
     # Convert the DataFrame to a list of dictionaries
     data = df.to_dict(orient="records")
 

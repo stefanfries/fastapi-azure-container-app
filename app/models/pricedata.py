@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field
+from pydantic_extra_types.currency_code import Currency
 
 
 class PriceData(BaseModel):
@@ -18,11 +19,11 @@ class PriceData(BaseModel):
     """
 
     name: str
-    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")
+    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$"),  # WKNs are 6 characters long and do not contain the letters I and O
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)
-    currency: str = Field(..., pattern=r"^EUR|USD|CHF$")
+    currency: Currency
     timestamp: datetime
     trading_venue: str
     id_notation: str

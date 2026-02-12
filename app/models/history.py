@@ -2,11 +2,10 @@ from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
+from pydantic_extra_types.currency_code import Currency
 from typing_extensions import Literal
 
 type Interval = Literal["5min", "15min", "30min", "hour", "day", "week", "month"]
-
-type Currency = Literal["EUR", "USD", "CHF"]
 
 
 class HistoryRecord(BaseModel):

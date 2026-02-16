@@ -4,104 +4,104 @@ from datetime import date, time
 from fastapi import HTTPException, status
 
 from app.logging_config import logger
-from app.models.basedata import BaseData
+from app.models.instruments import Instrument
 
 
-def check_valid_id_notation(basedata, id_notation) -> None:
+def check_valid_id_notation(instrument_data, id_notation) -> None:
     """
-    Validates the given id_notation against the basedata.
+    Validates the given id_notation against the instrument_data.
     This function checks if the provided id_notation is present in either
     the id_notations_life_trading or id_notations_exchange_trading values
-    of the basedata. If the id_notation is not found in either, an HTTPException
+    of the instrument_data. If the id_notation is not found in either, an HTTPException
     is raised with a 400 status code.
     Args:
-        basedata: An object containing id_notations_life_trading and id_notations_exchange_trading.
+        instrument_data: An object containing id_notations_life_trading and id_notations_exchange_trading.
         id_notation: The id_notation to be validated.
     Raises:
-        HTTPException: If the id_notation is not valid for the given basedata.
+        HTTPException: If the id_notation is not valid for the given instrument_data.
     """
 
     if (
-        id_notation in basedata.id_notations_life_trading.values()
-        or id_notation in basedata.id_notations_exchange_trading.values()
+        id_notation in instrument_data.id_notations_life_trading.values()
+        or id_notation in instrument_data.id_notations_exchange_trading.values()
     ):
         return None
     else:
         logger.error(
             "Invalid id_notation: %s for instrument %s",
             id_notation,
-            basedata.wkn,
+            instrument_data.wkn,
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid id_notation {id_notation} for instrument {basedata.name}",
+            detail=f"Invalid id_notation {id_notation} for instrument {instrument_data.name}",
         )
 
 
-def get_id_notations_dict(basedata: BaseData) -> dict:
+def get_id_notations_dict(instrument_data: Instrument) -> dict:
     """
-    Get the id_notations dictionary for the given basedata instance.
+    Get the id_notations dictionary for the given instrument_data instance.
     Args:
-        basedata (BaseData): An instance of BaseData containing id notations.
+        instrument_data (Instrument): An instance of Instrument containing id notations.
     Returns:
-        dict: A dictionary containing all id_notations for the given basedata.
+        dict: A dictionary containing all id_notations for the given instrument_data.
     """
     return {
-        **(basedata.id_notations_life_trading or {}),
-        **(basedata.id_notations_exchange_trading or {}),
+        **(instrument_data.id_notations_life_trading or {}),
+        **(instrument_data.id_notations_exchange_trading or {}),
     }
 
 
-def get_trading_venues_dict(basedata: BaseData) -> dict:
+def get_trading_venues_dict(instrument_data: Instrument) -> dict:
     """
-    Get the trading venues dictionary for the given basedata instance.
+    Get the trading venues dictionary for the given instrument_data instance.
     Args:
-        basedata (BaseData): An instance of BaseData containing trading venues.
+        instrument_data (Instrument): An instance of Instrument containing trading venues.
     Returns:
-        dict: A dictionary containing all trading venues for the given basedata.
+        dict: A dictionary containing all trading venues for the given instrument_data.
     """
-    id_notatations_dict = get_id_notations_dict(basedata)
+    id_notatations_dict = get_id_notations_dict(instrument_data)
     trading_venues_dict = {v: k for k, v in id_notatations_dict.items()}
     return trading_venues_dict
 
 
-def get_id_notation(basedata: BaseData, trading_venue: str) -> str:
+def get_id_notation(instrument_data: Instrument, trading_venue: str) -> str:
     """
-    Get the trading venue for the given id_notation in the provided BaseData instance.
+    Get the id_notation for the given trading_venue in the provided Instrument instance.
     Args:
-        basedata (BaseData): An instance of BaseData containing id notations.
-        id_notation (str): The id notation to get the trading venue for.
+        instrument_data (Instrument): An instance of Instrument containing id notations.
+        trading_venue (str): The trading venue to get the id_notation for.
     Returns:
-        str: The trading venue of the given id_notation in the basedata.
+        str: The id_notation of the given trading_venue in the instrument_data.
     """
-    id_notations_dict = get_id_notations_dict(basedata)
+    id_notations_dict = get_id_notations_dict(instrument_data)
 
     if trading_venue not in id_notations_dict:
         logger.error(
-            "Invalid trading_venue: %s for instrument %s", trading_venue, basedata.wkn
+            "Invalid trading_venue: %s for instrument %s", trading_venue, instrument_data.wkn
         )
         raise ValueError(
-            f"Invalid trading_venue {trading_venue} for instrument {basedata.wkn}"
+            f"Invalid trading_venue {trading_venue} for instrument {instrument_data.wkn}"
         )
     return id_notations_dict.get(trading_venue, "")
 
 
-def get_trading_venue(basedata: BaseData, id_notation: str) -> str:
+def get_trading_venue(instrument_data: Instrument, id_notation: str) -> str:
     """
-    Get the trading venue for the given id_notation in the provided BaseData instance.
+    Get the trading venue for the given id_notation in the provided Instrument instance.
     Args:
-        basedata (BaseData): An instance of BaseData containing id notations.
+        instrument_data (Instrument): An instance of Instrument containing id notations.
         id_notation (str): The id notation to get the trading venue for.
     Returns:
-        str: The trading venue of the given id_notation in the basedata.
+        str: The trading venue of the given id_notation in the instrument_data.
     """
-    trading_venues_dict = get_trading_venues_dict(basedata)
+    trading_venues_dict = get_trading_venues_dict(instrument_data)
     if id_notation not in trading_venues_dict:
         logger.error(
-            "Invalid id_notation: %s for instrument %s", id_notation, basedata.wkn
+            "Invalid id_notation: %s for instrument %s", id_notation, instrument_data.wkn
         )
         raise ValueError(
-            f"Invalid id_notation {id_notation} for instrument {basedata.wkn}"
+            f"Invalid id_notation {id_notation} for instrument {instrument_data.wkn}"
         )
     return trading_venues_dict.get(id_notation, "")
 

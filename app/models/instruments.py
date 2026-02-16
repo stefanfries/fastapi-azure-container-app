@@ -1,14 +1,12 @@
 """
-Module: basedata
+Module: instruments
 This module defines data models and validation logic for financial instruments using Pydantic and enumerations.
-It includes classes for representing asset classes, trading notations, WKNs, ISINs, and base data for financial instruments.
+It includes classes for representing asset classes, trading notations, WKNs, ISINs, and instrument data for financial instruments.
 The module also provides a function to validate ISINs using the Luhn algorithm.
 Classes:
     AssetClass: Enumeration of different types of financial instruments.
     NotationType: Enumeration for different types of trading notations.
-    Wkn: Represents a WKN (Wertpapierkennnummer) for a financial instrument.
-    Isin: Represents an ISIN (International Securities Identification Number) for a financial instrument.
-    BaseData: Represents the base data model for a financial instrument.
+    Instrument: Represents the master data model for a financial instrument.
 Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
 """
@@ -83,13 +81,13 @@ class NotationType(str, Enum):
     EXCH_TRADING = "Börse"
 
 
-class BaseData(BaseModel):
+class Instrument(BaseModel):
     """
-    BaseData model representing the basic data of a financial instrument.
+    Instrument model representing the master data of a financial instrument.
     Attributes:
         name (str): Name of the financial instrument.
-        wkn (Wkn): WKN of the financial instrument.
-        isin (Optional[Isin]): ISIN of the financial instrument.
+        wkn (str): WKN of the financial instrument.
+        isin (Optional[str]): ISIN of the financial instrument.
         symbol (Optional[str]): Symbol of the financial instrument, with a minimum length of 2 and a maximum length of 5.
         asset_class (AssetClass): The asset class of the financial instrument.
         id_notations_life_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in live trading.

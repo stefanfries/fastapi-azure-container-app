@@ -12,25 +12,25 @@ from app.core.constants import (
     standard_asset_classes,
 )
 from app.logging_config import logger
-from app.models.basedata import AssetClass, BaseData, NotationType
+from app.models.instruments import AssetClass, Instrument, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
 
 
-def valid_id_notation(basedata: BaseData, id_notation: str) -> bool:
+def valid_id_notation(instrument_data: Instrument, id_notation: str) -> bool:
     """
-    Check if the given id_notation is valid within the provided BaseData instance.
+    Check if the given id_notation is valid within the provided Instrument instance.
     Args:
-        basedata (BaseData): An instance of BaseData containing id notations.
+        instrument_data (Instrument): An instance of Instrument containing id notations.
         id_notation (str): The id notation to be validated.
     Returns:
         bool: True if the id_notation is found in either id_notations_life_trading or
-              id_notations_exchange_trading of the basedata, False otherwise.
+              id_notations_exchange_trading of the instrument_data, False otherwise.
     """
 
     return (
-        id_notation in basedata.id_notations_life_trading.values()
-        or id_notation in basedata.id_notations_exchange_trading.values()
+        id_notation in instrument_data.id_notations_life_trading.values()
+        or id_notation in instrument_data.id_notations_exchange_trading.values()
     )
 
 
@@ -325,9 +325,9 @@ def parse_preferred_notation_id_exchange_trading(
     return notation_id
 
 
-async def parse_base_data(instrument: str) -> BaseData:
+async def parse_instrument_data(instrument: str) -> Instrument:
     """
-    Fetches and parses the base data for a given instrument using the plugin system.
+    Fetches and parses the instrument master data for a given instrument using the plugin system.
     
     This function uses a plugin-based architecture where each asset class has its own
     parser implementation. This allows for flexible handling of different HTML structures
@@ -337,7 +337,7 @@ async def parse_base_data(instrument: str) -> BaseData:
         instrument: The ID of the instrument to fetch data for (WKN, ISIN, etc.)
         
     Returns:
-        BaseData: An object containing the base data of the instrument.
+        Instrument: An object containing the master data of the instrument.
         
     Raises:
         HTTPException: If the request to fetch the instrument data fails.
@@ -358,7 +358,7 @@ async def parse_base_data(instrument: str) -> BaseData:
             "No parser plugin registered for %s, falling back to legacy parsing",
             asset_class
         )
-        return await _parse_base_data_legacy(instrument, response, soup, asset_class)
+        return await _parse_instrument_data_legacy(instrument, response, soup, asset_class)
     
     parser = ParserFactory.get_parser(asset_class)
     
@@ -389,7 +389,7 @@ async def parse_base_data(instrument: str) -> BaseData:
         preferred_id_notation_exchange_trading
     ) = parser.parse_id_notations(soup, default_id_notation)
     
-    base_data = BaseData(
+    instrument_data = Instrument(
         name=name,
         wkn=wkn,
         isin=isin,
@@ -401,15 +401,15 @@ async def parse_base_data(instrument: str) -> BaseData:
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
     )
-    return base_data
+    return instrument_data
 
 
-async def _parse_base_data_legacy(
+async def _parse_instrument_data_legacy(
     instrument: str, 
     response: httpx.Response, 
     soup: BeautifulSoup, 
     asset_class: AssetClass
-) -> BaseData:
+) -> Instrument:
     """
     Legacy parsing function for asset classes without plugin support.
     
@@ -432,7 +432,7 @@ async def _parse_base_data_legacy(
             asset_class, id_notations_exchange_trading, soup
         )
     )
-    base_data = BaseData(
+    instrument_data = Instrument(
         name=name,
         wkn=wkn,
         isin=isin,
@@ -444,4 +444,4 @@ async def _parse_base_data_legacy(
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
     )
-    return base_data
+    return instrument_data

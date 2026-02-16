@@ -1,20 +1,28 @@
+"""
+Module: quotes
+This module defines the data model for financial quotes (current market prices).
+Classes:
+    Quote: Represents current market price data for a financial instrument.
+"""
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 from pydantic_extra_types.currency_code import Currency
 
 
-class PriceData(BaseModel):
+class Quote(BaseModel):
     """
-    PriceData model representing financial price data.
+    Quote model representing current financial market price data.
     Attributes:
+        name (str): Name of the financial instrument.
         wkn (str): The WKN (Wertpapierkennnummer) of the financial instrument, must be a 6-character alphanumeric string.
         bid (float): The bid price of the financial instrument.
         ask (float): The ask price of the financial instrument.
         spread_percent (float): The spread percentage, must be greater than or equal to 0.
-        currency (str): The currency of the financial instrument, must be one of 'EUR', 'USD', or 'CHF'.
-        timestamp (datetime): The timestamp of the price data.
-        venue (str): The trading venue of the financial instrument.
+        currency (Currency): The currency of the financial instrument.
+        timestamp (datetime): The timestamp of the quote data.
+        trading_venue (str): The trading venue of the financial instrument.
         id_notation (str): The notation ID of the financial instrument.
     """
 

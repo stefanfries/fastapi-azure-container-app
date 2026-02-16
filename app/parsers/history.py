@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from app.core.constants import BASE_URL, HISTORY_PATH
 from app.logging_config import logger
 from app.models.history import HistoryData, Interval
-from app.parsers.basedata import parse_base_data
+from app.parsers.instruments import parse_instrument_data
 from app.parsers.utils import check_valid_id_notation, get_trading_venue
 from app.scrapers.scrape_url import fetch_one
 
@@ -63,23 +63,23 @@ async def parse_history_data(
         - The function also determines the trading venue and currency for the given notation ID.
     """
 
-    logger.info("parsing basedata for instrument_id: %s", instrument_id)
-    basedata = await parse_base_data(instrument_id)
+    logger.info("parsing instrument data for instrument_id: %s", instrument_id)
+    instrument_data = await parse_instrument_data(instrument_id)
 
     match id_notation:
         case None:
-            id_notation = basedata.default_id_notation
+            id_notation = instrument_data.default_id_notation
         case "preferred_id_notation_exchange_trading":
-            id_notation = basedata.preferred_id_notation_exchange_trading
+            id_notation = instrument_data.preferred_id_notation_exchange_trading
         case "preferred_id_notation_life_trading":
-            id_notation = basedata.preferred_id_notation_life_trading
+            id_notation = instrument_data.preferred_id_notation_life_trading
         case "default_id_notation":
-            id_notation = basedata.default_id_notation
+            id_notation = instrument_data.default_id_notation
         case _:
-            check_valid_id_notation(basedata, id_notation)
+            check_valid_id_notation(instrument_data, id_notation)
 
     # fetch instrument data from the web for the given id_notation
-    response = await fetch_one(str(basedata.wkn), basedata.asset_class, id_notation)
+    response = await fetch_one(str(instrument_data.wkn), instrument_data.asset_class, id_notation)
     soup = BeautifulSoup(response.content, "html.parser")
 
     # extract currency from soup object
@@ -193,11 +193,11 @@ async def parse_history_data(
     # Convert the DataFrame to a list of dictionaries
     data = df.to_dict(orient="records")
 
-    trading_venue = get_trading_venue(basedata, id_notation)
+    trading_venue = get_trading_venue(instrument_data, id_notation)
 
     return HistoryData(
-        wkn=basedata.wkn,
-        name=basedata.name,
+        wkn=instrument_data.wkn,
+        name=instrument_data.name,
         id_notation=str(id_notation),
         trading_venue=trading_venue,
         currency=currency,

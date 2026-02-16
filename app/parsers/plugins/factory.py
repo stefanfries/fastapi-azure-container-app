@@ -7,8 +7,8 @@ asset class parsers without modifying existing code.
 
 from typing import Dict, Type
 
-from app.models.basedata import AssetClass
-from app.parsers.plugins.base_parser import BaseDataParser
+from app.models.instruments import AssetClass
+from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.stock_parser import StockParser
 from app.parsers.plugins.warrant_parser import WarrantParser
 
@@ -23,10 +23,10 @@ class ParserFactory:
     """
     
     # Registry of parser classes for each asset class
-    _parsers: Dict[AssetClass, Type[BaseDataParser]] = {}
+    _parsers: Dict[AssetClass, Type[InstrumentParser]] = {}
     
     @classmethod
-    def register_parser(cls, asset_class: AssetClass, parser_class: Type[BaseDataParser]):
+    def register_parser(cls, asset_class: AssetClass, parser_class: Type[InstrumentParser]):
         """
         Register a parser for a specific asset class.
         
@@ -37,7 +37,7 @@ class ParserFactory:
         cls._parsers[asset_class] = parser_class
     
     @classmethod
-    def get_parser(cls, asset_class: AssetClass) -> BaseDataParser:
+    def get_parser(cls, asset_class: AssetClass) -> InstrumentParser:
         """
         Get a parser instance for the specified asset class.
         

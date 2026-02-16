@@ -4,7 +4,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 
-# from app.logging_config import logger
+from app.logging_config import logger
 from app.models.instruments import AssetClass
 from app.models.quotes import Quote
 from app.parsers.instruments import parse_instrument_data, parse_name, parse_wkn
@@ -54,10 +54,7 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
     soup = BeautifulSoup(response.content, "html.parser")
 
     # extract currency from soup object
-    currency = soup.find_all("meta", itemprop="priceCurrency")
-    print(f"length: {len(currency)}")
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
-    print(f"Currency: {currency}")
 
     # extract name from soup object
     name = parse_name(instrument_data.asset_class, soup)
@@ -75,7 +72,6 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         .text
     )
     bid = float(bid_str.replace(".", "").replace(",", "."))
-    print(f"Bid Price: {bid}")
 
     # Extract Ask Price
     ask_str = (
@@ -85,7 +81,6 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
     )
 
     ask = float(ask_str.replace(".", "").replace(",", "."))
-    print(f"Ask Price: {ask}")
 
     # Calculate spread as percentage of ask price (matching comdirect's formula)
     spread_percent = (ask - bid) / ask * 100
@@ -98,7 +93,6 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
 
     # Convert to datetime object
     timestamp = datetime.strptime(cleaned_timestamp_str, "%d.%m.%y %H:%M")
-    print(f"timpstamp: {timestamp}")
 
     trading_venue = table.find("th", string="Börse").find_next("td").text
 

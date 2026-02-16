@@ -3,6 +3,7 @@ from urllib.parse import urlencode, urljoin
 import httpx
 
 from app.core.constants import ASSET_CLASS_DETAILS_PATH, BASE_URL, SEARCH_PATH
+from app.logging_config import logger
 from app.models.instruments import AssetClass
 
 # from typing import AsyncGenerator, AsyncIterator, Dict, List
@@ -33,7 +34,7 @@ def compose_url(
         base_url = urljoin(BASE_URL, path)
         query_string = urlencode(params)
         url = f"{base_url}?{query_string}"
-        print(f"Full_URL: {url}")
+        logger.debug("Composed URL: %s", url)
         return url
 
 

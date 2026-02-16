@@ -7,6 +7,7 @@ uvicorn --host 127.0.0.1 --port 8080 --reload app.main:app
 The main function is empty, but it is a placeholder for future code.
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
@@ -14,8 +15,29 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.core.database import close_database_connection, connect_to_database
+from app.logging_config import logger
 from app.middleware import log_client_ip_middleware
 from app.routers import depots, history, instruments, quotes, users, welcome
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI application.
+    Handles startup and shutdown events.
+    """
+    # Startup: Connect to MongoDB
+    try:
+        await connect_to_database()
+    except Exception as e:
+        logger.error("Failed to connect to database during startup: %s", e)
+        raise
+    
+    yield
+    
+    # Shutdown: Close MongoDB connection
+    await close_database_connection()
 
 
 class CustomJSONResponse(JSONResponse):
@@ -29,7 +51,13 @@ class CustomJSONResponse(JSONResponse):
     media_type = "application/json; charset=utf-8"
 
 
-app = FastAPI(default_response_class=CustomJSONResponse)
+app = FastAPI(
+    default_response_class=CustomJSONResponse,
+    lifespan=lifespan,
+    title="FinHub API",
+    description="Financial data aggregator API providing unified access to instrument master data, quotes, and historical prices",
+    version="0.1.0",
+)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.middleware("http")(log_client_ip_middleware)

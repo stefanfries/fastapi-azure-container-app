@@ -6,10 +6,10 @@ from app.logging_config import logger
 from app.models.history import HistoryData, Interval
 from app.parsers.history import parse_history_data
 
-router = APIRouter(prefix="", tags=["instruments"])
+router = APIRouter(prefix="/v1/history", tags=["history"])
 
 
-@router.get("/history/{instrument_id}", response_model=HistoryData)
+@router.get("/{instrument_id}", response_model=HistoryData)
 async def get_history_data(
     instrument_id: str,
     start: datetime = Query(None),

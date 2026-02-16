@@ -10,8 +10,8 @@ from typing import Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
-from app.models.basedata import AssetClass
-from app.parsers.plugins.base_parser import BaseDataParser
+from app.models.instruments import AssetClass
+from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     extract_after_label,
@@ -24,7 +24,7 @@ from app.parsers.plugins.parsing_utils import (
 )
 
 
-class StockParser(BaseDataParser):
+class StockParser(InstrumentParser):
     """Parser for STOCK, BOND, ETF, FONDS, and CERTIFICATE asset classes."""
     
     def __init__(self, asset_class: AssetClass):

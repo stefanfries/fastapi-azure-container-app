@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.middleware import log_client_ip_middleware
-from app.routers import basedata, depots, history, pricedata, users, welcome
+from app.routers import depots, history, instruments, quotes, users, welcome
 
 
 class CustomJSONResponse(JSONResponse):
@@ -36,9 +36,9 @@ app.middleware("http")(log_client_ip_middleware)
 
 app.include_router(welcome.router)
 app.include_router(users.router)
-app.include_router(basedata.router)
+app.include_router(instruments.router)
 app.include_router(depots.router)
-app.include_router(pricedata.router)
+app.include_router(quotes.router)
 app.include_router(history.router)
 
 

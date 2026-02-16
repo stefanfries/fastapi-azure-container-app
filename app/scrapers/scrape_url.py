@@ -3,7 +3,7 @@ from urllib.parse import urlencode, urljoin
 import httpx
 
 from app.core.constants import ASSET_CLASS_DETAILS_PATH, BASE_URL, SEARCH_PATH
-from app.models.basedata import AssetClass
+from app.models.instruments import AssetClass
 
 # from typing import AsyncGenerator, AsyncIterator, Dict, List
 

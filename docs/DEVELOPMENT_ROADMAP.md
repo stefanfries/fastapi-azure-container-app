@@ -10,11 +10,11 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ✅ Completed Components
 
-- FastAPI application structure with routers (welcome, users, basedata, depots, pricedata, history)
+- FastAPI application structure with routers (welcome, users, instruments, depots, quotes, history)
 - Plugin-based parser system architecture (factory pattern)
 - Parsers for STOCK and WARRANT asset classes
 - Web scraping infrastructure (httpx + BeautifulSoup)
-- Basic data models (BaseData, User, Depot, History, PriceData)
+- Basic data models (Instrument, User, Depot, History, Quote)
 - CRUD operations for users, depots, and instruments
 - Docker containerization
 - CI/CD pipeline with GitHub Actions (quality checks + Azure deployment)
@@ -24,7 +24,7 @@ Based on a comprehensive review of the codebase against business and technical r
 ### ⚠️ Partially Completed
 
 - **Plugin System**: Only 2 of 9 asset classes have parsers (STOCK, WARRANT)
-- **Data Models**: BaseData only contains common attributes, no asset-class-specific fields
+- **Data Models**: Instrument model only contains common attributes, no asset-class-specific fields
 - **Testing**: Only 3 basic tests (test_main.py, test_users.py, test_welcome.py)
 - **Logging**: Configuration exists but print() statements still used in code
 - **Error Handling**: Basic middleware exists, needs enhancement
@@ -34,7 +34,7 @@ Based on a comprehensive review of the codebase against business and technical r
 
 - **MongoDB Integration**: No database driver or connection code (despite technical requirements)
 - **Authentication/Authorization**: No implementation (routes unprotected)
-- **Data Persistence**: No repository layer for basedata/pricedata caching
+- **Data Persistence**: No repository layer for instruments/quotes caching
 - **Asset-Class-Specific Models**: Missing extended models for each asset class
 - **Parsers for Special Asset Classes**: INDEX, COMMODITY, CURRENCY not implemented
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
@@ -42,10 +42,137 @@ Based on a comprehensive review of the codebase against business and technical r
 - **User Role Model**: No RBAC or role definitions
 - **API Versioning**: No route versioning (e.g., /v1/, /v2/) implemented
 - **Software Release Versioning**: No semantic versioning or version endpoint
+- **API Terminology**: Current endpoints use technical names (basedata, pricedata) instead of financial domain terms (instruments, quotes)
 
 ---
 
 ## Prioritized Development Plan
+
+### Phase 0: API Terminology Refactoring (Week 0 - Before Starting Phase 1)
+
+**Priority: CRITICAL - Foundation for all future development**
+
+**Rationale**: The current API uses technical implementation names (`basedata`, `pricedata`) instead of standard financial industry terminology. Refactoring now prevents technical debt accumulation and ensures the API speaks the financial domain language correctly.
+
+#### 0.1 Financial Domain Terminology
+
+**Industry Standard Terms:**
+- **Instrument** = Any tradeable financial asset (stocks, bonds, ETFs, warrants, commodities, currencies, indices)
+- **Quote** = Current market price data (bid/ask prices, timestamp, volume)
+- **History/OHLC** = Historical price data (Open, High, Low, Close, Volume over time)
+
+**Why NOT "Equity"?** Equity only refers to stocks/shares. Since this API supports 9 asset classes, "instrument" is the correct, broader term.
+
+**Industry References:**
+- Bloomberg API: `/instruments`, `/quotes`, `/historical-data`
+- Alpha Vantage: `/quote`, `/time-series`
+- IEX Cloud: `/stock`, `/quote`, `/chart`
+
+#### 0.2 Refactoring Plan
+
+**Target API Structure:**
+```
+/                                    # Application info (existing /welcome)
+/health                              # Liveness probe
+/health/ready                        # Readiness probe
+/docs                                # OpenAPI documentation
+
+/v1/instruments/{wkn}                # Instrument master data (was /basedata/{wkn})
+/v1/instruments/{wkn}/quote          # Current quote (was /pricedata/{wkn})
+/v1/instruments/{wkn}/history        # Historical OHLC (was /history/{wkn})
+/v1/instruments?asset_class=STOCK    # Filter instruments
+
+/v1/auth/register                    # User registration
+/v1/auth/login                       # User login
+/v1/auth/me                          # Current user
+
+/v1/depots                           # User portfolios (existing)
+/v1/depots/{depot_id}                # Depot details
+```
+
+#### 0.3 File Renaming Checklist
+
+- [ ] **Models**
+  - Rename `app/models/basedata.py` → `app/models/instruments.py`
+  - Rename class `BaseData` → `Instrument` within the file
+  - Rename `app/models/pricedata.py` → `app/models/quotes.py`
+  - Rename class `PriceData` → `Quote` within the file
+  - Update all imports across the codebase
+
+- [ ] **Parsers**
+  - Rename `app/parsers/basedata.py` → `app/parsers/instruments.py`
+  - Rename function `parse_base_data()` → `parse_instrument_data()`
+  - Rename `app/parsers/pricedata.py` → `app/parsers/quotes.py`
+  - Rename function `parse_price_data()` → `parse_quote()`
+  - Update all parser plugin references
+
+- [ ] **Routers**
+  - Rename `app/routers/basedata.py` → `app/routers/instruments.py`
+  - Update router prefix: `@router = APIRouter(prefix="/v1/instruments")`
+  - Rename `app/routers/pricedata.py` → `app/routers/quotes.py`
+  - Update router prefix: `@router = APIRouter(prefix="/v1/quotes")`
+  - Alternative: Keep quotes nested under instruments (`/v1/instruments/{wkn}/quote`)
+  - Update `app/routers/welcome.py` → integrate into root `/` endpoint
+  - Update `app/routers/history.py` to nest under instruments if desired
+
+- [ ] **CRUD Operations**
+  - Rename `app/crud/instruments.py` (currently empty, will handle instrument CRUD)
+  - Update function names: any references to "basedata" → "instrument"
+  - Update function names: any references to "pricedata" → "quote"
+
+- [ ] **Update main.py**
+  - Update router includes with new import paths
+  - Update API version tags in OpenAPI metadata
+
+- [ ] **Update Tests**
+  - Rename test files to match new naming
+  - Update import statements
+  - Update API endpoint paths in integration tests
+
+- [ ] **Update Documentation**
+  - Update all `.md` files in `docs/` with new terminology
+  - Update code comments with correct terminology
+  - Update OpenAPI descriptions
+
+#### 0.4 Migration Strategy
+
+**Option A: Big Bang Refactoring (Recommended)**
+
+- Complete all renaming in one PR
+- Ensures consistency immediately
+- Easier to track changes
+- Minimizes confusion
+- **Estimated time: 2-4 hours**
+
+**Option B: Gradual Migration**
+
+- Support both old and new endpoints temporarily
+- Add deprecation warnings to old endpoints
+- Migrate over multiple PRs
+- More complex, higher maintenance burden
+- **Not recommended** for this stage (no production users yet)
+
+#### 0.5 Validation Checklist
+
+After refactoring, verify:
+
+- [ ] All tests pass
+- [ ] No broken imports
+- [ ] OpenAPI docs reflect new endpoint names
+- [ ] Docker build succeeds
+- [ ] All endpoints accessible at new paths
+- [ ] No references to old terminology in code or docs
+
+**Deliverables:**
+
+- Codebase uses financial domain terminology throughout
+- API endpoints follow industry standards
+- Models, parsers, and routers renamed consistently
+- Documentation updated
+- All tests passing
+- Clean foundation for Phase 1 work
+
+---
 
 ### Phase 1: Foundation & Code Quality (Week 1-2)
 
@@ -54,7 +181,7 @@ Based on a comprehensive review of the codebase against business and technical r
 #### 1.1 Clean Up Technical Debt
 
 - [ ] Replace all `print()` statements with `logger` calls
-  - Files affected: `app/scrapers/scrape_url.py`, `app/parsers/history.py`, `app/parsers/pricedata.py`
+  - Files affected: `app/scrapers/scrape_url.py`, `app/parsers/history.py`, `app/parsers/quotes.py`
   - Quality impact: Consistent logging across application
   
 - [ ] Remove legacy backward compatibility code (if any identified)
@@ -67,7 +194,9 @@ Based on a comprehensive review of the codebase against business and technical r
 #### 1.2 Database Integration
 
 - [ ] Add MongoDB dependencies
-  - Add `motor` (async MongoDB driver) or `pymongo` to pyproject.toml
+  - Add `pymongo>=4.6.0` to pyproject.toml (native async support)
+  - **Note**: PyMongo 4.x+ has native async/await support - Motor is no longer needed
+  - MongoDB officially recommends PyMongo for new projects
   - Add connection pool configuration
   
 - [ ] Create database configuration module
@@ -75,12 +204,47 @@ Based on a comprehensive review of the codebase against business and technical r
   - Database and collection definitions
   - Connection lifecycle management
   
+**Example PyMongo 4.x Async Usage:**
+
+```python
+# app/config/database.py
+from pymongo import AsyncMongoClient
+from typing import AsyncGenerator
+
+DATABASE_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "finance_db")
+
+client: AsyncMongoClient | None = None
+
+async def get_database():
+    """Get database instance"""
+    global client
+    if client is None:
+        client = AsyncMongoClient(DATABASE_URL)
+    return client[DATABASE_NAME]
+
+async def close_database():
+    """Close database connection"""
+    global client
+    if client:
+        client.close()
+
+# Usage in repository
+async def get_user(user_id: str):
+    db = await get_database()
+    user = await db.users.find_one({"_id": user_id})
+    return user
+```
+  
 - [ ] Implement repository pattern
   - Create `app/repositories/` directory
-  - BaseData repository (CRUD + caching logic)
-  - User repository (migrate from in-memory to DB)
-  - Depot repository
-  - Instrument repository
+  - **InstrumentRepository** (CRUD + caching logic for financial instruments)
+    - Handles instrument master data (WKN, ISIN, name, asset class, id_notations)
+    - Manages asset-class-specific extended data (StockDetails, WarrantDetails, etc.)
+    - Caching strategy for instrument data
+  - **UserRepository** (migrate from in-memory to DB)
+  - **DepotRepository** (user portfolios management)
+  - **QuoteRepository** (optional - for quote caching if needed)
   
 - [ ] Add database initialization script
   - Schema validation setup
@@ -106,7 +270,7 @@ Based on a comprehensive review of the codebase against business and technical r
 #### 1.4 API & Software Versioning
 
 - [ ] Implement API route versioning
-  - Add version prefix to all routes (e.g., `/v1/basedata`, `/v1/pricedata`)
+  - Add version prefix to all routes (e.g., `/v1/instruments`, `/v1/quotes`)
   - Create API version router structure in `app/api/v1/`
   - Migrate existing routers to versioned structure
   - Keep root `/` and `/docs` endpoints unversioned
@@ -250,7 +414,7 @@ Based on a comprehensive review of the codebase against business and technical r
 #### 2.4 Secure Existing Routes
 
 - [ ] Protect all API endpoints
-  - Apply authentication to basedata, pricedata, history routes
+  - Apply authentication to instruments, quotes, history routes
   - Public: `/`, `/docs`, `/auth/login`, `/auth/register`
   - Protected: All other endpoints
   
@@ -293,9 +457,10 @@ Based on a comprehensive review of the codebase against business and technical r
   - `CurrencyDetails` model:
     - Currency pair, exchange rate source
   
-- [ ] Update BaseData model
+- [ ] Update Instrument model
   - Add optional `details` field (Union of all specific models)
   - Ensure backward compatibility
+  - Note: Currently named `BaseData`, will be renamed to `Instrument` in refactoring phase
   
 - [ ] Update database schemas
   - Ensure MongoDB can store extended models
@@ -328,15 +493,56 @@ Based on a comprehensive review of the codebase against business and technical r
 
 #### 3.3 Update API Endpoints
 
-- [ ] Enhance `/basedata/{instrument_id}` response
+- [ ] Enhance `/v1/instruments/{wkn}` response
   - Include asset-class-specific details in response
   - Update response model to include details union type
   
 - [ ] Add asset class filtering
-  - GET `/basedata?asset_class={asset_class}`
+  - GET `/v1/instruments?asset_class={asset_class}`
   
 - [ ] Add bulk operations (if needed)
-  - POST `/basedata/bulk` for multiple instruments
+  - POST `/v1/instruments/bulk` for multiple instruments
+
+#### 3.4 Remove Legacy Parsing Code
+
+Once all 9 asset classes have been migrated to the plugin system, remove the legacy parsing infrastructure to simplify the codebase.
+
+- [ ] Remove legacy parsing functions from `app/parsers/instruments.py` (currently `basedata.py`)
+  - Delete `parse_name()` function (legacy)
+  - Delete `parse_wkn()` function (legacy)
+  - Delete `parse_isin()` function (legacy)
+  - Delete `parse_id_notations()` function (legacy)
+  - Delete `parse_preferred_notation_id_life_trading()` function
+  - Delete `parse_preferred_notation_id_exchange_trading()` function
+  - Delete `_parse_base_data_legacy()` function
+  - Remove legacy fallback logic from `parse_instrument_data()` function
+
+- [ ] Remove legacy constants from `app/core/constants.py`
+  - Delete `standard_asset_classes` list
+  - Delete `special_asset_classes` list
+  - Update `asset_classes` to use `AssetClass` enum directly
+
+- [ ] Update imports in dependent modules
+  - Remove legacy function imports from `app/parsers/quotes.py` (currently `pricedata.py`)
+  - Update any other modules importing legacy functions
+
+- [ ] Verify all asset classes work with plugin system
+  - Test each asset class with real instruments
+  - Confirm no regressions compared to legacy behavior
+  - Validate all fields are correctly extracted
+
+- [ ] Update documentation
+  - Remove references to legacy parsing in comments
+  - Update PLUGIN_SYSTEM_DOCUMENTATION.md if needed
+  - Add migration notes to DEVELOPMENT_ROADMAP.md
+
+**Benefits of removing legacy code:**
+
+- Simplified codebase (removes ~200+ lines of duplicate logic)
+- Single source of truth for parsing (plugin system only)
+- Easier to maintain and extend
+- Consistent behavior across all asset classes
+- No confusion about which parsing path is used
 
 **Deliverables:**
 
@@ -344,6 +550,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - Asset-class-specific data models
 - Complete parser plugin system
 - Updated API with extended data
+- Legacy parsing code completely removed
+- Cleaner, more maintainable codebase
 
 ---
 
@@ -373,7 +581,7 @@ Based on a comprehensive review of the codebase against business and technical r
 #### 4.2 Integration Tests
 
 - [ ] Test complete API flows
-  - User registration → login → fetch basedata
+  - User registration → login → fetch instrument data
   - Test with real comdirect scraping (sandboxed)
   
 - [ ] Test database interactions
@@ -415,14 +623,15 @@ Based on a comprehensive review of the codebase against business and technical r
 
 #### 5.1 Caching Strategy
 
-- [ ] Implement basedata caching
-  - Cache parsed basedata in MongoDB
-  - TTL-based cache invalidation
+- [ ] Implement instrument data caching
+  - Cache parsed instrument data in MongoDB
+  - TTL-based cache invalidation (instruments rarely change)
   - Cache hit/miss logging
   
-- [ ] Implement pricedata caching
-  - Short-lived cache (5-15 minutes)
+- [ ] Implement quote caching
+  - Short-lived cache (5-15 minutes for real-time quotes)
   - Update strategy for real-time data
+  - Consider WebSocket updates for real-time scenarios
 
 #### 5.2 Error Handling Enhancement
 
@@ -480,15 +689,110 @@ Based on a comprehensive review of the codebase against business and technical r
 
 - [ ] Create load test scenarios
   - Concurrent user simulation
-  - High-volume basedata requests
+  - High-volume instrument data requests
+  - Real-time quote streaming scenarios
   
 - [ ] Run load tests
   - Use `locust` or `k6`
   - Identify bottlenecks
   
 - [ ] Establish performance baselines
-  - Target: p95 latency < 500ms
+  - Target: p95 latency < 500ms for instrument lookups
+  - Target: p95 latency < 1000ms for quote fetching (scraping involved)
   - Target: Handle 100+ concurrent requests
+
+#### 5.6 Robots.txt Compliance & Transparency
+
+Implement automated checking of comdirect.de's robots.txt before making requests to ensure responsible web scraping and maintain transparency.
+
+- [ ] Create robots.txt parser module
+  - File: `app/scrapers/robots_checker.py`
+  - Parse robots.txt from comdirect.de
+  - Cache robots.txt with TTL (refresh every 24 hours)
+  - Support for User-agent specific rules
+  - Support for Allow/Disallow patterns with wildcards
+
+- [ ] Implement URL compliance checker
+  - Check if URL path matches Allow patterns
+  - Check if URL path matches Disallow patterns
+  - Handle wildcard patterns (`/inf/*/detail/`)
+  - Return compliance status (ALLOWED, DISALLOWED, NOT_SPECIFIED)
+
+- [ ] Integrate checker into fetch functions
+  - Add robots.txt check before every `fetch_one()` call
+  - Log INFO when URL is ALLOWED
+  - Log WARNING when URL is DISALLOWED
+  - **Still proceed with request** even if disallowed (for transparency/logging only)
+  - Include URL path and rule matched in logs
+
+- [ ] Add robots.txt endpoint to API
+  - GET `/robots-compliance/{path}` - Check if a path is allowed
+  - GET `/robots-compliance/report` - Summary of recent checks
+  - Include in root endpoint (`/`) response
+
+- [ ] Review and document current compliance
+  - **ALLOWED**: `/inf/*/detail/uebersicht.html` (all asset classes) ✓
+  - **ISSUE**: `/inf/search/all.html` conflicts with `Disallow: /inf/search/`
+  - **ALLOWED**: `/inf/kursdaten/historic.csv` (not explicitly disallowed) ✓
+  - Document findings in `docs/ROBOTS_COMPLIANCE.md`
+
+- [ ] Address identified issues
+  - Consider alternative approach for search functionality
+  - Evaluate if search endpoint is necessary
+  - If needed, contact comdirect for permission or clarification
+
+- [ ] Add configuration option
+  - Environment variable `OBEY_ROBOTS_TXT` (default: `false` for logging only)
+  - **If `false`**: Log WARNING and proceed with request (transparency mode)
+  - **If `true`**: Log ERROR and raise exception if URL is disallowed
+    - Check for alternative URLs/endpoints first
+    - Only raise error if no compliant alternative exists
+    - Raise `RobotsTxtViolationError` with details
+  - Allow override for testing/development
+
+- [ ] Implement fallback/alternative URL logic
+  - Define alternative endpoints for disallowed paths
+  - Example: If `/inf/search/all.html` is blocked, use allowed alternative
+  - Document which endpoints have alternatives
+  - Automatically try alternative before failing
+
+**Example Log Output:**
+
+```log
+# When OBEY_ROBOTS_TXT=false (default - transparency mode)
+2026-02-16 10:45:58 api_logger INFO [robots_checker:check_url:45] 
+  Checking robots.txt compliance for: /inf/aktien/detail/uebersicht.html
+  Result: ALLOWED (matches: Allow: /inf/*/detail/uebersicht.html)
+  User-agent: * | Proceeding with request
+  
+2026-02-16 10:46:10 api_logger WARNING [robots_checker:check_url:48]
+  Checking robots.txt compliance for: /inf/search/all.html
+  Result: DISALLOWED (matches: Disallow: /inf/search/)
+  User-agent: * | Proceeding anyway (OBEY_ROBOTS_TXT=false)
+
+# When OBEY_ROBOTS_TXT=true (enforcement mode)
+2026-02-16 10:46:10 api_logger ERROR [robots_checker:check_url:52]
+  Checking robots.txt compliance for: /inf/search/all.html
+  Result: DISALLOWED (matches: Disallow: /inf/search/)
+  User-agent: * | OBEY_ROBOTS_TXT=true
+  No alternative endpoint available
+  Raising RobotsTxtViolationError
+
+# When OBEY_ROBOTS_TXT=true with alternative
+2026-02-16 10:46:15 api_logger WARNING [robots_checker:check_url:55]
+  Checking robots.txt compliance for: /inf/search/all.html
+  Result: DISALLOWED (matches: Disallow: /inf/search/)
+  User-agent: * | OBEY_ROBOTS_TXT=true
+  Using alternative endpoint: /inf/search/general.html (ALLOWED)
+```
+
+**Benefits:**
+
+- Demonstrates responsible web scraping practices
+- Transparency about compliance status
+- Easy to identify potential issues with comdirect
+- Provides audit trail for compliance
+- Can be enforced if needed without code changes
 
 **Deliverables:**
 
@@ -496,6 +800,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - Application monitoring
 - Performance benchmarks
 - Load test results
+- Robots.txt compliance checker
+- Transparency logging for all requests
 
 ---
 
@@ -516,7 +822,7 @@ Based on a comprehensive review of the codebase against business and technical r
   - Code samples (Python, JavaScript)
   
 - [ ] Document API versioning strategy (already implemented in Phase 1.4)
-  - Document version in URL path (`/v1/basedata`)
+  - Document version in URL path (`/v1/instruments`)
   - Create deprecation policy for future versions
   - Document migration guide for version upgrades
   - Add versioning best practices to API guide
@@ -585,6 +891,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - All 9 asset classes parseable
 - Asset-class-specific data models created
 - Parser plugin system complete
+- Legacy parsing code removed
+- Single parsing architecture (plugin system only)
 
 ### Phase 4 (Testing)
 
@@ -597,6 +905,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - p95 latency < 500ms
 - Handles 100+ concurrent users
 - Comprehensive error handling
+- Robots.txt compliance checker implemented
+- All web scraping requests logged for transparency
 
 ### Phase 6 (Documentation)
 
@@ -607,7 +917,10 @@ Based on a comprehensive review of the codebase against business and technical r
 ### Phase 7 (MCP Server)
 
 - MCP server successfully wraps all FastAPI endpoints
-- Resources, tools, and prompts all functional
+- Core MCP tools implemented (get_instrument, get_quote, get_history)
+- Analysis tools functional (portfolio performance, comparison, etc.)
+- Prompts guide common workflows
+- Optional metadata resources for reference data
 - Claude Desktop integration working
 - <15 minutes setup time for new users
 - Comprehensive MCP documentation
@@ -662,10 +975,10 @@ Based on a comprehensive review of the codebase against business and technical r
 app/
 ├── core/              # Constants, configuration
 ├── crud/              # CRUD operations (users, depots, instruments)
-├── models/            # Data models (basedata, users, depots, history, pricedata)
+├── models/            # Data models (instruments, users, depots, history, quotes)
 ├── parsers/           # Parsing logic
 │   └── plugins/       # Parser plugin system (stock, warrant)
-├── routers/           # API routes (basedata, users, depots, pricedata, history, welcome)
+├── routers/           # API routes (instruments, users, depots, quotes, history, welcome)
 ├── scrapers/          # Web scraping utilities
 ├── static/            # Static files
 ├── logging_config.py  # Logging setup
@@ -697,7 +1010,7 @@ scripts/
 
 **Phase 1:**
 
-- `app/config/database.py`
+- `app/config/database.py` (use `pymongo.AsyncMongoClient` for async operations)
 - `app/repositories/base.py`
 - `app/repositories/basedata_repository.py`
 - `app/repositories/user_repository.py`
@@ -760,6 +1073,8 @@ scripts/
 
 Enable AI assistants (Claude Desktop, IDEs, etc.) to interact with the financial data API through the Model Context Protocol (MCP).
 
+**Design Decision**: This API performs active operations (web scraping, HTML parsing, real-time calculations) rather than serving static data. Therefore, MCP **Tools** are the primary interface for basedata, pricedata, and history endpoints. Resources are only used for static metadata (asset class lists, schemas) if needed.
+
 #### 7.1 MCP Architecture Design
 
 - [ ] Decide on integration approach
@@ -773,141 +1088,130 @@ Enable AI assistants (Claude Desktop, IDEs, etc.) to interact with the financial
   - **Recommendation**: Option A for separation of concerns
 
 - [ ] Design MCP component types
-  - **Resources**: Browsable data sources (instruments, depots, price data)
-  - **Tools**: Executable functions for analysis/computation
+  - **Tools** (Primary): Executable functions for data retrieval and computation
+    - Main API operations: get_basedata(), get_pricedata(), get_history()
+    - Rationale: API endpoints perform active operations (scraping, parsing, computing)
+    - Not static data - each call triggers HTTP requests and transformations
+  - **Resources** (Optional): Static metadata and reference data
+    - Asset class lists, API schemas, supported ISINs
+    - Only for data that exists at rest, not computed per request
   - **Prompts**: Pre-defined workflows for common tasks
 
-#### 7.2 Implement MCP Resources
+#### 7.2 Implement MCP Tools (Primary)
 
-Resources expose browsable, hierarchical data for AI to discover and read.
+Tools enable AI to perform data retrieval, computations, and analysis.
 
 - [ ] Add MCP dependency
   - Add `mcp` SDK to pyproject.toml
   - Install development dependencies
 
-- [ ] Create resource structure
+- [ ] Create tools module
+  - File: `mcp_server/tools.py`
+
+- [ ] Implement core data retrieval tools
+  - `get_basedata(isin: str)` - Fetch instrument base data
+  - `get_pricedata(isin: str, venue: Optional[str])` - Fetch current prices
+  - `get_history(isin: str, from_date: str, to_date: str)` - Fetch historical data
+  - Each tool wraps FastAPI endpoint with parameter validation
+
+- [ ] Implement analysis tools
+  - `calculate_portfolio_performance(depot_id, start_date, end_date)`
+  - `compare_instruments(instrument_ids, metrics)`
+  - `search_instruments(asset_class, filters)`
+  - `analyze_diversification(depot_id)`
+
+**Example Tool Implementation:**
+
+```python
+from mcp.server import Server
+import httpx
+
+mcp = Server("financial-data-mcp")
+
+@mcp.tool()
+async def get_basedata(isin: str) -> dict:
+    """
+    Get base information for a financial instrument.
+    Actively scrapes and parses data from comdirect.de.
+    
+    Args:
+        isin: The ISIN identifier (e.g., 'BASF11', 'DE0005140008')
+    
+    Returns:
+        Dictionary with instrument details, trading venues, and identifiers
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"http://localhost:8080/v1/basedata/{isin}",
+            headers={"Authorization": f"Bearer {get_token()}"}
+        )
+        response.raise_for_status()
+        return response.json()
+
+@mcp.tool()
+async def get_pricedata(isin: str, venue: str = None) -> dict:
+    """
+    Get current price data for a financial instrument.
+    Actively fetches real-time pricing from comdirect.de.
+    
+    Args:
+        isin: The ISIN identifier
+        venue: Optional trading venue code (e.g., 'XETRA', 'FSE')
+    
+    Returns:
+        Dictionary with bid, ask, spread, timestamp, and venue
+    """
+    params = {"venue": venue} if venue else {}
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"http://localhost:8080/v1/pricedata/{isin}",
+            headers={"Authorization": f"Bearer {get_token()}"},
+            params=params
+        )
+        response.raise_for_status()
+        return response.json()
+```
+
+#### 7.3 Implement MCP Resources (Optional)
+
+Resources provide static metadata and reference information.
+
+- [ ] Create resources module
   - File: `mcp_server/resources.py`
-  - Implement resource URI scheme:
-    - `mcp://instruments/{instrument_id}/basedata`
-    - `mcp://instruments/{instrument_id}/pricedata`
-    - `mcp://instruments/{instrument_id}/history`
-    - `mcp://depots/{depot_id}/instruments`
-    - `mcp://depots/{depot_id}/performance`
 
-- [ ] Implement resource handlers
-  - Each resource fetches data from FastAPI endpoints
-  - Use httpx for async HTTP calls
-  - Handle authentication/authorization
-  - Cache responses appropriately
-
-- [ ] Add resource discovery
-  - List available instruments by asset class
-  - List available depots for authenticated user
-  - Generate resource templates
+- [ ] Implement metadata resources (optional)
+  - `finance://schema/basedata` - Pydantic model as JSON schema
+  - `finance://schema/pricedata` - Price data schema
+  - `finance://asset-classes` - List of supported asset classes
+  - Only for static reference data, not computed results
 
 **Example Resource Implementation:**
 
 ```python
 from mcp.server import Server
 from mcp.types import Resource
-import httpx
+import json
 
-mcp = Server("financial-data-mcp")
-
-@mcp.resource("instruments/{instrument_id}/basedata")
-async def get_instrument_basedata(uri: str) -> Resource:
-    """Get base information for a financial instrument"""
-    instrument_id = extract_id_from_uri(uri)
-    
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"http://localhost:8080/v1/basedata/{instrument_id}",
-            headers={"Authorization": f"Bearer {get_token()}"}
-        )
-        data = response.json()
+@mcp.resource("finance://asset-classes")
+async def get_asset_classes(uri: str) -> Resource:
+    """
+    Get list of supported asset classes.
+    This is static metadata, not computed per request.
+    """
+    asset_classes = [
+        {"code": "STOCK", "name": "Stocks", "plugin": true},
+        {"code": "WARRANT", "name": "Warrants", "plugin": true},
+        {"code": "BOND", "name": "Bonds", "plugin": false},
+        {"code": "ETF", "name": "ETFs", "plugin": false},
+        {"code": "FONDS", "name": "Funds", "plugin": false},
+        # ... etc
+    ]
     
     return Resource(
         uri=uri,
         mimeType="application/json",
-        text=json.dumps(data, indent=2)
+        text=json.dumps(asset_classes, indent=2)
     )
-```
-
-#### 7.3 Implement MCP Tools
-
-Tools enable AI to perform computations, analysis, and complex queries.
-
-- [ ] Create tools module
-  - File: `mcp_server/tools.py`
-  
-- [ ] Implement analysis tools
-  - `calculate_portfolio_performance(depot_id, start_date, end_date)`
-    - Fetch depot instruments
-    - Get historical data for each
-    - Calculate returns, volatility
-    - Return aggregated metrics
-  
-  - `compare_instruments(instrument_ids, metrics)`
-    - Fetch basedata and pricedata for each
-    - Compare specified metrics (price, performance, risk)
-    - Return comparison table
-  
-  - `search_instruments(asset_class, filters)`
-    - Search instruments by criteria
-    - Return matching instruments with key data
-  
-  - `analyze_diversification(depot_id)`
-    - Analyze asset allocation
-    - Calculate diversification metrics
-    - Identify concentration risks
-  
-  - `get_instrument_details(instrument_id)`
-    - Comprehensive instrument lookup
-    - Combine basedata, pricedata, history
-    - Return unified view
-
-**Example Tool Implementation:**
-
-```python
-@mcp.tool()
-async def calculate_portfolio_performance(
-    depot_id: str,
-    start_date: str,
-    end_date: str
-) -> dict:
-    """
-    Calculate portfolio performance metrics for a depot over a time period.
-    
-    Args:
-        depot_id: The depot identifier
-        start_date: Start date in YYYY-MM-DD format
-        end_date: End date in YYYY-MM-DD format
-    
-    Returns:
-        Dictionary with performance metrics (total_return, volatility, sharpe_ratio)
-    """
-    # Fetch depot instruments
-    instruments = await fetch_depot_instruments(depot_id)
-    
-    # Get historical data for each
-    histories = await asyncio.gather(*[
-        fetch_instrument_history(i, start_date, end_date)
-        for i in instruments
-    ])
-    
-    # Calculate metrics
-    returns = calculate_returns(histories)
-    volatility = calculate_volatility(returns)
-    sharpe = calculate_sharpe_ratio(returns, volatility)
-    
-    return {
-        "depot_id": depot_id,
-        "period": f"{start_date} to {end_date}",
-        "total_return": returns,
-        "volatility": volatility,
-        "sharpe_ratio": sharpe,
-        "instruments_count": len(instruments)
-    }
 ```
 
 #### 7.4 Implement MCP Prompts
@@ -990,7 +1294,7 @@ What depot would you like to start with?
 - [ ] Create server entry point
   - File: `mcp_server/server.py`
   - Initialize MCP server
-  - Register all resources, tools, and prompts
+  - Register tools (required), prompts (recommended), resources (optional)
   - Configure authentication
   - Set up logging
 
@@ -1020,10 +1324,10 @@ def create_mcp_server() -> Server:
     """Create and configure the MCP server"""
     server = Server("finhub-mcp")
     
-    # Register components
-    register_resources(server)
-    register_tools(server)
-    register_prompts(server)
+    # Register components (prioritize tools for data access)
+    register_tools(server)  # Primary: data retrieval and analysis
+    register_prompts(server)  # Guided workflows
+    register_resources(server)  # Optional: metadata only
     
     return server
 
@@ -1047,16 +1351,15 @@ if __name__ == "__main__":
 #### 7.6 Testing
 
 - [ ] Unit tests for MCP components
-  - File: `tests/mcp/test_resources.py`
-  - Test resource URI parsing
-  - Test resource data retrieval
-  - Mock API responses
-
-- [ ] Tool function tests
-  - File: `tests/mcp/test_tools.py`
-  - Test each tool independently
-  - Validate output schemas
-  - Test error handling
+  - File: `tests/mcp/test_tools.py` (priority)
+    - Test each tool independently
+    - Validate input parameters and output schemas
+    - Test error handling and edge cases
+    - Mock API responses
+  
+  - File: `tests/mcp/test_resources.py` (optional)
+    - Test resource URI parsing if implemented
+    - Test metadata retrieval
 
 - [ ] Integration tests
   - Test MCP server with actual FastAPI

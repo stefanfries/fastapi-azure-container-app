@@ -1,4 +1,4 @@
-from app.models.basedata import AssetClass
+from app.models.instruments import AssetClass
 
 standard_asset_classes = [
     AssetClass.STOCK,

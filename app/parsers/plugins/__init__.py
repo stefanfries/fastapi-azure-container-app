@@ -1,5 +1,5 @@
 """Plugin system __init__ file."""
 
-from app.parsers.plugins.base_parser import BaseDataParser
+from app.parsers.plugins.base_parser import InstrumentParser
 
-__all__ = ["BaseDataParser"]
+__all__ = ["InstrumentParser"]

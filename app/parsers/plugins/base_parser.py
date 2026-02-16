@@ -11,10 +11,10 @@ from typing import Dict, Optional, Tuple
 import httpx
 from bs4 import BeautifulSoup
 
-from app.models.basedata import AssetClass
+from app.models.instruments import AssetClass
 
 
-class BaseDataParser(ABC):
+class InstrumentParser(ABC):
     """
     Abstract base class for asset class-specific parsers.
     

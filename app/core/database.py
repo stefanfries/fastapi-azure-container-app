@@ -5,22 +5,14 @@ This module provides async database connectivity using PyMongo 4.x native async 
 It manages the connection lifecycle integrated with FastAPI's startup/shutdown events.
 """
 
-import os
 from typing import Optional
 
-from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
+from app.core.settings import settings
 from app.logging_config import logger
-
-# Load environment variables from .env file
-load_dotenv()
-
-# MongoDB Configuration
-MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
-DB_NAME = os.getenv("DB_NAME", "finhub")
 
 # Global database client instance
 _client: Optional[MongoClient] = None
@@ -57,21 +49,15 @@ async def connect_to_database() -> None:
     """
     global _client, _database
     
-    if not MONGODB_CONNECTION_STRING:
-        raise ValueError(
-            "MONGODB_CONNECTION_STRING environment variable not set. "
-            "Please configure .env file or set environment variable."
-        )
-    
     try:
         logger.info("Connecting to MongoDB Atlas...")
         
         # Create MongoDB client with connection pooling
         _client = MongoClient(
-            MONGODB_CONNECTION_STRING,
-            serverSelectionTimeoutMS=5000,  # 5 second timeout
-            maxPoolSize=50,  # Maximum connection pool size
-            minPoolSize=10,  # Minimum connection pool size
+            settings.database.mongodb_connection_string,
+            serverSelectionTimeoutMS=settings.database.server_selection_timeout_ms,
+            maxPoolSize=settings.database.max_pool_size,
+            minPoolSize=settings.database.min_pool_size,
             retryWrites=True,
             w="majority",  # Write concern
         )
@@ -80,9 +66,9 @@ async def connect_to_database() -> None:
         _client.admin.command("ping")
         
         # Get database instance
-        _database = _client[DB_NAME]
+        _database = _client[settings.database.db_name]
         
-        logger.info("Successfully connected to MongoDB Atlas (database: %s)", DB_NAME)
+        logger.info("Successfully connected to MongoDB Atlas (database: %s)", settings.database.db_name)
         
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
         logger.error("Failed to connect to MongoDB: %s", e)

@@ -12,10 +12,10 @@ dependencies = [
     "pandas>=3.0.0",
     "pycountry>=24.6.1",
     "pydantic-extra-types>=2.11.0",
+    "pydantic-settings>=2.13.0",
     "pylint>=4.0.4",
     "pymongo>=4.16.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "python-dotenv>=1.2.1",
     "uvicorn>=0.40.0",
 ]

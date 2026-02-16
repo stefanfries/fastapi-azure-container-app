@@ -85,7 +85,8 @@ async def parse_price_data(instrument_id: str, id_notation: str | None) -> Price
     ask = float(ask_str.replace(".", "").replace(",", "."))
     print(f"Ask Price: {ask}")
 
-    spread_percent = (ask - bid) / ((ask + bid) / 2) * 100
+    # Calculate spread as percentage of ask price (matching comdirect's formula)
+    spread_percent = (ask - bid) / ask * 100
 
     # Extract Timestamp
     timestamp_str = table.find("th", text=re.compile("Zeit")).find_next("td").text

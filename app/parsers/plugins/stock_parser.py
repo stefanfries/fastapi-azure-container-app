@@ -5,7 +5,7 @@ This parser handles the standard HTML structure used by stocks, bonds, ETFs,
 and funds on comdirect.
 """
 
-import re
+
 from typing import Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
@@ -13,9 +13,13 @@ from bs4 import BeautifulSoup
 from app.models.basedata import AssetClass
 from app.parsers.plugins.base_parser import BaseDataParser
 from app.parsers.plugins.parsing_utils import (
-    clean_numeric_value,
+    categorize_lt_ex_venues,
     extract_after_label,
     extract_from_h1,
+    extract_preferred_ex_notation,
+    extract_preferred_lt_notation,
+    extract_venue_from_single_table,
+    extract_venues_from_dropdown,
     extract_wkn_from_h2,
 )
 
@@ -100,238 +104,18 @@ class StockParser(BaseDataParser):
             Tuple of (lt_venue_dict, ex_venue_dict, 
                       preferred_lt_id_notation, preferred_ex_id_notation)
         """
-        id_notations_dict = {}
+        # Try dropdown first (multiple venues)
+        id_notations_dict = extract_venues_from_dropdown(soup)
         
-        # Try to find the market select dropdown
-        id_notations_list = soup.select("#marketSelect option")
-        
-        if len(id_notations_list) > 0:
-            # Multiple trading venues available in dropdown
-            for id_notation in id_notations_list:
-                label = id_notation.attrs.get("label", "")
-                value = id_notation.attrs.get("value", "")
-                if label and value:
-                    id_notations_dict[label] = value
-        else:
-            # Only one trading venue - look in table
-            tables = soup.select("body div.grid.grid--no-gutter table.simple-table")
-            
-            if tables:
-                table_rows = tables[0].select("tr")
-                
-                if len(table_rows) > 0:
-                    # Get trading venue name
-                    first_row_cells = table_rows[0].select("td")
-                    if first_row_cells:
-                        name = first_row_cells[0].text.strip()
-                        
-                        # Get notation ID from data-plugin attribute
-                        last_row = table_rows[-1]
-                        link = last_row.select_one("a")
-                        
-                        if link and "data-plugin" in link.attrs:
-                            data_plugin = link.attrs["data-plugin"]
-                            
-                            # Extract ID_NOTATION from data-plugin string
-                            if "ID_NOTATION%3D" in data_plugin:
-                                notation_id = data_plugin.split("ID_NOTATION%3D")[1].split("%26")[0]
-                                id_notations_dict[name] = notation_id
+        # If no dropdown, try single-venue table
+        if not id_notations_dict:
+            id_notations_dict = extract_venue_from_single_table(soup)
         
         # Separate into Life Trading and Exchange Trading
-        # Life Trading venues typically start with "LT " prefix
-        # Exchange Trading venues are regular stock exchange names
-        lt_venue_dict = {}
-        ex_venue_dict = {}
-        
-        for venue, notation in id_notations_dict.items():
-            if venue.startswith("LT "):
-                # Life Trading venue
-                lt_venue_dict[venue] = notation
-            else:
-                # Exchange Trading venue
-                ex_venue_dict[venue] = notation
+        lt_venue_dict, ex_venue_dict = categorize_lt_ex_venues(id_notations_dict)
         
         # Extract preferred ID_NOTATIONs based on liquidity
-        preferred_lt_id_notation = self._extract_preferred_lt_notation(soup, lt_venue_dict)
-        preferred_ex_id_notation = self._extract_preferred_ex_notation(soup, ex_venue_dict)
+        preferred_lt_id_notation = extract_preferred_lt_notation(soup, lt_venue_dict)
+        preferred_ex_id_notation = extract_preferred_ex_notation(soup, ex_venue_dict)
         
         return lt_venue_dict, ex_venue_dict, preferred_lt_id_notation, preferred_ex_id_notation
-    
-    def _extract_id_notation_from_data_plugin(self, data_plugin_str: str) -> Optional[str]:
-        """
-        Extract ID_NOTATION from data-plugin attribute.
-        
-        Args:
-            data_plugin_str: The data-plugin attribute value
-            
-        Returns:
-            The extracted ID_NOTATION, or None if not found
-        """
-        match = re.search(r'ID_NOTATION=(\d+)', data_plugin_str)
-        if match:
-            return match.group(1)
-        return None
-    
-    def _extract_preferred_lt_notation(
-        self, 
-        soup: BeautifulSoup, 
-        lt_venue_dict: Dict[str, str]
-    ) -> Optional[str]:
-        """
-        Extract preferred Life Trading ID_NOTATION based on highest "Gestellte Kurse".
-        
-        Args:
-            soup: BeautifulSoup object containing the instrument page HTML
-            lt_venue_dict: Dictionary mapping venue names to ID_NOTATIONs
-            
-        Returns:
-            The ID_NOTATION with highest "Gestellte Kurse", or None if not found
-        """
-        if not lt_venue_dict:
-            return None
-        
-        # Find the Life Trading table (contains "Gestellte Kurse" column)
-        tables = soup.find_all("table")
-        
-        for table in tables:
-            headers = table.find_all("th")
-            header_texts = [h.get_text(strip=True) for h in headers]
-            
-            if "Gestellte" in " ".join(header_texts) or "LiveTrading" in header_texts:
-                # Build mapping: venue_name -> id_notation from headers
-                venue_to_id = {}
-                for header in headers:
-                    link = header.find("a")
-                    if link:
-                        data_plugin = link.get("data-plugin", "")
-                        if "ID_NOTATION=" in data_plugin:
-                            venue_name = header.get_text(strip=True)
-                            id_not = self._extract_id_notation_from_data_plugin(data_plugin)
-                            if venue_name and id_not:
-                                venue_to_id[venue_name] = id_not
-                
-                # Extract liquidity values from tbody
-                tbody = table.find("tbody")
-                if tbody:
-                    rows = tbody.find_all("tr")
-                    
-                    lt_venues_with_liquidity = []
-                    for row in rows:
-                        cells = row.find_all("td")
-                        if not cells:
-                            continue
-                        
-                        # Get venue name from first cell's data-label
-                        venue_name = cells[0].get("data-label", "")
-                        
-                        # Get "Gestellte Kurse" value
-                        gestellte_value = None
-                        for cell in cells:
-                            if cell.get("data-label") == "Gestellte Kurse":
-                                gestellte_text = cell.get_text(strip=True)
-                                # Convert using utility (handles "6.844" and "3,10 Mio.")
-                                gestellte_value = clean_numeric_value(gestellte_text)
-                                if gestellte_value is None:
-                                    gestellte_value = 0
-                                break
-                        
-                        # Match venue name to ID_NOTATION
-                        id_not = venue_to_id.get(venue_name)
-                        
-                        if venue_name and id_not and gestellte_value is not None:
-                            lt_venues_with_liquidity.append({
-                                "venue": venue_name,
-                                "id_notation": id_not,
-                                "gestellte_kurse": gestellte_value
-                            })
-                    
-                    # Find preferred (highest gestellte_kurse)
-                    if lt_venues_with_liquidity:
-                        preferred_lt = max(lt_venues_with_liquidity, key=lambda x: x["gestellte_kurse"])
-                        return preferred_lt["id_notation"]
-                
-                break
-        
-        return None
-    
-    def _extract_preferred_ex_notation(
-        self, 
-        soup: BeautifulSoup, 
-        ex_venue_dict: Dict[str, str]
-    ) -> Optional[str]:
-        """
-        Extract preferred Exchange Trading ID_NOTATION based on highest "Anzahl Kurse".
-        
-        Args:
-            soup: BeautifulSoup object containing the instrument page HTML
-            ex_venue_dict: Dictionary mapping venue names to ID_NOTATIONs
-            
-        Returns:
-            The ID_NOTATION with highest "Anzahl Kurse", or None if not found
-        """
-        if not ex_venue_dict:
-            return None
-        
-        # Find the Exchange Trading table (contains "Anzahl Kurse" column)
-        tables = soup.find_all("table")
-        
-        for table in tables:
-            headers = table.find_all("th")
-            header_texts = [h.get_text(strip=True) for h in headers]
-            
-            if "Anzahl Kurse" in header_texts:
-                # Build mapping: venue_name -> id_notation from headers
-                venue_to_id = {}
-                for header in headers:
-                    link = header.find("a")
-                    if link:
-                        data_plugin = link.get("data-plugin", "")
-                        if "ID_NOTATION=" in data_plugin:
-                            venue_name = header.get_text(strip=True)
-                            id_not = self._extract_id_notation_from_data_plugin(data_plugin)
-                            if venue_name and id_not:
-                                venue_to_id[venue_name] = id_not
-                
-                # Extract liquidity values from tbody
-                tbody = table.find("tbody")
-                if tbody:
-                    rows = tbody.find_all("tr")
-                    
-                    ex_venues_with_liquidity = []
-                    for row in rows:
-                        cells = row.find_all("td")
-                        if not cells:
-                            continue
-                        
-                        # Get venue name
-                        venue_name = cells[0].get("data-label", "")
-                        
-                        # Get "Anzahl Kurse" value
-                        anzahl_value = None
-                        for cell in cells:
-                            if cell.get("data-label") == "Anzahl Kurse":
-                                anzahl_text = cell.get_text(strip=True)
-                                # Convert using utility (handles "18.087" and "3,10 Mio.")
-                                anzahl_value = clean_numeric_value(anzahl_text)
-                                if anzahl_value is None:
-                                    anzahl_value = 0
-                                break
-                        
-                        # Match to ID_NOTATION
-                        id_not = venue_to_id.get(venue_name)
-                        
-                        if venue_name and id_not and anzahl_value is not None:
-                            ex_venues_with_liquidity.append({
-                                "venue": venue_name,
-                                "id_notation": id_not,
-                                "anzahl_kurse": anzahl_value
-                            })
-                    
-                    # Find preferred (highest anzahl_kurse)
-                    if ex_venues_with_liquidity:
-                        preferred_ex = max(ex_venues_with_liquidity, key=lambda x: x["anzahl_kurse"])
-                        return preferred_ex["id_notation"]
-                
-                break
-        
-        return None

@@ -38,6 +38,10 @@ jobs:
         continue-on-error: true
 
       - name: Run tests with coverage
+        env:
+          MONGODB_CONNECTION_STRING: mongodb://localhost:27017/test
+          DB_NAME: finhub_test
+          ENVIRONMENT: test
         run: |
           uv run pytest tests/ --verbose --cov=app --cov-report=xml --cov-report=term
 

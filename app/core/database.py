@@ -54,7 +54,7 @@ async def connect_to_database() -> None:
         
         # Create MongoDB client with connection pooling
         _client = MongoClient(
-            settings.database.mongodb_connection_string,
+            settings.database.mongodb_connection_string.get_secret_value(),
             serverSelectionTimeoutMS=settings.database.server_selection_timeout_ms,
             maxPoolSize=settings.database.max_pool_size,
             minPoolSize=settings.database.min_pool_size,

@@ -49,4 +49,3 @@ def test_get_welcome_not_found() -> None:
 
     response = client.get("/invalid-endpoint")
     assert response.status_code == 404
-    assert response.status_code == 404

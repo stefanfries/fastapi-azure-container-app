@@ -136,7 +136,7 @@ pytest tests/test_main.py
 
 ## 📁 Project Structure
 
-```
+```text
 fastapi-azure-container-app/
 ├── app/                      # Application source code
 │   ├── core/                 # Core functionality (constants, config)

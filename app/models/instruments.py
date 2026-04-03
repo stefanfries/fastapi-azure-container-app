@@ -81,6 +81,32 @@ class NotationType(str, Enum):
     EXCH_TRADING = "Börse"
 
 
+class GlobalIdentifiers(BaseModel):
+    """
+    Consolidated view of all global identifiers for a financial instrument.
+
+    Attributes:
+        isin: International Securities Identification Number.
+        wkn: German Wertpapierkennnummer (primary key).
+        cusip: US/CA Committee on Uniform Securities Identification Procedures number.
+               Derived from the ISIN for US instruments (ISIN chars 2–10); None otherwise.
+        figi: Composite Financial Instrument Global Identifier from OpenFIGI (BBG…).
+              Identifies the instrument across all trading venues within one country.
+        symbol_comdirect: Ticker symbol as displayed on comdirect.de.
+        symbol_yfinance: Ticker symbol for use with the yfinance library, including the
+                         Yahoo Finance exchange suffix (e.g. "NVDA", "SIE.DE").
+                         None for asset classes not supported by Yahoo Finance
+                         (WARRANT, CERTIFICATE).
+    """
+
+    isin: Optional[str] = Field(None, description="ISIN")
+    wkn: str = Field(..., description="German WKN")
+    cusip: Optional[str] = Field(None, description="CUSIP (US/CA instruments only)")
+    figi: Optional[str] = Field(None, description="Composite FIGI from OpenFIGI")
+    symbol_comdirect: Optional[str] = Field(None, description="Ticker symbol on comdirect")
+    symbol_yfinance: Optional[str] = Field(None, description="Ticker symbol for yfinance")
+
+
 class Instrument(BaseModel):
     """
     Instrument model representing the master data of a financial instrument.
@@ -140,6 +166,10 @@ class Instrument(BaseModel):
     default_id_notation: Optional[str] = Field(
         None,
         description="The default id_notation for live trading",
+    )
+    global_identifiers: Optional[GlobalIdentifiers] = Field(
+        None,
+        description="Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols)",
     )
 
     @field_validator("isin")

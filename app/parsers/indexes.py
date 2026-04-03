@@ -11,20 +11,6 @@ from app.logging_config import logger
 from app.models.indexes import IndexInfo, IndexMember
 
 INDEX_LIST_URL = f"{BASE_URL}/inf/index.html"
-INDEX_MEMBERS_PAGE_URL = (
-    f"{BASE_URL}/inf/indizes/detail/werte/standard.html"
-    "?OFFSET={{offset}}&ISIN={{isin}}&SORT=SHORT_NAME_INSTRUMENT&SORTDIR=ASCENDING"
-)
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-}
 
 _ISIN_RE = re.compile(r"([A-Z]{2}[A-Z0-9]{10})$")
 
@@ -100,12 +86,13 @@ def _parse_members_from_table(soup: BeautifulSoup) -> list[IndexMember]:
     return members
 
 
-async def _fetch_wkn(client: httpx.AsyncClient, isin: str) -> Optional[str]:
+async def _fetch_wkn(isin: str) -> Optional[str]:
     """Fetch the WKN for an index from its comdirect detail page."""
     url = f"{BASE_URL}/inf/indizes/{isin}"
     try:
-        response = await client.get(url)
-        response.raise_for_status()
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
+            response = await client.get(url)
+            response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
         h2 = soup.find("h2")
         if h2 and "WKN:" in h2.text:
@@ -117,14 +104,14 @@ async def _fetch_wkn(client: httpx.AsyncClient, isin: str) -> Optional[str]:
 
 async def fetch_index_list() -> list[IndexInfo]:
     """Scrape the comdirect index overview page and return supported indices."""
-    async with httpx.AsyncClient(follow_redirects=True, headers=_HEADERS, timeout=30) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         response = await client.get(INDEX_LIST_URL)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.content, "html.parser")
-        table = soup.find("table", class_="table--comparison")
+        table = soup.find("table", id="indexes")
         if not table:
-            logger.error("Index comparison table not found on %s", INDEX_LIST_URL)
+            logger.error("Index table (#indexes) not found on %s", INDEX_LIST_URL)
             raise HTTPException(status_code=502, detail="Index list table not found")
 
         # Collect name, link, ISIN, and member count for each valid row
@@ -153,8 +140,8 @@ async def fetch_index_list() -> list[IndexInfo]:
                 int(werte_text),
             ))
 
-        # Fetch all WKNs in parallel
-        wkns = await asyncio.gather(*[_fetch_wkn(client, isin) for _, _, isin, _ in candidates])
+        # Fetch all WKNs in parallel (each with its own client to avoid pool exhaustion)
+        wkns = await asyncio.gather(*[_fetch_wkn(isin) for _, _, isin, _ in candidates])
 
     result = [
         IndexInfo(name=name, wkn=wkn, member_count=member_count, link=link)
@@ -188,7 +175,7 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
         match.name, match.member_count, match.link,
     )
 
-    async with httpx.AsyncClient(follow_redirects=True, headers=_HEADERS, timeout=30) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         # Fetch first page
         first_response = await client.get(match.link)
         first_response.raise_for_status()

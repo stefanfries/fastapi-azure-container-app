@@ -4,7 +4,6 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 
-from app.logging_config import logger
 from app.models.instruments import AssetClass
 from app.models.quotes import Quote
 from app.parsers.instruments import parse_instrument_data, parse_name, parse_wkn

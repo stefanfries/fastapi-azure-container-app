@@ -6,14 +6,14 @@ type validation, and default values. All settings are loaded from .env file or
 environment variables.
 """
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseSettings):
     """MongoDB database configuration settings."""
     
-    mongodb_connection_string: str = Field(
+    mongodb_connection_string: SecretStr = Field(
         ...,
         description="MongoDB Atlas connection string",
         validation_alias="MONGODB_CONNECTION_STRING",
@@ -142,7 +142,7 @@ class EmailSettings(BaseSettings):
         validation_alias="EMAIL_SMTP_USER",
     )
     
-    smtp_password: str | None = Field(
+    smtp_password: SecretStr | None = Field(
         default=None,
         description="SMTP password",
         validation_alias="EMAIL_SMTP_PASSWORD",
@@ -160,6 +160,23 @@ class EmailSettings(BaseSettings):
         validation_alias="EMAIL_FROM_NAME",
     )
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+
+class OpenFIGISettings(BaseSettings):
+    """OpenFIGI API configuration settings."""
+
+    api_key: SecretStr | None = Field(
+        default=None,
+        description="OpenFIGI API key (optional). Without a key the free-tier rate limit applies.",
+        validation_alias="OPENFIGI_API_KEY",
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -222,9 +239,12 @@ class Settings(BaseSettings):
     
     # Email configuration (for future use)
     email: EmailSettings = Field(default_factory=EmailSettings)
-    
+
     # Authentication configuration (for future use)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+
+    # OpenFIGI configuration
+    openfigi: OpenFIGISettings = Field(default_factory=OpenFIGISettings)
     
     # Model configuration
     model_config = SettingsConfigDict(

@@ -15,6 +15,7 @@ from app.logging_config import logger
 from app.models.instruments import AssetClass, Instrument, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
+from app.services.identifier_enrichment import build_global_identifiers
 
 
 def valid_id_notation(instrument_data: Instrument, id_notation: str) -> bool:
@@ -388,6 +389,13 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         preferred_id_notation_life_trading,
         preferred_id_notation_exchange_trading
     ) = parser.parse_id_notations(soup, default_id_notation)
+
+    global_identifiers = await build_global_identifiers(
+        isin=isin,
+        wkn=wkn,
+        symbol_comdirect=symbol,
+        asset_class=asset_class,
+    )
     
     instrument_data = Instrument(
         name=name,
@@ -400,6 +408,7 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         preferred_id_notation_life_trading=preferred_id_notation_life_trading,
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
+        global_identifiers=global_identifiers,
     )
     return instrument_data
 
@@ -432,6 +441,12 @@ async def _parse_instrument_data_legacy(
             asset_class, id_notations_exchange_trading, soup
         )
     )
+    global_identifiers = await build_global_identifiers(
+        isin=isin,
+        wkn=wkn,
+        symbol_comdirect=symbol,
+        asset_class=asset_class,
+    )
     instrument_data = Instrument(
         name=name,
         wkn=wkn,
@@ -443,5 +458,6 @@ async def _parse_instrument_data_legacy(
         preferred_id_notation_life_trading=preferred_id_notation_life_trading,
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
+        global_identifiers=global_identifiers,
     )
     return instrument_data

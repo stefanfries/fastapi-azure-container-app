@@ -17,6 +17,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 from app.logging_config import logger
+from app.models.types import ISIN, WKN
 
 
 def is_valid_isin(isin: str) -> bool:
@@ -99,8 +100,8 @@ class GlobalIdentifiers(BaseModel):
                          (WARRANT, CERTIFICATE).
     """
 
-    isin: Optional[str] = Field(None, description="ISIN")
-    wkn: str = Field(..., description="German WKN")
+    isin: Optional[ISIN] = Field(None, description="ISIN")
+    wkn: WKN = Field(..., description="German WKN")
     cusip: Optional[str] = Field(None, description="CUSIP (US/CA instruments only)")
     figi: Optional[str] = Field(None, description="Composite FIGI from OpenFIGI")
     symbol_comdirect: Optional[str] = Field(None, description="Ticker symbol on comdirect")
@@ -125,17 +126,9 @@ class Instrument(BaseModel):
 
     name: str = Field(..., description="Name of the financial instrument")
 
-    wkn: str = Field(
-        ...,
-        pattern=r"^[A-HJ-NP-Z0-9]{6}$",  # WKNs are 6 characters long and do not contain the letters I and O
-        description="WKN of the financial instrument",
-    )
+    wkn: WKN = Field(..., description="WKN of the financial instrument")
 
-    isin: Optional[str] = Field(
-        None,
-        pattern=r"^[A-Z]{2}[A-Z0-9]{10}$",
-        description="International Securities Identification Number",
-    )
+    isin: Optional[ISIN] = Field(None, description="International Securities Identification Number")
 
     symbol: Optional[str] = Field(
         None,

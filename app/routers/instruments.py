@@ -8,6 +8,7 @@ Functions:
 Dependencies:
     fastapi.APIRouter: Used to create the router for the instrument routes.
     app.logging_config.logger: Logger instance for logging information.
+    
 """
 
 from fastapi import APIRouter

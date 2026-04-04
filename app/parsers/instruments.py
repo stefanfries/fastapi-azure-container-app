@@ -1,3 +1,28 @@
+"""
+Parser for instrument master data.
+
+Scrapes comdirect instrument detail pages to extract master data such as
+name, WKN, ISIN, asset class, trading venue notations, and global identifiers.
+Uses a plugin system for asset class-specific parsing; falls back to legacy
+parsing for asset classes without a registered plugin.
+
+Functions:
+    valid_id_notation:                           Check whether an id_notation is valid for an instrument.
+    parse_asset_class:                           Extract the asset class from an HTTP response.
+    parse_default_id_notation:                   Extract the default id_notation from an HTTP response URL.
+    parse_name:                                  Extract the instrument name from a parsed HTML page.
+    parse_wkn:                                   Extract the WKN from a parsed HTML page.
+    parse_isin:                                  Extract the ISIN from a parsed HTML page.
+    parse_symbol:                                Extract the ticker symbol from a parsed HTML page.
+    parse_id_notations:                          Extract life-trading and exchange-trading id_notations.
+    parse_venues:                                Extract trading venues from a parsed HTML page.
+    parse_price_fixings:                         Extract price-fixing counts from a parsed HTML page.
+    parse_preferred_notation_id_life_trading:    Find the life-trading venue with the most price fixings.
+    parse_preferred_notation_id_exchange_trading: Find the exchange-trading venue with the most price fixings.
+    parse_instrument_data:                       Fetch and parse complete instrument master data (plugin-based).
+    _parse_instrument_data_legacy:               Legacy fallback parser for unregistered asset classes.
+"""
+
 import re
 import urllib.parse
 from typing import Dict, List, Optional, Tuple
@@ -265,7 +290,20 @@ def parse_price_fixings(notation_type: NotationType, soup: BeautifulSoup) -> Lis
 def parse_preferred_notation_id_life_trading(
     asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
 ) -> str | None:
+    """Return the id_notation of the life-trading venue with the highest number of price fixings.
 
+    Returns ``None`` for asset classes that do not support life trading
+    (i.e. all classes outside *standard_asset_classes*).
+
+    Args:
+        asset_class:       The asset class of the instrument.
+        id_notations_dict: Mapping of trading-venue name to id_notation string.
+        soup:              Parsed HTML of the instrument's comdirect detail page.
+
+    Returns:
+        The id_notation string for the preferred life-trading venue, or ``None``
+        if the asset class does not support life trading or no venues are found.
+    """
     if asset_class not in standard_asset_classes:
         return None
 
@@ -297,7 +335,21 @@ def parse_preferred_notation_id_life_trading(
 def parse_preferred_notation_id_exchange_trading(
     asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
 ) -> str | None:
+    """Return the id_notation of the exchange-trading venue with the highest number of price fixings.
 
+    Returns ``None`` for asset classes that do not support exchange trading
+    (i.e. all classes outside *standard_asset_classes*).
+
+    Args:
+        asset_class:       The asset class of the instrument.
+        id_notations_dict: Mapping of trading-venue name to id_notation string.
+        soup:              Parsed HTML of the instrument's comdirect detail page.
+
+    Returns:
+        The id_notation string for the preferred exchange-trading venue, or
+        ``None`` if the asset class does not support exchange trading or no
+        venues are found.
+    """
     if asset_class not in standard_asset_classes:
         return None
 

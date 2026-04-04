@@ -1,3 +1,13 @@
+"""
+Pydantic models for application users.
+
+Classes:
+    Roles:        Enumeration of user roles (test, admin, paying, regular).
+    UserBase:     Base schema shared by all user representations.
+    UserStoreDB:  User model for database persistence (includes hashed password and MongoDB _id).
+    UserCreate:   Request model for creating a new user (includes plaintext password).
+"""
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional

@@ -1,3 +1,18 @@
+"""
+Router for historical price data endpoints.
+
+Provides one endpoint:
+    GET /v1/history/{instrument_id} — fetch OHLCV price history for an instrument
+                                      over a configurable date range and interval.
+
+Functions:
+    get_history_data: Return historical price data for the given instrument.
+
+Dependencies:
+    fastapi.APIRouter: Used to create the router for the history routes.
+    app.logging_config.logger: Logger instance for logging information.
+"""
+
 from datetime import datetime
 
 from fastapi import APIRouter, Query
@@ -17,14 +32,22 @@ async def get_history_data(
     interval: Interval = Query("day"),
     id_notation: str = Query(None),
 ) -> HistoryData:
-    """
-    Fetches historical price data for a given instrument.
+    """Return historical price data for the given instrument.
+
     Args:
-        instrument_id (str): The unique identifier of the instrument.
+        instrument_id: Instrument identifier — ISIN, WKN, or a search term.
+        start:         Start of the requested date range (inclusive).
+                       Defaults to ``None`` (parser applies its own default).
+        end:           End of the requested date range (inclusive).
+                       Defaults to ``None`` (parser applies its own default).
+        interval:      Aggregation interval for OHLCV bars, e.g. ``day``,
+                       ``week``, ``month``.  Defaults to ``day``.
+        id_notation:   Optional specific trading-venue ID notation used to
+                       disambiguate when the same instrument trades on
+                       multiple exchanges.
+
     Returns:
-        HistoryData: The historical price data of the instrument.
-    Logs:
-        Logs the process of fetching and retrieving the historical data.
+        HistoryData: OHLCV price history for the requested instrument and range.
     """
 
     logger.info("Fetching history data for instrument_id %s", instrument_id)

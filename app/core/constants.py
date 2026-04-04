@@ -1,3 +1,18 @@
+"""
+Application-wide constants for asset class mappings and comdirect URL paths.
+
+Defines:
+    standard_asset_classes: Asset classes whose detail pages follow the standard HTML layout.
+    special_asset_classes: Asset classes (indices, commodities, currencies) with a different layout.
+    asset_classes: Combined list of all supported asset classes.
+    asset_class_to_asset_class_identifier_map: Maps AssetClass enum values to comdirect URL path segments.
+    asset_class_identifier_to_asset_class_map: Reverse lookup of the map above.
+    ASSET_CLASS_DETAILS_PATH: Maps AssetClass enum values to comdirect detail-page URL paths.
+    BASE_URL: Root URL of the comdirect website.
+    SEARCH_PATH: Relative path for the comdirect instrument search endpoint.
+    HISTORY_PATH: Relative path for the comdirect historical price CSV download endpoint.
+"""
+
 from app.models.instruments import AssetClass
 
 standard_asset_classes = [

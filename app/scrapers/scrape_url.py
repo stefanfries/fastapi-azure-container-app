@@ -1,3 +1,11 @@
+"""
+Low-level HTTP scraping utilities for comdirect instrument pages.
+
+Functions:
+    compose_url: Build a comdirect URL for a given instrument identifier, asset class, and id_notation.
+    fetch_one:   Perform a single GET request to a composed comdirect URL and return the response.
+"""
+
 from urllib.parse import urlencode, urljoin
 
 import httpx

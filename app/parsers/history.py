@@ -1,3 +1,14 @@
+"""
+Parser for historical OHLCV price data.
+
+Scrapes comdirect's CSV export endpoint to return structured historical price
+records for a given instrument, date range, and aggregation interval.
+
+Functions:
+    is_intraday:        Check whether an interval value is an intraday interval.
+    parse_history_data: Fetch and parse OHLCV history for an instrument.
+"""
+
 from datetime import datetime, timedelta
 from io import StringIO
 from urllib.parse import urljoin

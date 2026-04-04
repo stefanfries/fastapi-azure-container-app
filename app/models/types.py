@@ -1,3 +1,11 @@
+"""
+Reusable annotated types for financial identifier strings.
+
+Types:
+    WKN:  Exactly 6 alphanumeric characters, excluding I and O (German securities number).
+    ISIN: 2 uppercase country-code letters followed by 10 alphanumeric characters.
+"""
+
 from typing import Annotated
 
 from pydantic import StringConstraints

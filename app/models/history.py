@@ -1,3 +1,12 @@
+"""
+Pydantic models for historical OHLCV price data.
+
+Classes:
+    HistoryRecord: A single OHLCV bar (datetime, open, high, low, close, volume).
+    HistoryData:   Full response model wrapping a list of HistoryRecord objects with
+                   instrument metadata and the requested date range and interval.
+"""
+
 from datetime import datetime
 from typing import List
 

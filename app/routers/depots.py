@@ -1,13 +1,17 @@
-"""This module defines the API routes for handling depot-related operations.
-Routes:
-    - GET /depots/{depot_id}: Fetches all depots information for a given depot ID.
-    - GET /depots/{depot_id}: Fetches instrument data by ISIN (International Securities Identification Number).
-    Fetch all depots information for a given depot ID.
-        depot_id (str): The ID of the depot to fetch information for.
-        dict: A dictionary containing the depot information.
-    pass
-        depot_id (str): The ID of the depot to fetch information for.
-    pass
+"""
+Router for depot (portfolio) endpoints.
+
+Provides two endpoints:
+    GET /depots/        — list all known depots
+    GET /depots/{depot_id} — fetch a single depot by its ID
+
+Functions:
+    get_all_depots:   Return the list of all depots.
+    get_by_depot_id:  Return a single depot identified by *depot_id*.
+
+Dependencies:
+    fastapi.APIRouter: Used to create the router for the depot routes.
+    app.logging_config.logger: Logger instance for logging information.
 """
 
 from datetime import datetime
@@ -23,12 +27,10 @@ router = APIRouter(prefix="/depots", tags=["depots"])
 
 @router.get("/")
 async def get_all_depots() -> List[Depot]:
-    """
-    Fetch the list of all depots.
-    Args:
-        depot_id (str): The ID of the depot.
+    """Return the list of all depots.
+
     Returns:
-        dict: A dictionary containing the list of all depots.
+        list[Depot]: All known depots with their metadata and holdings.
     """
 
     logger.info("Fetching list of all depots")
@@ -57,12 +59,13 @@ async def get_all_depots() -> List[Depot]:
 
 @router.get("/{depot_id}")
 async def get_by_depot_id(depot_id: str) -> Depot:
-    """
-    Fetch instrument data by ISIN (International Securities Identification Number).
+    """Return a single depot identified by *depot_id*.
+
     Args:
-        isin (str): The ISIN of the instrument to fetch.
+        depot_id: The unique identifier of the depot to fetch.
+
     Returns:
-        dict: A dictionary containing the instrument data.
+        Depot: The depot with its metadata and holdings.
     """
 
     logger.info("Fetching depot infos for depot_id %s", depot_id)

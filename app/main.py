@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.database import close_database_connection, connect_to_database
 from app.logging_config import logger
 from app.middleware import log_client_ip_middleware
-from app.routers import depots, history, indexes, instruments, quotes, users, welcome
+from app.routers import depots, history, indices, instruments, quotes, users, welcome
 
 
 @asynccontextmanager
@@ -65,7 +65,7 @@ app.middleware("http")(log_client_ip_middleware)
 app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(instruments.router)
-app.include_router(indexes.router)
+app.include_router(indices.router)
 app.include_router(depots.router)
 app.include_router(quotes.router)
 app.include_router(history.router)

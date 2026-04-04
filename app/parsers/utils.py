@@ -1,3 +1,19 @@
+"""
+Shared parser utility functions.
+
+Provides validation helpers for id_notation values and date/time rounding
+utilities used by the history parser when normalising partial date strings.
+
+Functions:
+    check_valid_id_notation: Validate an id_notation against an instrument's known venues.
+    get_id_notations_dict:   Build a merged id_notations dict from an instrument.
+    get_trading_venues_dict: Build a reverse id_notation → venue mapping.
+    get_id_notation:         Look up the id_notation for a given trading venue.
+    get_trading_venue:       Look up the trading venue for a given id_notation.
+    round_time:              Round a partial time string up or down to a full time string.
+    round_datetime:          Round a partial ISO-8601 datetime string up or down.
+"""
+
 from calendar import monthrange
 from datetime import date, time
 
@@ -107,6 +123,22 @@ def get_trading_venue(instrument_data: Instrument, id_notation: str) -> str:
 
 
 def round_time(time_str: str, up: bool = False) -> str:
+    """Round a partial time string to a full ``HH:MM:SS.ffffff`` time string.
+
+    Handles strings with 1, 2, or 3 colon-separated components and an optional
+    microseconds fraction.  When *up* is ``True`` the string is rounded toward
+    the end of the implied period; when ``False`` it is rounded toward the start.
+
+    Args:
+        time_str: Partial or full time string, e.g. ``"14"``, ``"14:30"``,
+                  ``"14:30:00"`` or ``"14:30:00.123456"``.
+        up:       If ``True``, round toward the latest possible time in the
+                  period; if ``False``, round toward the earliest. Defaults to
+                  ``False``.
+
+    Returns:
+        A fully-qualified time string including microseconds.
+    """
     time_str_split = time_str.split(".")
     time_str = time_str_split[0]
     if len(time_str_split) > 1:
@@ -127,6 +159,23 @@ def round_time(time_str: str, up: bool = False) -> str:
 
 
 def round_datetime(datetime_str: str, up: bool = False) -> str:
+    """Round a partial ISO-8601 datetime string to a full ``YYYY-MM-DDTHH:MM:SS.ffffff`` string.
+
+    Handles date strings with 1 (year), 2 (year-month), or 3 (year-month-day)
+    dash-separated components, optionally followed by a ``T``-separated time
+    component.  When *up* is ``True`` the string is rounded toward the end of
+    the implied period (e.g. last day of the month, 23:59:59); when ``False``
+    toward the start (e.g. first day of the month, 00:00:00).
+
+    Args:
+        datetime_str: Partial or full ISO-8601 datetime string, e.g. ``"2024"``,
+                      ``"2024-03"``, ``"2024-03-15"`` or ``"2024-03-15T14:30"``.
+        up:           If ``True``, round toward the end of the period; if
+                      ``False``, toward the start. Defaults to ``False``.
+
+    Returns:
+        A fully-qualified ISO-8601 datetime string including microseconds.
+    """
     datetime_split = datetime_str.split("T")
     date_str = datetime_split[0]
     if len(datetime_split) > 1:

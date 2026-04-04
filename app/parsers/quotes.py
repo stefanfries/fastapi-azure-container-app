@@ -1,3 +1,13 @@
+"""
+Parser for current market quote data.
+
+Scrapes the comdirect instrument detail page to extract the current bid/ask
+prices, spread, currency, timestamp, and trading venue for a given instrument.
+
+Functions:
+    parse_quote: Fetch and parse the current market quote for an instrument.
+"""
+
 import re
 from datetime import datetime
 

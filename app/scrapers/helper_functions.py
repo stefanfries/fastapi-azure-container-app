@@ -1,3 +1,11 @@
+"""
+Scraper helper functions for data type conversion.
+
+Functions:
+    convert_to_int: Convert a German-formatted number string (including 'Mio' suffix) to an integer.
+"""
+
+
 def convert_to_int(value: str) -> int:
     """
     Convert a string representation of a number to an integer.

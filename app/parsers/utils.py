@@ -19,7 +19,7 @@ from datetime import date, time
 
 from fastapi import HTTPException, status
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.instruments import Instrument
 
 

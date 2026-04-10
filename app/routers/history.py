@@ -10,14 +10,14 @@ Functions:
 
 Dependencies:
     fastapi.APIRouter: Used to create the router for the history routes.
-    app.logging_config.logger: Logger instance for logging information.
+    app.core.logging.logger: Logger instance for logging information.
 """
 
 from datetime import datetime
 
 from fastapi import APIRouter, Query
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.history import HistoryData, Interval
 from app.parsers.history import parse_history_data
 

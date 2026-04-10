@@ -16,9 +16,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.database import close_database_connection, connect_to_database
-from app.logging_config import logger
+from app.core.logging import logger
 from app.middleware import log_client_ip_middleware
-from app.routers import depots, history, indices, instruments, quotes, users, welcome
+from app.routers import (
+    depots,
+    history,
+    indices,
+    instruments,
+    quotes,
+    users,
+    warrants,
+    welcome,
+)
 
 
 @asynccontextmanager
@@ -55,7 +64,7 @@ app = FastAPI(
     default_response_class=CustomJSONResponse,
     lifespan=lifespan,
     title="FinHub API",
-    description="Financial data aggregator API providing unified access to instrument master data, quotes, and historical prices",
+    description="Financial data aggregator API providing unified access to instrument master data, quotes, historical prices, warrant and index information from comdirect.",
     version="0.1.0",
 )
 
@@ -65,10 +74,11 @@ app.middleware("http")(log_client_ip_middleware)
 app.include_router(welcome.router)
 app.include_router(users.router)
 app.include_router(instruments.router)
-app.include_router(indices.router)
-app.include_router(depots.router)
 app.include_router(quotes.router)
 app.include_router(history.router)
+app.include_router(indices.router)
+app.include_router(warrants.router)
+app.include_router(depots.router)
 
 
 @app.get("/favicon.ico", include_in_schema=False)

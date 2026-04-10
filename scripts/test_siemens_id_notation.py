@@ -8,7 +8,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app.core.constants import ASSET_CLASS_DETAILS_PATH, BASE_URL
-from app.models.basedata import AssetClass
+from app.models.instruments import AssetClass
 
 
 async def test_siemens_with_id_notation():

@@ -36,7 +36,7 @@ from app.core.constants import (
     special_asset_classes,
     standard_asset_classes,
 )
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.instruments import AssetClass, Instrument, NotationType
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one

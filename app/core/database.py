@@ -11,8 +11,8 @@ from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
+from app.core.logging import logger
 from app.core.settings import settings
-from app.logging_config import logger
 
 # Global database client instance
 _client: Optional[MongoClient] = None

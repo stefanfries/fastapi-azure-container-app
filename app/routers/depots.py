@@ -11,7 +11,7 @@ Functions:
 
 Dependencies:
     fastapi.APIRouter: Used to create the router for the depot routes.
-    app.logging_config.logger: Logger instance for logging information.
+    app.core.logging.logger: Logger instance for logging information.
 """
 
 from datetime import datetime
@@ -19,7 +19,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.depots import Depot
 
 router = APIRouter(prefix="/depots", tags=["depots"])

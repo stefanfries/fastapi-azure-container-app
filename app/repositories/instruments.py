@@ -11,7 +11,7 @@ from typing import Optional
 from pymongo.collection import Collection
 
 from app.core.database import Collections, get_collection
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.instruments import Instrument
 
 

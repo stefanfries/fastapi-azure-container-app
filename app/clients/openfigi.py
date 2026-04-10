@@ -15,8 +15,8 @@ from typing import Any
 
 import httpx
 
+from app.core.logging import logger
 from app.core.settings import get_settings
-from app.logging_config import logger
 
 _OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
 

@@ -1,12 +1,12 @@
 # Specification of Business Requirements
 
-The objective of this project is to develop an API which is able to fetch various type of financial informations from a publically available website. In the first stage of development the comdirect website is used as the only source of information. In later stages it shoukld be possible to add other datasources if required.
+The objective of this project is to develop an API which is able to fetch various type of financial informations from a publically available website. In the first stage of development the comdirect website is used as the only source of information. In later stages it should be possible to add other data sources if required.
 
 The API will be used to feed other software modules with all the data required for financial analysis. To do so the most important endpoints to be developed are:
 
- - /basedata: returns base information of a financial instruments which are ficed and do not change over time. Examples are instrument name (perhaps short and long name), WKN, ISIN, Symbol, asset class (incl subclass if available), trading venues and internal trading venue id´s.
- - basedata should be persisted to reduce scraping of the comdirect webpage to a minimum
- - /pricedata: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, timestamp, asset class
+ - /instruments: returns base information of a financial instruments which are ficed and do not change over time. Examples are instrument name (perhaps short and long name), WKN, ISIN, Symbol, asset class (incl subclass if available), trading venues and internal trading venue id´s.
+ - instruments should be persisted to reduce scraping of the comdirect webpage to a minimum
+ - /quotes: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, timestamp, asset class
  - /history: returns historic financial data (open, high, low, close, volume) for a given instrument at a given trading venue for a given time period in given intervals
 
  The API supports all major asset classes like stocks, warants, fonds, etfs, certificates, bonds, indices, commodities, and currencies.

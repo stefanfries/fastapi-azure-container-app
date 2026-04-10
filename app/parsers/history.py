@@ -18,7 +18,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 from app.core.constants import BASE_URL, HISTORY_PATH
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.history import HistoryData, Interval
 from app.parsers.instruments import parse_instrument_data
 from app.parsers.utils import check_valid_id_notation, get_trading_venue

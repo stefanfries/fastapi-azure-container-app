@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from app.core.constants import BASE_URL, asset_class_identifier_to_asset_class_map
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.indices import IndexInfo, IndexMember
 
 INDEX_LIST_URL = f"{BASE_URL}/inf/index.html"

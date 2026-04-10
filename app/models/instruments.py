@@ -16,7 +16,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.types import ISIN, WKN
 
 

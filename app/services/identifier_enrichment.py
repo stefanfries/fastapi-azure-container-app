@@ -13,7 +13,7 @@ listed on Yahoo Finance and OpenFIGI returns no useful data for them.
 from typing import Any, Optional
 
 from app.clients import openfigi as openfigi_client
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.instruments import AssetClass, GlobalIdentifiers
 
 # Asset classes for which OpenFIGI enrichment is skipped.

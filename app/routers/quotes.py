@@ -7,12 +7,12 @@ Functions:
         Fetch current market quote data for an instrument.
 Dependencies:
     fastapi.APIRouter: Used to create the router for the quote routes.
-    app.logging_config.logger: Logger instance for logging information.
+    app.core.logging.logger: Logger instance for logging information.
 """
 
 from fastapi import APIRouter, Query
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.quotes import Quote
 from app.parsers.quotes import parse_quote
 

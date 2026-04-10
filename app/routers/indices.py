@@ -11,12 +11,12 @@ Functions:
 
 Dependencies:
     fastapi.APIRouter: Used to create the router for the index routes.
-    app.logging_config.logger: Logger instance for logging information.
+    app.core.logging.logger: Logger instance for logging information.
 """
 
 from fastapi import APIRouter
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.indices import IndexInfo, IndexMember
 from app.parsers.indices import fetch_index_list, fetch_index_members
 

@@ -12,7 +12,7 @@ Dependencies:
 
 from fastapi import APIRouter
 
-from app.logging_config import logger
+from app.core.logging import logger
 from app.models.instruments import Instrument
 from app.parsers.instruments import parse_instrument_data
 

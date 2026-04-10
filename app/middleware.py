@@ -6,7 +6,7 @@ Middleware:
 
 from fastapi import Request
 
-from app.logging_config import logger
+from app.core.logging import logger
 
 
 async def log_client_ip_middleware(request: Request, call_next):

@@ -107,7 +107,7 @@ def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
     """
 
     headline_h1 = soup.select_one("h1")
-    name = headline_h1.text.replace(f"{asset_class.value}", "").strip()
+    name = headline_h1.text.replace(asset_class.comdirect_label, "").strip()
     return name
 
 
@@ -453,7 +453,6 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         name=name,
         wkn=wkn,
         isin=isin,
-        symbol=symbol,
         asset_class=asset_class,
         id_notations_life_trading=id_notations_life_trading,
         id_notations_exchange_trading=id_notations_exchange_trading,
@@ -503,13 +502,12 @@ async def _parse_instrument_data_legacy(
         name=name,
         wkn=wkn,
         isin=isin,
-        symbol=symbol,
+        global_identifiers=global_identifiers,
         asset_class=asset_class,
         id_notations_life_trading=id_notations_life_trading,
         id_notations_exchange_trading=id_notations_exchange_trading,
         preferred_id_notation_life_trading=preferred_id_notation_life_trading,
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
-        global_identifiers=global_identifiers,
     )
     return instrument_data

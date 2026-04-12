@@ -1,13 +1,13 @@
 """
 Identifier enrichment service.
 
-Derives and fetches additional global identifiers (CUSIP, FIGI, yfinance symbol)
-for financial instruments by combining locally-computed values with data from
-the OpenFIGI API.
+Derives and fetches additional global identifiers (CUSIP, FIGI, yfinance symbol,
+OpenFIGI name) for financial instruments by combining locally-computed values
+with data from the OpenFIGI API.
 
 Enrichment is intentionally skipped for WARRANT and CERTIFICATE asset classes
-because German-style structured products (Optionsscheine, Zertifikate) are not
-listed on Yahoo Finance and OpenFIGI returns no useful data for them.
+because structured products (Warrants, Certificates) are not listed on Yahoo
+Finance and OpenFIGI returns no useful data for them.
 """
 
 from typing import Any, Optional
@@ -17,8 +17,7 @@ from app.core.logging import logger
 from app.models.instruments import AssetClass, GlobalIdentifiers
 
 # Asset classes for which OpenFIGI enrichment is skipped.
-# German Optionsscheine and Zertifikate are OTC structured products not
-# available on Yahoo Finance.
+# Warrants and Certificates are OTC structured products not available on Yahoo Finance.
 _SKIP_ENRICHMENT_FOR: frozenset[AssetClass] = frozenset(
     {AssetClass.WARRANT, AssetClass.CERTIFICATE}
 )
@@ -119,6 +118,23 @@ def _pick_composite_figi(records: list[dict[str, Any]]) -> Optional[str]:
     return None
 
 
+def _pick_name(records: list[dict[str, Any]]) -> Optional[str]:
+    """
+    Extract the instrument name from the first OpenFIGI record that has one.
+
+    Args:
+        records: List of raw FIGI record dicts from the OpenFIGI API.
+
+    Returns:
+        Name string (e.g. "NVIDIA CORP"), or None if unavailable.
+    """
+    for rec in records:
+        name = rec.get("name")
+        if name:
+            return name
+    return None
+
+
 def _derive_yfinance_symbol(
     records: list[dict[str, Any]], isin_country: Optional[str]
 ) -> Optional[str]:
@@ -202,6 +218,7 @@ async def build_global_identifiers(
     cusip = _derive_cusip(isin)
     figi: Optional[str] = None
     symbol_yfinance: Optional[str] = None
+    name_openfigi: Optional[str] = None
 
     if asset_class not in _SKIP_ENRICHMENT_FOR:
         logger.debug(
@@ -219,9 +236,13 @@ async def build_global_identifiers(
         figi = _pick_composite_figi(records)
         isin_country = isin[:2] if isin and len(isin) >= 2 else None
         symbol_yfinance = _derive_yfinance_symbol(records, isin_country)
+        name_openfigi = _pick_name(records)
 
         logger.debug(
-            "OpenFIGI enrichment result: figi=%s symbol_yfinance=%s", figi, symbol_yfinance
+            "OpenFIGI enrichment result: figi=%s symbol_yfinance=%s name=%s",
+            figi,
+            symbol_yfinance,
+            name_openfigi,
         )
     else:
         logger.debug(
@@ -236,4 +257,5 @@ async def build_global_identifiers(
         figi=figi,
         symbol_comdirect=symbol_comdirect,
         symbol_yfinance=symbol_yfinance,
+        name_openfigi=name_openfigi,
     )

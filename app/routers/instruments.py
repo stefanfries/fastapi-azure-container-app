@@ -32,7 +32,6 @@ async def get_instrument(instrument_id: str) -> Instrument:
     Returns:
         Instrument: An object containing the instrument master data.
     """
-
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
     instrument_data = await parse_instrument_data(instrument_id)
     logger.info(

@@ -6,6 +6,7 @@ The module also provides a function to validate ISINs using the Luhn algorithm.
 Classes:
     AssetClass: Enumeration of different types of financial instruments.
     NotationType: Enumeration for different types of trading notations.
+    GlobalIdentifiers: Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols, OpenFIGI name).
     Instrument: Represents the master data model for a financial instrument.
 Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
@@ -56,18 +57,28 @@ def is_valid_isin(isin: str) -> bool:
 class AssetClass(str, Enum):
     """
     AssetClass is an enumeration of different types of financial instruments.
-    Each member of the enumeration represents a specific asset class.
+
+    Each member is defined as (value, comdirect_label) where:
+        value:             English string serialized in the API response.
+        comdirect_label:   German word used in comdirect HTML page titles
+                           (e.g. "NVIDIA Aktie") for name extraction.
     """
 
-    STOCK = "Aktie"
-    BOND = "Anleihe"
-    ETF = "ETF"
-    FONDS = "Fonds"
-    WARRANT = "Optionsschein"
-    CERTIFICATE = "Zertifikat"
-    COMMODITY = "Rohstoff"
-    INDEX = "Index"
-    CURRENCY = "Währung"
+    def __new__(cls, value: str, comdirect_label: str) -> "AssetClass":
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.comdirect_label = comdirect_label
+        return obj
+
+    STOCK       = ("Stock",       "Aktie")
+    BOND        = ("Bond",        "Anleihe")
+    ETF         = ("ETF",         "ETF")
+    FONDS       = ("Fund",        "Fonds")
+    WARRANT     = ("Warrant",     "Optionsschein")
+    CERTIFICATE = ("Certificate", "Zertifikat")
+    COMMODITY   = ("Commodity",   "Rohstoff")
+    INDEX       = ("Index",       "Index")
+    CURRENCY    = ("Currency",    "Währung")
 
 
 class NotationType(str, Enum):
@@ -98,6 +109,8 @@ class GlobalIdentifiers(BaseModel):
                          Yahoo Finance exchange suffix (e.g. "NVDA", "SIE.DE").
                          None for asset classes not supported by Yahoo Finance
                          (WARRANT, CERTIFICATE).
+        name_openfigi: Instrument name as returned by the OpenFIGI API (e.g. "NVIDIA CORP").
+                       None when enrichment is skipped or no match is found.
     """
 
     isin: Optional[ISIN] = Field(None, description="ISIN")
@@ -106,6 +119,7 @@ class GlobalIdentifiers(BaseModel):
     figi: Optional[str] = Field(None, description="Composite FIGI from OpenFIGI")
     symbol_comdirect: Optional[str] = Field(None, description="Ticker symbol on comdirect")
     symbol_yfinance: Optional[str] = Field(None, description="Ticker symbol for yfinance")
+    name_openfigi: Optional[str] = Field(None, description="Instrument name from OpenFIGI")
 
 
 class Instrument(BaseModel):
@@ -115,8 +129,9 @@ class Instrument(BaseModel):
         name (str): Name of the financial instrument.
         wkn (str): WKN of the financial instrument.
         isin (Optional[str]): ISIN of the financial instrument.
-        symbol (Optional[str]): Symbol of the financial instrument, with a minimum length of 2 and a maximum length of 5.
-        asset_class (AssetClass): The asset class of the financial instrument.
+        asset_class (AssetClass): The asset class of the financial instrument (English value, e.g. "Stock").
+        global_identifiers (Optional[GlobalIdentifiers]): Consolidated global identifiers including
+            ISIN, WKN, CUSIP, FIGI, ticker symbols, and OpenFIGI name.
         id_notations_life_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in live trading.
         id_notations_exchange_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in exchange trading.
         preferred_id_notation_life_trading (Optional[str]): The preferred id_notation for live trading.
@@ -130,15 +145,13 @@ class Instrument(BaseModel):
 
     isin: Optional[ISIN] = Field(None, description="International Securities Identification Number")
 
-    symbol: Optional[str] = Field(
-        None,
-        description="Symbol of the financial instrument",
-        min_length=2,
-        max_length=5,
-    )
     asset_class: AssetClass = Field(
         ...,
         description="The asset class of the financial instrument",
+    )
+    global_identifiers: Optional[GlobalIdentifiers] = Field(
+        None,
+        description="Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols)",
     )
     id_notations_life_trading: Optional[dict[str, str]] = Field(
         None,
@@ -159,10 +172,6 @@ class Instrument(BaseModel):
     default_id_notation: Optional[str] = Field(
         None,
         description="The default id_notation for live trading",
-    )
-    global_identifiers: Optional[GlobalIdentifiers] = Field(
-        None,
-        description="Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols)",
     )
 
     @field_validator("isin")

@@ -1,7 +1,7 @@
+# FastAPI Azure Container App
+
 [![CI - Code Quality](https://github.com/stefanfries/fastapi-azure-container-app/actions/workflows/ci-quality.yml/badge.svg)](https://github.com/stefanfries/fastapi-azure-container-app/actions/workflows/ci-quality.yml)
 [![CD - Build and Deploy](https://github.com/stefanfries/fastapi-azure-container-app/actions/workflows/cd-deploy.yml/badge.svg)](https://github.com/stefanfries/fastapi-azure-container-app/actions/workflows/cd-deploy.yml)
-
-# FastAPI Azure Container App
 
 A FastAPI application automatically deployed to Azure Container Apps with CI/CD pipeline.
 

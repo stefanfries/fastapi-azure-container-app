@@ -2,7 +2,7 @@
 Parser plugin for STOCK asset class.
 
 This parser handles the standard HTML structure used by stocks, bonds, ETFs,
-and funds on comdirect.
+funds, and certificates on comdirect.
 """
 
 
@@ -25,7 +25,7 @@ from app.parsers.plugins.parsing_utils import (
 
 
 class StockParser(InstrumentParser):
-    """Parser for STOCK, BOND, ETF, FONDS, and CERTIFICATE asset classes."""
+    """Parser for STOCK, BOND, ETF, FUND, and CERTIFICATE asset classes."""
     
     def __init__(self, asset_class: AssetClass):
         """
@@ -58,7 +58,7 @@ class StockParser(InstrumentParser):
         For standard assets, the name is in the H1 tag with the asset class
         name removed.
         """
-        name = extract_from_h1(soup, remove_suffix=self.asset_class.value)
+        name = extract_from_h1(soup, remove_suffix=self.asset_class.comdirect_label)
         if not name:
             raise ValueError("Could not find H1 headline")
         return name

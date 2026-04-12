@@ -108,6 +108,7 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
     quote = Quote(
         name=name,
         wkn=wkn,
+        isin=instrument_data.isin,
         bid=bid,
         ask=ask,
         spread_percent=spread_percent,

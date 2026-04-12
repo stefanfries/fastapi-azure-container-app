@@ -6,6 +6,7 @@ Classes:
 """
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_extra_types.currency_code import Currency
@@ -17,6 +18,7 @@ class Quote(BaseModel):
     Attributes:
         name (str): Name of the financial instrument.
         wkn (str): The WKN (Wertpapierkennnummer) of the financial instrument, must be a 6-character alphanumeric string.
+        isin (Optional[str]): The ISIN of the financial instrument, if available.
         bid (float): The bid price of the financial instrument.
         ask (float): The ask price of the financial instrument.
         spread_percent (float): The spread percentage, must be greater than or equal to 0.
@@ -27,7 +29,8 @@ class Quote(BaseModel):
     """
 
     name: str
-    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$"),  # WKNs are 6 characters long and do not contain the letters I and O
+    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")  # WKNs are 6 characters long and do not contain the letters I and O
+    isin: Optional[str] = None
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)

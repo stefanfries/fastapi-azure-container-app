@@ -8,7 +8,7 @@ Classes:
 """
 
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 from pydantic_extra_types.currency_code import Currency
@@ -41,8 +41,9 @@ class HistoryData(BaseModel):
     """
     HistoryData represents the historical data for a financial instrument.
     Attributes:
-        wkn (Wkn): The WKN (Wertpapierkennnummer) of the financial instrument.
         name (str): The name of the financial instrument.
+        wkn (Wkn): The WKN (Wertpapierkennnummer) of the financial instrument.
+        isin (Optional[str]): The ISIN of the financial instrument, if available.
         id_notation (str): The notation ID of the financial instrument.
         trading_venue (str): The trading venue where the instrument is traded.
         currency (Currency): The currency in which the instrument is traded.
@@ -52,8 +53,9 @@ class HistoryData(BaseModel):
         data (List[HistoryRecord]): A list of historical records for the financial instrument.
     """
 
-    wkn: str
     name: str
+    wkn: str
+    isin: Optional[str] = None
     id_notation: str
     trading_venue: str
     currency: Currency

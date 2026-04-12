@@ -203,8 +203,9 @@ async def parse_history_data(
     trading_venue = get_trading_venue(instrument_data, id_notation)
 
     return HistoryData(
-        wkn=instrument_data.wkn,
         name=instrument_data.name,
+        wkn=instrument_data.wkn,
+        isin=instrument_data.isin,
         id_notation=str(id_notation),
         trading_venue=trading_venue,
         currency=currency,

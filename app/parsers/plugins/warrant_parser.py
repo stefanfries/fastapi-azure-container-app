@@ -30,15 +30,6 @@ class WarrantParser(InstrumentParser):
         """Return the asset class this parser handles."""
         return AssetClass.WARRANT
     
-    def needs_id_notation_refetch(self) -> bool:
-        """
-        Warrants need to be refetched with ID_NOTATION to get complete info.
-        
-        When fetched with only WKN, the page redirects to an error page.
-        We need to get the default ID_NOTATION first, then refetch.
-        """
-        return True
-    
     def parse_name(self, soup: BeautifulSoup) -> str:
         """
         Extract the instrument name from the HTML.

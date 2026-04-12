@@ -415,19 +415,8 @@ async def parse_instrument_data(instrument: str) -> Instrument:
     
     parser = ParserFactory.get_parser(asset_class)
     
-    # Get default ID_NOTATION from URL
-    default_id_notation = parser.parse_default_id_notation_from_url(response)
-    
-    # Check if we need to refetch with ID_NOTATION
-    if parser.needs_id_notation_refetch() and default_id_notation:
-        logger.info(
-            "Asset class %s requires refetch with ID_NOTATION %s",
-            asset_class,
-            default_id_notation
-        )
-        # Refetch with ID_NOTATION to get complete data
-        response = await fetch_one(instrument, asset_class, default_id_notation)
-        soup = BeautifulSoup(response.content, "html.parser")
+    # Extract the ID_NOTATION comdirect appended to the redirect URL
+    default_id_notation = parse_default_id_notation(response)
     
     # Parse all fields using the plugin
     name = parser.parse_name(soup)

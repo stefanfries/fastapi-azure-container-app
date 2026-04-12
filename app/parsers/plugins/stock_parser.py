@@ -41,16 +41,6 @@ class StockParser(InstrumentParser):
         """Return the asset class this parser handles."""
         return self._asset_class
     
-    def needs_id_notation_refetch(self) -> bool:
-        """
-        Standard assets need to be refetched with ID_NOTATION to get trading venues.
-        
-        When fetched with only WKN, comdirect redirects to an error page.
-        We need the default ID_NOTATION from the first request, then refetch
-        to get the complete trading venue information.
-        """
-        return True
-    
     def parse_name(self, soup: BeautifulSoup) -> str:
         """
         Extract the instrument name from the HTML.

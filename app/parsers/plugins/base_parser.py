@@ -8,7 +8,6 @@ implementing a plugin pattern for extensibility.
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Tuple
 
-import httpx
 from bs4 import BeautifulSoup
 
 from app.models.instruments import AssetClass
@@ -94,36 +93,3 @@ class InstrumentParser(ABC):
             - preferred_ex_id_notation: ID_NOTATION with highest "Anzahl Kurse"
         """
         pass
-    
-    def needs_id_notation_refetch(self) -> bool:
-        """
-        Indicates whether this asset class needs to be refetched with ID_NOTATION
-        to get complete trading venue information.
-        
-        Some asset classes (like WARRANT) return incomplete data when fetched
-        with only WKN, and need to be refetched with an ID_NOTATION parameter.
-        
-        Returns:
-            True if refetch needed, False otherwise
-        """
-        return False
-    
-    def parse_default_id_notation_from_url(self, response: httpx.Response) -> Optional[str]:
-        """
-        Extract the default ID_NOTATION from the response URL.
-        
-        This is used for asset classes that need to be refetched with ID_NOTATION.
-        
-        Args:
-            response: The HTTP response object
-            
-        Returns:
-            The default ID_NOTATION if found in URL, None otherwise
-        """
-        import urllib.parse
-        
-        redirected_url = str(response.url)
-        default_id_notation = urllib.parse.parse_qs(
-            urllib.parse.urlparse(redirected_url).query
-        ).get("ID_NOTATION", [None])[0]
-        return default_id_notation

@@ -16,6 +16,7 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic_extra_types.currency_code import Currency
 
 from app.core.logging import logger
 from app.models.types import ISIN, WKN
@@ -122,6 +123,21 @@ class GlobalIdentifiers(BaseModel):
     name_openfigi: Optional[str] = Field(None, description="Instrument name from OpenFIGI")
 
 
+class VenueInfo(BaseModel):
+    """
+    Trading venue entry combining id_notation and inferred currency.
+
+    Attributes:
+        id_notation (str): The comdirect ID_NOTATION for this venue.
+        currency (Optional[str]): ISO 4217 currency code inferred from the venue name.
+            None when the venue is not in the known lookup table and carries no
+            explicit currency suffix (e.g. "SIX SWISS (USD)").
+    """
+
+    id_notation: str
+    currency: Optional[Currency] = None
+
+
 class Instrument(BaseModel):
     """
     Instrument model representing the master data of a financial instrument.
@@ -132,8 +148,10 @@ class Instrument(BaseModel):
         asset_class (AssetClass): The asset class of the financial instrument (English value, e.g. "Stock").
         global_identifiers (Optional[GlobalIdentifiers]): Consolidated global identifiers including
             ISIN, WKN, CUSIP, FIGI, ticker symbols, and OpenFIGI name.
-        id_notations_life_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in live trading.
-        id_notations_exchange_trading (Optional[dict[str, str]]): A dictionary of id_notations for the financial instrument in exchange trading.
+        id_notations_life_trading (Optional[dict[str, VenueInfo]]): Life-trading venues mapping
+            venue name to VenueInfo (id_notation + currency).
+        id_notations_exchange_trading (Optional[dict[str, VenueInfo]]): Exchange-trading venues
+            mapping venue name to VenueInfo (id_notation + currency).
         preferred_id_notation_life_trading (Optional[str]): The preferred id_notation for live trading.
         preferred_id_notation_exchange_trading (Optional[str]): The preferred id_notation for exchange trading.
         default_id_notation (Optional[str]): The default id_notation for live trading.
@@ -153,13 +171,13 @@ class Instrument(BaseModel):
         None,
         description="Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols)",
     )
-    id_notations_life_trading: Optional[dict[str, str]] = Field(
+    id_notations_life_trading: Optional[dict[str, VenueInfo]] = Field(
         None,
-        description="A dictionary of id_notations for the financial instrument",
+        description="Life-trading venues mapping venue name to VenueInfo (id_notation + currency)",
     )
-    id_notations_exchange_trading: Optional[dict[str, str]] = Field(
+    id_notations_exchange_trading: Optional[dict[str, VenueInfo]] = Field(
         None,
-        description="A dictionary of id_notations for the financial instrument",
+        description="Exchange-trading venues mapping venue name to VenueInfo (id_notation + currency)",
     )
     preferred_id_notation_life_trading: Optional[str] = Field(
         None,

@@ -37,9 +37,11 @@ def check_valid_id_notation(instrument_data, id_notation) -> None:
         HTTPException: If the id_notation is not valid for the given instrument_data.
     """
 
+    lt = instrument_data.id_notations_life_trading or {}
+    ex = instrument_data.id_notations_exchange_trading or {}
     if (
-        id_notation in instrument_data.id_notations_life_trading.values()
-        or id_notation in instrument_data.id_notations_exchange_trading.values()
+        any(v.id_notation == id_notation for v in lt.values())
+        or any(v.id_notation == id_notation for v in ex.values())
     ):
         return None
     else:
@@ -77,7 +79,7 @@ def get_trading_venues_dict(instrument_data: Instrument) -> dict:
         dict: A dictionary containing all trading venues for the given instrument_data.
     """
     id_notatations_dict = get_id_notations_dict(instrument_data)
-    trading_venues_dict = {v: k for k, v in id_notatations_dict.items()}
+    trading_venues_dict = {v.id_notation: k for k, v in id_notatations_dict.items()}
     return trading_venues_dict
 
 
@@ -99,7 +101,7 @@ def get_id_notation(instrument_data: Instrument, trading_venue: str) -> str:
         raise ValueError(
             f"Invalid trading_venue {trading_venue} for instrument {instrument_data.wkn}"
         )
-    return id_notations_dict.get(trading_venue, "")
+    return id_notations_dict[trading_venue].id_notation
 
 
 def get_trading_venue(instrument_data: Instrument, id_notation: str) -> str:

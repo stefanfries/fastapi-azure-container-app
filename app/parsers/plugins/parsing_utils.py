@@ -10,6 +10,56 @@ from typing import Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
+from app.models.instruments import VenueInfo
+
+# Known home currencies for comdirect trading venues.
+# Venues that carry an explicit currency suffix in their name (e.g. "SIX SWISS (USD)")
+# are handled by infer_currency() before this table is consulted.
+VENUE_DEFAULT_CURRENCY: dict[str, str] = {
+    # German / European EUR venues
+    "Tradegate": "EUR",
+    "Xetra": "EUR",
+    "gettex": "EUR",
+    "Frankfurt": "EUR",
+    "Stuttgart": "EUR",
+    "Hamburg": "EUR",
+    "München": "EUR",
+    "Hannover": "EUR",
+    "Düsseldorf": "EUR",
+    "Berlin": "EUR",
+    "Quotrix": "EUR",
+    "LS Exchange": "EUR",
+    "Wiener Börse": "EUR",
+    "Euronext Milan MTF Global Equity Market": "EUR",
+    "Euronext Milan MTF Trading After Hours": "EUR",
+    # Life Trading venues (all EUR)
+    "LT Societe Generale": "EUR",
+    "LT Lang & Schwarz": "EUR",
+    "LT Baader Trading": "EUR",
+    # Non-EUR exchange venues
+    "Nasdaq": "USD",
+    "NYSE": "USD",
+    "London Stock Exchange European Trade Reporting": "GBP",
+}
+
+
+def infer_currency(venue_name: str) -> Optional[str]:
+    """
+    Infer the ISO 4217 currency for a comdirect trading venue.
+
+    Two rules are applied in order:
+    1. Explicit suffix: if the venue name ends with a 3-letter code in
+       parentheses (e.g. ``"SIX SWISS (USD)"``), that code is returned.
+    2. Lookup table: ``VENUE_DEFAULT_CURRENCY`` maps known venue names to
+       their home currency.
+
+    Returns ``None`` when neither rule matches.
+    """
+    m = re.search(r'\(([A-Z]{3})\)$', venue_name)
+    if m:
+        return m.group(1)
+    return VENUE_DEFAULT_CURRENCY.get(venue_name)
+
 
 def extract_from_h2_position(soup: BeautifulSoup, position: int) -> Optional[str]:
     """
@@ -349,40 +399,42 @@ def extract_venue_from_single_table(soup: BeautifulSoup) -> Dict[str, str]:
     return id_notations_dict
 
 
-def categorize_lt_ex_venues(venues: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, str]]:
+def categorize_lt_ex_venues(venues: Dict[str, str]) -> Tuple[Dict[str, VenueInfo], Dict[str, VenueInfo]]:
     """
-    Categorize venues into Life Trading (LT) and Exchange Trading (EX).
-    
-    Life Trading venues typically start with "LT " prefix.
-    Exchange Trading venues are regular stock exchange names.
-    
+    Categorize venues into Life Trading (LT) and Exchange Trading (EX),
+    enriching each entry with an inferred currency.
+
     Args:
-        venues: Dictionary mapping venue names to ID_NOTATIONs
-        
+        venues: Dictionary mapping venue names to raw ID_NOTATION strings
+            (as returned by extract_venues_from_dropdown or extract_venue_from_single_table).
+
     Returns:
-        Tuple of (lt_venue_dict, ex_venue_dict)
-        
+        Tuple of (lt_venue_dict, ex_venue_dict) where each value is a VenueInfo
+        containing the id_notation and the inferred currency.
+
     Example:
         Input: {"LT Société Générale": "123", "Xetra": "456"}
-        Output: ({"LT Société Générale": "123"}, {"Xetra": "456"})
+        Output: (
+            {"LT Société Générale": VenueInfo(id_notation="123", currency="EUR")},
+            {"Xetra": VenueInfo(id_notation="456", currency="EUR")},
+        )
     """
-    lt_venue_dict = {}
-    ex_venue_dict = {}
-    
+    lt_venue_dict: Dict[str, VenueInfo] = {}
+    ex_venue_dict: Dict[str, VenueInfo] = {}
+
     for venue, notation in venues.items():
+        venue_info = VenueInfo(id_notation=notation, currency=infer_currency(venue))
         if venue.startswith("LT "):
-            # Life Trading venue
-            lt_venue_dict[venue] = notation
+            lt_venue_dict[venue] = venue_info
         else:
-            # Exchange Trading venue
-            ex_venue_dict[venue] = notation
-    
+            ex_venue_dict[venue] = venue_info
+
     return lt_venue_dict, ex_venue_dict
 
 
 def extract_preferred_lt_notation(
     soup: BeautifulSoup, 
-    lt_venue_dict: Dict[str, str],
+    lt_venue_dict: Dict[str, VenueInfo],
     use_single_venue_fallback: bool = False
 ) -> Optional[str]:
     """
@@ -401,7 +453,7 @@ def extract_preferred_lt_notation(
     
     # If only one Life Trading venue and fallback enabled, return it as preferred
     if use_single_venue_fallback and len(lt_venue_dict) == 1:
-        return list(lt_venue_dict.values())[0]
+        return list(lt_venue_dict.values())[0].id_notation
     
     # Find the Life Trading table (contains "Gestellte Kurse" column)
     tables = soup.find_all("table")
@@ -467,14 +519,14 @@ def extract_preferred_lt_notation(
     
     # If no table found and fallback enabled, return first venue as fallback
     if use_single_venue_fallback and lt_venue_dict:
-        return list(lt_venue_dict.values())[0]
+        return list(lt_venue_dict.values())[0].id_notation
     
     return None
 
 
 def extract_preferred_ex_notation(
     soup: BeautifulSoup, 
-    ex_venue_dict: Dict[str, str],
+    ex_venue_dict: Dict[str, VenueInfo],
     use_single_venue_fallback: bool = False
 ) -> Optional[str]:
     """
@@ -493,7 +545,7 @@ def extract_preferred_ex_notation(
     
     # If only one Exchange Trading venue and fallback enabled, return it as preferred
     if use_single_venue_fallback and len(ex_venue_dict) == 1:
-        return list(ex_venue_dict.values())[0]
+        return list(ex_venue_dict.values())[0].id_notation
     
     # Find the Exchange Trading table (contains "Anzahl Kurse" column)
     tables = soup.find_all("table")
@@ -559,6 +611,6 @@ def extract_preferred_ex_notation(
     
     # If no table found and fallback enabled, return first venue as fallback
     if use_single_venue_fallback and ex_venue_dict:
-        return list(ex_venue_dict.values())[0]
+        return list(ex_venue_dict.values())[0].id_notation
     
     return None

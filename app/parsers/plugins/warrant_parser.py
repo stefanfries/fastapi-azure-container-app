@@ -9,7 +9,7 @@ from typing import Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
-from app.models.instruments import AssetClass
+from app.models.instruments import AssetClass, VenueInfo
 from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
@@ -65,8 +65,8 @@ class WarrantParser(InstrumentParser):
         soup: BeautifulSoup,
         default_id_notation: Optional[str] = None
     ) -> Tuple[
-        Optional[Dict[str, str]], 
-        Optional[Dict[str, str]],
+        Optional[Dict[str, VenueInfo]], 
+        Optional[Dict[str, VenueInfo]],
         Optional[str],
         Optional[str]
     ]:

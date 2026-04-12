@@ -37,7 +37,8 @@ from app.core.constants import (
     standard_asset_classes,
 )
 from app.core.logging import logger
-from app.models.instruments import AssetClass, Instrument, NotationType
+from app.models.instruments import AssetClass, Instrument, NotationType, VenueInfo
+from app.parsers.plugins.parsing_utils import infer_currency
 from app.scrapers.helper_functions import convert_to_int
 from app.scrapers.scrape_url import fetch_one
 from app.services.identifier_enrichment import build_global_identifiers
@@ -55,8 +56,8 @@ def valid_id_notation(instrument_data: Instrument, id_notation: str) -> bool:
     """
 
     return (
-        id_notation in instrument_data.id_notations_life_trading.values()
-        or id_notation in instrument_data.id_notations_exchange_trading.values()
+        any(v.id_notation == id_notation for v in instrument_data.id_notations_life_trading.values())
+        or any(v.id_notation == id_notation for v in instrument_data.id_notations_exchange_trading.values())
     )
 
 
@@ -230,19 +231,25 @@ def parse_id_notations(
 
     # Extract Life Trading venues, add ID_Notation from Dictionary:
     lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
-    lt_venue_dict = {}
+    lt_venue_dict: dict[str, VenueInfo] = {}
     for v in lt_venues:
         venue = v.text.strip()
         if venue != "--":
-            lt_venue_dict[venue] = id_notations_dict[venue]
+            lt_venue_dict[venue] = VenueInfo(
+                id_notation=id_notations_dict[venue],
+                currency=infer_currency(venue),
+            )
 
     # Extract Exchange Trading venues, add ID_Notation from Dictionary:
     ex_venues = soup.find_all("td", {"data-label": "Börse"})
-    ex_venue_dict = {}
+    ex_venue_dict: dict[str, VenueInfo] = {}
     for v in ex_venues:
         venue = v.text.strip()
         if venue != "--":
-            ex_venue_dict[venue] = id_notations_dict[venue]
+            ex_venue_dict[venue] = VenueInfo(
+                id_notation=id_notations_dict[venue],
+                currency=infer_currency(venue),
+            )
 
     return lt_venue_dict, ex_venue_dict
 
@@ -288,7 +295,7 @@ def parse_price_fixings(notation_type: NotationType, soup: BeautifulSoup) -> Lis
 
 
 def parse_preferred_notation_id_life_trading(
-    asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
+    asset_class: AssetClass, id_notations_dict: Dict[str, VenueInfo], soup: BeautifulSoup
 ) -> str | None:
     """Return the id_notation of the life-trading venue with the highest number of price fixings.
 
@@ -316,7 +323,7 @@ def parse_preferred_notation_id_life_trading(
     # create dictionary with venue as key and notation_id and price_fixings as values:
     venue_dict = {
         venue: {
-            "notation_id": id_notations_dict[venue],
+            "notation_id": id_notations_dict[venue].id_notation,
             "price_fixings": price_fixing,
         }
         for venue, price_fixing in zip(venues_list, price_fixings_list)
@@ -333,7 +340,7 @@ def parse_preferred_notation_id_life_trading(
 
 
 def parse_preferred_notation_id_exchange_trading(
-    asset_class: AssetClass, id_notations_dict: Dict[str, str], soup: BeautifulSoup
+    asset_class: AssetClass, id_notations_dict: Dict[str, VenueInfo], soup: BeautifulSoup
 ) -> str | None:
     """Return the id_notation of the exchange-trading venue with the highest number of price fixings.
 
@@ -362,7 +369,7 @@ def parse_preferred_notation_id_exchange_trading(
     # create dictionary with venue as key and notation_id and price_fixings as values:
     venue_dict = {
         venue: {
-            "notation_id": id_notations_dict[venue],
+            "notation_id": id_notations_dict[venue].id_notation,
             "price_fixings": price_fixing,
         }
         for venue, price_fixing in zip(venues_list, price_fixings_list)

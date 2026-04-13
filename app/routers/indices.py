@@ -23,7 +23,7 @@ from app.parsers.indices import fetch_index_list, fetch_index_members
 router = APIRouter(prefix="/v1/indices", tags=["indices"])
 
 
-@router.get("", response_model=list[IndexInfo])
+@router.get("/", response_model=list[IndexInfo])
 async def get_indices() -> list[IndexInfo]:
     """Return all supported indices (name, WKN, member count, link).
 

@@ -7,24 +7,24 @@ It manages the connection lifecycle integrated with FastAPI's startup/shutdown e
 
 from typing import Optional
 
-from pymongo import MongoClient
-from pymongo.database import Database
+from pymongo import AsyncMongoClient
+from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 from app.core.logging import logger
 from app.core.settings import settings
 
 # Global database client instance
-_client: Optional[MongoClient] = None
-_database: Optional[Database] = None
+_client: Optional[AsyncMongoClient] = None
+_database: Optional[AsyncDatabase] = None
 
 
-def get_database() -> Database:
+def get_database() -> AsyncDatabase:
     """
     Get the MongoDB database instance.
     
     Returns:
-        Database: MongoDB database instance
+        AsyncDatabase: MongoDB database instance
         
     Raises:
         RuntimeError: If database connection is not initialized
@@ -53,7 +53,7 @@ async def connect_to_database() -> None:
         logger.info("Connecting to MongoDB Atlas...")
         
         # Create MongoDB client with connection pooling
-        _client = MongoClient(
+        _client = AsyncMongoClient(
             settings.database.mongodb_connection_string.get_secret_value(),
             serverSelectionTimeoutMS=settings.database.server_selection_timeout_ms,
             maxPoolSize=settings.database.max_pool_size,
@@ -63,7 +63,7 @@ async def connect_to_database() -> None:
         )
         
         # Verify connection by pinging the database
-        _client.admin.command("ping")
+        await _client.admin.command("ping")
         
         # Get database instance
         _database = _client[settings.database.db_name]
@@ -102,7 +102,7 @@ def get_collection(collection_name: str):
         collection_name (str): Name of the collection
         
     Returns:
-        Collection: MongoDB collection instance
+        AsyncCollection: MongoDB collection instance
     """
     db = get_database()
     return db[collection_name]

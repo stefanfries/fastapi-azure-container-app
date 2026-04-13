@@ -8,7 +8,7 @@ including WKN, ISIN, name, asset class, and trading venue notations.
 from datetime import datetime, timedelta
 from typing import Optional
 
-from pymongo.collection import Collection
+from pymongo.asynchronous.collection import AsyncCollection
 
 from app.core.database import Collections, get_collection
 from app.core.logging import logger
@@ -20,10 +20,10 @@ class InstrumentRepository:
     
     def __init__(self):
         """Initialize the instrument repository."""
-        self._collection: Optional[Collection] = None
+        self._collection: Optional[AsyncCollection] = None
     
     @property
-    def collection(self) -> Collection:
+    def collection(self) -> AsyncCollection:
         """
         Get the instruments collection.
         
@@ -45,7 +45,7 @@ class InstrumentRepository:
             Optional[Instrument]: Instrument if found, None otherwise
         """
         logger.debug("Searching for instrument with WKN: %s", wkn)
-        doc = self.collection.find_one({"wkn": wkn})
+        doc = await self.collection.find_one({"wkn": wkn})
         
         if doc:
             logger.debug("Found instrument in cache: %s", wkn)
@@ -68,7 +68,7 @@ class InstrumentRepository:
             Optional[Instrument]: Instrument if found, None otherwise
         """
         logger.debug("Searching for instrument with ISIN: %s", isin)
-        doc = self.collection.find_one({"isin": isin})
+        doc = await self.collection.find_one({"isin": isin})
         
         if doc:
             logger.debug("Found instrument in cache: %s", isin)
@@ -95,7 +95,7 @@ class InstrumentRepository:
         doc["cached_at"] = datetime.utcnow()
         
         # Upsert based on WKN (unique identifier)
-        self.collection.update_one(
+        await self.collection.update_one(
             {"wkn": instrument.wkn},
             {"$set": doc},
             upsert=True
@@ -114,7 +114,7 @@ class InstrumentRepository:
         Returns:
             bool: True if cache is valid, False otherwise
         """
-        doc = self.collection.find_one(
+        doc = await self.collection.find_one(
             {"wkn": wkn},
             {"cached_at": 1}
         )
@@ -145,7 +145,7 @@ class InstrumentRepository:
         Returns:
             bool: True if deleted, False if not found
         """
-        result = self.collection.delete_one({"wkn": wkn})
+        result = await self.collection.delete_one({"wkn": wkn})
         deleted = result.deleted_count > 0
         
         if deleted:
@@ -162,4 +162,4 @@ class InstrumentRepository:
         Returns:
             int: Number of instruments in cache
         """
-        return self.collection.count_documents({})
+        return await self.collection.count_documents({})

@@ -8,10 +8,10 @@ Functions:
     check_valid_id_notation: Validate an id_notation against an instrument's known venues.
     get_id_notations_dict:   Build a merged id_notations dict from an instrument.
     get_trading_venues_dict: Build a reverse id_notation → venue mapping.
-    get_id_notation:         Look up the id_notation for a given trading venue.
     get_trading_venue:       Look up the trading venue for a given id_notation.
-    round_time:              Round a partial time string up or down to a full time string.
-    round_datetime:          Round a partial ISO-8601 datetime string up or down.
+    get_id_notation:        Look up the id_notation for a given trading venue.
+    round_time:             Round a partial time string up or down to a full time string.
+    round_datetime:         Round a partial ISO-8601 datetime string up or down.
 """
 
 from calendar import monthrange

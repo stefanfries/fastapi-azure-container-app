@@ -172,6 +172,50 @@ def _parse_analytics(soup: BeautifulSoup) -> WarrantAnalytics:
     )
 
 
+def _parse_action_flags(soup: BeautifulSoup) -> tuple[bool, bool]:
+    """Detect ``issuer_action`` and ``issuer_no_fee_action`` from the detail page.
+
+    Looks for the comdirect Aktion tooltip button near the warrant title:
+
+    - ``issuer_action`` (off-market flat-fee): button ``<span class="button__inner">
+      text equals ``"Aktion"``.
+    - ``issuer_no_fee_action`` (on-exchange no-fee): the tooltip heading inside the
+      same container contains ``"Börslich"`` (or the button text itself is ``"Börslich"``
+      for warrants where only this flag is set).
+
+    Args:
+        soup: Parsed HTML of the warrant detail page.
+
+    Returns:
+        ``(issuer_action, issuer_no_fee_action)`` boolean tuple.
+    """
+    issuer_action = False
+    issuer_no_fee_action = False
+
+    aktion_btn = soup.find("button", attrs={"aria-label": re.compile(r"Aktion")})
+    if not aktion_btn:
+        return issuer_action, issuer_no_fee_action
+
+    btn_text = aktion_btn.get_text(strip=True)
+    if btn_text == "Aktion":
+        issuer_action = True
+    elif "rslich" in btn_text:  # Börslich
+        issuer_no_fee_action = True
+
+    # Check the tooltip heading inside the same container
+    container = aktion_btn.find_parent("div", class_="layer-tooltip__container")
+    if container:
+        headline = container.find("div", class_=lambda c: c and "layer__header-headline" in c)
+        if headline:
+            heading = headline.get_text(strip=True)
+            if "rslich" in heading:  # Börslich
+                issuer_no_fee_action = True
+            elif "Aktion" in heading:
+                issuer_action = True
+
+    return issuer_action, issuer_no_fee_action
+
+
 def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
     table = _section_table(soup, "Stammdaten")
 
@@ -179,6 +223,8 @@ def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
     underlying_price, underlying_price_currency = _parse_amount_currency(
         _td_text(table, "Kurs Basiswert")
     )
+
+    issuer_action, issuer_no_fee_action = _parse_action_flags(soup)
 
     return WarrantReferenceData(
         isin=_td_text(table, "ISIN"),
@@ -195,6 +241,8 @@ def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
         issuer=_td_text(table, "Emittent"),
         currency=_td_text(table, "Währung"),
         symbol=_td_text(table, "Symbol"),
+        issuer_action=issuer_action,
+        issuer_no_fee_action=issuer_no_fee_action,
     )
 
 

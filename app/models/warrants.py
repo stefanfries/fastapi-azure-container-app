@@ -137,6 +137,8 @@ class WarrantReferenceData(BaseModel):
     issuer: Optional[str] = Field(None, description="Issuer name (Emittent)")
     currency: Optional[str] = Field(None, description="Settlement currency (Währung)")
     symbol: Optional[str] = Field(None, description="Comdirect Ticker symbol")
+    issuer_action: bool = Field(False, description="Off-market flat-fee comdirect Aktion (ISSUER_ACTION)")
+    issuer_no_fee_action: bool = Field(False, description="On-exchange no-fee comdirect Aktion (ISSUER_NO_FEE_ACTION)")
 
 
 class WarrantDetailResponse(BaseModel):

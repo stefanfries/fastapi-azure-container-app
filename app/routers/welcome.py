@@ -1,18 +1,25 @@
 """
 This module defines the welcome router for the FastAPI application.
-It includes a single endpoint that serves as a root endpoint for health check purposes.
-The endpoint logs a welcome message and returns a JSON response indicating that the app is live.
+The root endpoint returns structured application metadata for API discovery.
 """
 
 from fastapi import APIRouter
 
 from app.core.logging import logger
+from app.core.settings import settings
 
 router = APIRouter()
 
 
 @router.get("/", tags=["welcome"])
 async def read_root():
-    """Root endpoint for health check purposes"""
-    logger.info("Welcome, the app is live!")
-    return {"message": "Welcome, the app is live !"}
+    """Root endpoint — returns application metadata for API discovery."""
+    logger.info("Root endpoint called")
+    return {
+        "application": settings.app.app_name,
+        "version": settings.app.app_version,
+        "api_version": "v1",
+        "data_sources": ["comdirect"],
+        "docs": "/docs",
+        "health": "/health",
+    }

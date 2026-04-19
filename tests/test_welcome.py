@@ -19,15 +19,15 @@ client = TestClient(app)
 
 
 def test_get_welcome() -> None:
-    """
-    Test the GET request to the root endpoint ("/") of the FastAPI application.
-    This test checks if the response status code is 200 (OK) and if the JSON response
-    contains the expected message: {"message": "Welcome, the app is live!"}.
-    """
-
+    """Root endpoint returns structured application metadata."""
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome, the app is live !"}
+    body = response.json()
+    assert body["application"] == "FinHub API"
+    assert body["api_version"] == "v1"
+    assert "version" in body
+    assert "docs" in body
+    assert "health" in body
 
 
 def test_get_welcome_invalid_method() -> None:

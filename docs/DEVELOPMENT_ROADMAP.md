@@ -10,7 +10,7 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ✅ Completed Components
 
-- FastAPI application structure with routers (welcome, users, instruments, quotes, history, depots, warrants, indices)
+- FastAPI application structure with routers (root, users, instruments, quotes, history, depots, warrants, indices, health)
 - Plugin-based parser system — **all 9 asset classes fully covered** (no legacy fallback):
   - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
   - `WarrantParser` — WARRANT (id_notation refetch mechanism)
@@ -26,12 +26,17 @@ Based on a comprehensive review of the codebase against business and technical r
 - Logging configuration
 - ID notation system for trading venues
 - API terminology aligned with financial domain (instruments, quotes, history)
+- Repository pattern implemented for all entities (`InstrumentRepository`, `UserRepository`, `DepotRepository`)
+- All API routes versioned under `/v1/` (instruments, quotes, history, warrants, indices, users, depots)
+- `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
+- `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
+- Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
+- 28 unit tests passing; coverage reporting enabled
 
 ### ⚠️ Partially Completed
 
 - **Data Models**: Instrument model contains only common attributes; no asset-class-specific extended fields
-- **Testing**: Basic tests (test_main.py, test_users.py, test_welcome.py); no parser/scraper integration tests
-- **Logging**: Configuration exists but some `print()` statements may remain in older modules
+- **Testing**: Unit tests for routers and repositories exist; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -42,8 +47,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
 - **User Role Model**: No RBAC or role definitions
-- **API Versioning**: `/v1/` prefix partially applied (instruments, quotes, history, warrants, indices); `users` and `depots` still missing it
-- **Software Release Versioning**: `app_version` in settings and FastAPI metadata; no dedicated version module
+- **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
+- **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
 
 ---
 
@@ -77,11 +82,11 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
   - `Collections` constants class
   - Connection string via environment variable (`MONGODB_URI`)
   
-- [ ] Implement repository pattern *(partially done)*
+- [x] Implement repository pattern ✅
   - [x] `app/repositories/` directory created ✅
   - [x] **InstrumentRepository** implemented ✅ (find_by_wkn, find_by_isin, caching)
-  - [ ] **UserRepository** — users still in-memory, not persisted to MongoDB
-  - [ ] **DepotRepository** — depots still in-memory, not persisted to MongoDB
+  - [x] **UserRepository** implemented ✅ (find_by_username, find_by_email, create, update, delete)
+  - [x] **DepotRepository** implemented ✅ (find_all, find_by_id, create, update, delete)
   - [ ] **QuoteRepository** (optional - for quote caching if needed)
   
 - [ ] Add database initialization script
@@ -90,35 +95,33 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 #### 1.3 Testing Foundation
 
-- [ ] Set up comprehensive test structure
-  - Create `tests/unit/`, `tests/integration/`, `tests/e2e/` directories
-  - Add pytest fixtures for database mocking
-  - Add test data fixtures
+- [x] Set up comprehensive test structure ✅
+  - [x] `tests/unit/` and `tests/integration/` directories created ✅
+  - [x] `tests/conftest.py` with `mock_database` and `client` fixtures ✅
+  - [ ] `tests/e2e/` directory (deferred to Phase 4)
   
-- [ ] Add pytest plugins
-  - `pytest-asyncio` for async tests
-  - `pytest-mock` for mocking
-  - `pytest-env` for environment management
+- [x] Add pytest plugins ✅
+  - [x] `pytest-asyncio` installed (`asyncio_mode = "auto"`) ✅
+  - [x] `pytest-mock` installed ✅
+  - [ ] `pytest-env` for environment management (not yet needed)
   
 - [ ] Establish test coverage targets
-  - Minimum 80% coverage for new code
-  - Configure coverage reporting in CI
+  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently ~38%)
+  - [ ] Reach minimum 80% coverage for new code
 
 #### 1.4 API & Software Versioning
 
-- [ ] Implement API route versioning *(partially done)*
-  - [x] `/v1/` prefix on `instruments`, `quotes`, `history`, `warrants`, `indices` ✅
-  - [ ] `/v1/` prefix still missing on `users` and `depots` routers
+- [x] Implement API route versioning ✅
+  - [x] `/v1/` prefix on all data routers: `instruments`, `quotes`, `history`, `warrants`, `indices`, `users`, `depots` ✅
   - [ ] Consider restructuring into `app/api/v1/` if versioning beyond v1 is needed
   
-- [x] Add software release versioning *(partial)* ✅
+- [x] Add software release versioning ✅
   - `app_version` field in `app/core/settings.py` (default `"0.1.0"`)
-  - Version exposed via `FastAPI(version=...)` in `main.py`
-  - [ ] No dedicated `app/version.py` module; version currently hardcoded in two places
+  - Version exposed via `FastAPI(version=...)` in `main.py` and in `GET /health/ready` response
+  - [ ] No dedicated `app/version.py` module; version set via `APP_VERSION` env var
   
-- [ ] Improve root endpoint (`/`) *(partial)*
-  - [x] `GET /` endpoint exists in `app/routers/welcome.py` ✅
-  - [ ] Currently returns only `{"message": "Welcome, the app is live!"}` — upgrade to structured response:
+- [x] Improve root endpoint (`/`) ✅ (`app/routers/root.py`)
+  - Returns structured response:
 
     ```json
     {
@@ -126,48 +129,19 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
       "version": "0.1.0",
       "api_version": "v1",
       "data_sources": ["comdirect"],
-      "docs": "/docs"
+      "docs": "/docs",
+      "health": "/health"
     }
     ```
 
-- [ ] Implement liveness health endpoint (`/health`)
-  - Fast health check without dependency validation
-  - Used by Azure Container Apps liveness probe
-  - Response structure:
+- [x] Implement liveness health endpoint (`/health`) ✅ (`app/routers/health.py`)
+  - Returns `{"status": "healthy", "timestamp": "..."}` immediately
+  - Used as Azure Container Apps **liveness probe**
 
-    ```json
-    {
-      "status": "healthy",
-      "timestamp": "2026-02-15T10:30:00Z"
-    }
-    ```
-
-  - Returns 200 if application is running
-  - Returns 503 if application cannot serve requests
-  - Should respond in < 100ms
-
-- [ ] Implement readiness health endpoint (`/health/ready`)
-  - Comprehensive health check with dependency validation
-  - Used by Azure Container Apps readiness probe
-  - Checks database connection, external service availability
-  - Response structure:
-
-    ```json
-    {
-      "status": "ready",
-      "version": "1.0.0",
-      "checks": {
-        "database": "healthy",
-        "comdirect_access": "healthy"
-      },
-      "timestamp": "2026-02-15T10:30:00Z"
-    }
-    ```
-
-  - Returns 200 if all services are operational
-  - Returns 503 if any critical dependency is unavailable
-  - Returns detailed check results for debugging
-  - Should respond in < 1000ms
+- [x] Implement readiness health endpoint (`/health/ready`) ✅
+  - Checks MongoDB ping + comdirect.de reachability (via `robots.txt` HEAD request)
+  - Returns 200 with check results when all pass, 503 if any fail
+  - Used as Azure Container Apps **readiness probe**
   
 - [ ] Update deployment pipeline
   - Auto-increment version on releases
@@ -182,13 +156,14 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 - ✅ No print() statements — all modules use structured logger
 - ✅ MongoDB connected and configured (`app/core/database.py`, lifespan hooks)
-- ✅ `InstrumentRepository` implemented; UserRepository/DepotRepository still open
-- ✅ `/v1/` versioning on main data endpoints; `/users` and `/depots` still need it
+- ✅ All repositories implemented: `InstrumentRepository`, `UserRepository`, `DepotRepository`
+- ✅ All routes under `/v1/` (instruments, quotes, history, warrants, indices, users, depots)
 - ✅ `app_version` in settings and FastAPI metadata
-- [ ] Test infrastructure (unit/integration/e2e structure, pytest-asyncio)
-- [ ] DB initialization script (indexes, schema validation)
-- [ ] Root `/` structured response
-- [ ] Health endpoints (`/health`, `/health/ready`)
+- ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
+- ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
+- ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
+- ✅ 28 unit tests passing; coverage reporting active (~38%)
+- [ ] DB initialization script (WKN/ISIN indexes on instruments collection)
 - [ ] Docker image version tagging in CD pipeline
 
 ---
@@ -632,15 +607,16 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 ### Phase 1 (Foundation)
 
-- Zero print() statements in code
-- MongoDB connection established
-- Repository pattern implemented for all entities
-- Test infrastructure ready
-- API route versioning implemented (all routes under /v1/)
-- Software release versioning in place
-- Root endpoint (`/`) returns comprehensive version and application info
-- Health endpoints (`/health` and `/health/ready`) implemented and tested
-- Azure Container Apps health probes configured
+- ✅ Zero print() statements — all modules use structured logger
+- ✅ MongoDB connection established and all repositories implemented
+- ✅ Repository pattern for all entities (Instrument, User, Depot)
+- ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `conftest.py`, pytest-asyncio
+- ✅ All routes versioned under `/v1/`
+- ✅ Root endpoint (`/`) returns structured app metadata
+- ✅ Health endpoints (`/health`, `/health/ready`) implemented
+- ✅ 28 unit tests passing; coverage reporting active
+- [ ] DB initialization script (WKN/ISIN indexes)
+- [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
 
@@ -713,10 +689,9 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 ## Next Steps
 
-1. **Review and approve** this plan
-2. **Prioritize phases** based on business urgency
-3. **Assign resources** if working in a team
-4. **Start Phase 1** with foundation and code quality improvements
+1. **Finish Phase 1** — DB initialization script (WKN/ISIN indexes on instruments collection) is the only remaining item
+2. **Start Phase 2** — Asset-class-specific data models and extended parsers
+3. **Raise test coverage** towards 80% as Phase 2 work lands
 
 ## Questions for Stakeholders
 
@@ -734,22 +709,29 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 ```text
 app/
-├── core/              # Constants, configuration
-├── crud/              # CRUD operations (users, depots, instruments)
-├── models/            # Data models (instruments, users, depots, history, quotes)
+├── core/              # Settings, database, logging, constants
+├── models/            # Pydantic models (instruments, users, depots, history, quotes)
 ├── parsers/           # Parsing logic
-│   └── plugins/       # Parser plugin system (stock, warrant)
-├── routers/           # API routes (instruments, users, depots, quotes, history, welcome)
+│   └── plugins/       # Parser plugin system (standard, warrant, special)
+├── repositories/      # MongoDB repository layer (instruments, users, depots)
+├── routers/           # API routes (root, health, instruments, quotes, history,
+│                      #             users, depots, warrants, indices)
 ├── scrapers/          # Web scraping utilities
+├── services/          # Business logic (identifier enrichment)
+├── clients/           # External API clients (OpenFIGI)
 ├── static/            # Static files
-├── logging_config.py  # Logging setup
-├── main.py            # Application entry point
+├── main.py            # Application entry point with lifespan hooks
 └── middleware.py      # Request middleware
 
 tests/
-├── test_main.py       # Basic app tests
-├── test_users.py      # User endpoint tests
-└── test_welcome.py    # Welcome endpoint tests
+├── conftest.py                         # Shared fixtures (mock_database, client)
+├── unit/
+│   ├── test_main.py                    # App startup tests
+│   ├── test_root.py                    # Root endpoint tests
+│   ├── test_users.py                   # User endpoint tests
+│   ├── test_user_repository.py         # UserRepository unit tests
+│   └── test_depot_repository.py        # DepotRepository unit tests
+└── integration/                        # Integration tests (to be added)
 
 docs/
 ├── BUSINESS_REQUIREMENTS.md
@@ -769,21 +751,19 @@ scripts/
 
 ### Files to Create (by Phase)
 
-**Phase 1:**
+**Phase 1:** ✅ All created
 
-- `app/config/database.py` (use `pymongo.AsyncMongoClient` for async operations)
-- `app/repositories/base.py`
-- `app/repositories/basedata_repository.py`
-- `app/repositories/user_repository.py`
-- `app/__version__.py` or `app/version.py`
-- `app/api/v1/__init__.py`
-- `app/api/v1/routers/` (move existing routers here)
-- `app/routers/health.py` (health and readiness endpoints)
-- Update `app/routers/welcome.py` to root `/` endpoint
-- `tests/unit/test_repositories.py`
-- `tests/unit/test_versioning.py`
-- `tests/unit/test_health.py`
-- `tests/fixtures/test_data.py`
+- ✅ `app/core/database.py` (PyMongo `AsyncMongoClient`, lifespan hooks)
+- ✅ `app/repositories/instruments.py` (InstrumentRepository)
+- ✅ `app/repositories/users.py` (UserRepository)
+- ✅ `app/repositories/depots.py` (DepotRepository)
+- ✅ `app/routers/health.py` (liveness + readiness endpoints)
+- ✅ `app/routers/root.py` (renamed from welcome.py, returns structured metadata)
+- ✅ `tests/conftest.py` (mock_database and client fixtures)
+- ✅ `tests/unit/test_user_repository.py`
+- ✅ `tests/unit/test_depot_repository.py`
+- [ ] `app/version.py` (dedicated version module — deferred)
+- [ ] DB initialization script (indexes — still open)
 
 **Phase 2:**
 

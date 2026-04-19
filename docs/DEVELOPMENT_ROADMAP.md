@@ -42,8 +42,8 @@ Based on a comprehensive review of the codebase against business and technical r
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
 - **User Role Model**: No RBAC or role definitions
-- **API Versioning**: Route versioning (`/v1/`) not yet applied to routes
-- **Software Release Versioning**: No semantic versioning or version endpoint
+- **API Versioning**: `/v1/` prefix partially applied (instruments, quotes, history, warrants, indices); `users` and `depots` still missing it
+- **Software Release Versioning**: `app_version` in settings and FastAPI metadata; no dedicated version module
 
 ---
 
@@ -57,79 +57,36 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ### Phase 1: Foundation & Code Quality (Week 1-2)
 
-### Phase 1: Foundation & Code Quality (Week 1-2)
-
 **Priority: HIGH - Required for reliable development**
 
 #### 1.1 Clean Up Technical Debt
 
-- [ ] Replace all `print()` statements with `logger` calls
-  - Files affected: `app/scrapers/scrape_url.py`, `app/parsers/history.py`, `app/parsers/quotes.py`
-  - Quality impact: Consistent logging across application
+- [x] Replace all `print()` statements with `logger` calls ✅
+  - No `print()` statements found anywhere in `app/`
+  - All modules use `logger` from `app.core.logging`
   
-- [ ] Add comprehensive logging to all modules
-  - Ensure all functions log entry/exit for debugging
-  - Log errors with full context
+- [x] Logging module implemented ✅ (`app/core/logging.py`, `api_logger`)
+  - [ ] Add comprehensive entry/exit logging to parsers and scrapers (still partial)
 
 #### 1.2 Database Integration
 
-- [ ] Add MongoDB dependencies
-  - Add `pymongo>=4.6.0` to pyproject.toml (native async support)
-  - **Note**: PyMongo 4.x+ has native async/await support - Motor is no longer needed
-  - MongoDB officially recommends PyMongo for new projects
-  - Add connection pool configuration
+- [x] Add MongoDB dependencies ✅ (`pymongo>=4.16.0` in `pyproject.toml`)
   
-- [ ] Create database configuration module
-  - Connection string management (via environment variables)
-  - Database and collection definitions
-  - Connection lifecycle management
+- [x] Create database configuration module ✅ (`app/core/database.py`)
+  - `AsyncMongoClient` with lifespan hooks in `main.py`
+  - `Collections` constants class
+  - Connection string via environment variable (`MONGODB_URI`)
   
-**Example PyMongo 4.x Async Usage:**
-
-```python
-# app/config/database.py
-from pymongo import AsyncMongoClient
-from typing import AsyncGenerator
-
-DATABASE_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "finance_db")
-
-client: AsyncMongoClient | None = None
-
-async def get_database():
-    """Get database instance"""
-    global client
-    if client is None:
-        client = AsyncMongoClient(DATABASE_URL)
-    return client[DATABASE_NAME]
-
-async def close_database():
-    """Close database connection"""
-    global client
-    if client:
-        client.close()
-
-# Usage in repository
-async def get_user(user_id: str):
-    db = await get_database()
-    user = await db.users.find_one({"_id": user_id})
-    return user
-```
-  
-- [ ] Implement repository pattern
-  - Create `app/repositories/` directory
-  - **InstrumentRepository** (CRUD + caching logic for financial instruments)
-    - Handles instrument master data (WKN, ISIN, name, asset class, id_notations)
-    - Manages asset-class-specific extended data (StockDetails, WarrantDetails, etc.)
-    - Caching strategy for instrument data
-  - **UserRepository** (migrate from in-memory to DB)
-  - **DepotRepository** (user portfolios management)
-  - **QuoteRepository** (optional - for quote caching if needed)
+- [ ] Implement repository pattern *(partially done)*
+  - [x] `app/repositories/` directory created ✅
+  - [x] **InstrumentRepository** implemented ✅ (find_by_wkn, find_by_isin, caching)
+  - [ ] **UserRepository** — users still in-memory, not persisted to MongoDB
+  - [ ] **DepotRepository** — depots still in-memory, not persisted to MongoDB
+  - [ ] **QuoteRepository** (optional - for quote caching if needed)
   
 - [ ] Add database initialization script
+  - Index creation for performance (WKN, ISIN indexes on instruments collection)
   - Schema validation setup
-  - Index creation for performance
-  - Seed data for testing
 
 #### 1.3 Testing Foundation
 
@@ -149,51 +106,42 @@ async def get_user(user_id: str):
 
 #### 1.4 API & Software Versioning
 
-- [ ] Implement API route versioning
-  - Add version prefix to all routes (e.g., `/v1/instruments`, `/v1/quotes`)
-  - Create API version router structure in `app/api/v1/`
-  - Migrate existing routers to versioned structure
-  - Keep root `/` and `/docs` endpoints unversioned
+- [ ] Implement API route versioning *(partially done)*
+  - [x] `/v1/` prefix on `instruments`, `quotes`, `history`, `warrants`, `indices` ✅
+  - [ ] `/v1/` prefix still missing on `users` and `depots` routers
+  - [ ] Consider restructuring into `app/api/v1/` if versioning beyond v1 is needed
   
-- [ ] Add software release versioning
-  - Implement semantic versioning (MAJOR.MINOR.PATCH)
-  - Create `app/__version__.py` or `app/version.py` module
-  - Define version constant (e.g., `__version__ = "1.0.0"`)
-  - Version increments:
-    - MAJOR: Breaking API changes
-    - MINOR: New features, backward compatible
-    - PATCH: Bug fixes, backward compatible
+- [x] Add software release versioning *(partial)* ✅
+  - `app_version` field in `app/core/settings.py` (default `"0.1.0"`)
+  - Version exposed via `FastAPI(version=...)` in `main.py`
+  - [ ] No dedicated `app/version.py` module; version currently hardcoded in two places
   
-- [ ] Implement root welcome endpoint (`/`)
-  - Rename/migrate `/welcome` to root `/` endpoint
-  - Return application info and version details
-  - Response structure:
+- [ ] Improve root endpoint (`/`) *(partial)*
+  - [x] `GET /` endpoint exists in `app/routers/welcome.py` ✅
+  - [ ] Currently returns only `{"message": "Welcome, the app is live!"}` — upgrade to structured response:
+
     ```json
     {
       "application": "FinHub API",
-      "description": "Financial data aggregator using web scraping",
-      "version": "1.0.0",
+      "version": "0.1.0",
       "api_version": "v1",
       "data_sources": ["comdirect"],
-      "method": "web_scraping",
-      "docs": "/docs",
-      "timestamp": "2026-02-15T10:30:00Z"
+      "docs": "/docs"
     }
     ```
-  - Always returns 200 OK
-  - Quick reference for developers
-  - Shows transparency about scraping methodology
 
 - [ ] Implement liveness health endpoint (`/health`)
   - Fast health check without dependency validation
   - Used by Azure Container Apps liveness probe
   - Response structure:
+
     ```json
     {
       "status": "healthy",
       "timestamp": "2026-02-15T10:30:00Z"
     }
     ```
+
   - Returns 200 if application is running
   - Returns 503 if application cannot serve requests
   - Should respond in < 100ms
@@ -232,30 +180,88 @@ async def get_user(user_id: str):
 
 **Deliverables:**
 
-- All print() statements removed
-- MongoDB connected and configured
-- Repository layer implemented
-- Test infrastructure ready
-- API route versioning implemented (all routes under /v1/)
-- Software version tracking in place
-- Root endpoint (`/`) returns comprehensive application and version info
-- Health endpoints (`/health` and `/health/ready`) implemented
-- Azure Container Apps health probes configured
+- ✅ No print() statements — all modules use structured logger
+- ✅ MongoDB connected and configured (`app/core/database.py`, lifespan hooks)
+- ✅ `InstrumentRepository` implemented; UserRepository/DepotRepository still open
+- ✅ `/v1/` versioning on main data endpoints; `/users` and `/depots` still need it
+- ✅ `app_version` in settings and FastAPI metadata
+- [ ] Test infrastructure (unit/integration/e2e structure, pytest-asyncio)
+- [ ] DB initialization script (indexes, schema validation)
+- [ ] Root `/` structured response
+- [ ] Health endpoints (`/health`, `/health/ready`)
+- [ ] Docker image version tagging in CD pipeline
 
 ---
 
-### Phase 2: Security & Authentication (Week 3-4)
+### Phase 2: Complete Asset Class Support (Week 3-5)
 
-**Priority: HIGH - Required before production**
+**Priority: HIGH - Core business requirement**
 
-#### 2.1 Authentication Design Decision
+#### 2.1 Extend Data Models
+
+- [ ] Create asset-class-specific model extensions
+  - `StockDetails` model: market cap, sector, industry, dividend yield, P/E ratio, etc.
+  - `BondDetails` model: coupon rate, maturity date, credit rating, issuer, etc.
+  - `ETFDetails` model: expense ratio, tracking index, AUM, distribution policy, etc.
+  - `FondsDetails` model: fund type, manager, inception date, NAV, etc.
+  - `WarrantDetails` model: strike price, expiry, underlying, type (call/put)
+  - `CertificateDetails` model: certificate type, participation rate, cap, floor
+  - `IndexDetails` model: constituent count, weighting method, base value
+  - `CommodityDetails` model: commodity type, unit, contract specs
+  - `CurrencyDetails` model: currency pair, exchange rate source
+
+- [ ] Update `Instrument` model
+  - Add optional `details` field (discriminated union of all specific models)
+  - Ensure backward compatibility (field is optional/nullable)
+
+- [ ] Update database schema
+  - MongoDB stores `details` as embedded subdocument; verify `InstrumentRepository` handles it
+
+#### 2.2 Implement Asset-Class-Specific Parsers
+
+- [x] All 9 asset classes registered in plugin system ✅
+  - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
+  - `WarrantParser` — WARRANT
+  - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY
+- [ ] Extend parsers to extract **asset-class-specific fields** (currently only common fields extracted):
+  - Extend `StandardAssetParser` (or create subclasses) for StockDetails, BondDetails, ETFDetails, etc.
+  - Extend `WarrantParser` to extract WarrantDetails (strike, expiry, underlying, type)
+  - Extend `SpecialAssetParser` to extract IndexDetails, CommodityDetails, CurrencyDetails
+- [ ] Test all parsers with sample WKNs from `docs/BUSINESS_REQUIREMENTS.md`
+  - `test_bonds`, `test_etfs`, `test_commodities`, `test_currencies`, `test_warrants`, `test_indizes`
+
+#### 2.3 Update API Endpoints
+
+- [ ] Enhance `GET /v1/instruments/{wkn}` response to include asset-class-specific `details`
+- [ ] Add asset class filtering: `GET /v1/instruments?asset_class={asset_class}`
+
+#### 2.4 Remove Legacy Parsing Code ✅ COMPLETED
+
+- [x] All legacy functions removed from `app/parsers/instruments.py` ✅
+- [x] `quotes.py` uses shared `parsing_utils` functions ✅
+- [x] No legacy fallback path in plugin system ✅
+
+**Deliverables:**
+
+- ✅ All 9 asset classes supported by plugin system
+- [ ] Asset-class-specific data models defined and integrated into `Instrument`
+- [ ] Parsers extended to extract asset-class-specific fields
+- [ ] `GET /v1/instruments/{wkn}` returns full enriched data per asset class
+
+---
+
+### Phase 3: Security & Authentication (Week 6-7)
+
+**Priority: HIGH - Required before production / external users**
+
+#### 3.1 Authentication Design Decision
 
 - [ ] Choose authentication approach
   - **Option A**: FastAPI built-in security (OAuth2 + JWT)
   - **Option B**: Auth0 integration
   - **Recommendation**: Start with FastAPI OAuth2 for simplicity, migrate to Auth0 if needed
-  
-#### 2.2 Implement Authentication
+
+#### 3.2 Implement Authentication
 
 - [ ] Add security dependencies
   - `python-jose[cryptography]` for JWT
@@ -277,7 +283,7 @@ async def get_user(user_id: str):
   - JWT validation on protected routes
   - User context injection into requests
 
-#### 2.3 Authorization & Roles
+#### 3.3 Authorization & Roles
 
 - [ ] Define user role model
   - Roles: `admin`, `user`, `readonly`
@@ -291,7 +297,7 @@ async def get_user(user_id: str):
   - Authentication flow diagrams
   - Role permission matrix
 
-#### 2.4 Secure Existing Routes
+#### 3.4 Secure Existing Routes
 
 - [ ] Protect all API endpoints
   - Apply authentication to instruments, quotes, history routes
@@ -308,130 +314,6 @@ async def get_user(user_id: str):
 - User registration and login
 - All routes protected appropriately
 - Role-based access control
-
----
-
-### Phase 3: Complete Asset Class Support (Week 5-7)
-
-**Priority: HIGH - Core business requirement**
-
-#### 3.1 Extend Data Models
-
-- [ ] Create asset-class-specific model extensions
-  - `StockDetails` model with fields:
-    - Market cap, sector, industry, dividend yield, P/E ratio, etc.
-  - `BondDetails` model:
-    - Coupon rate, maturity date, credit rating, issuer, etc.
-  - `ETFDetails` model:
-    - Expense ratio, tracking index, AUM, distribution policy, etc.
-  - `FondsDetails` model:
-    - Fund type, manager, inception date, NAV, etc.
-  - `WarrantDetails` model (extend existing):
-    - Strike price, expiry, underlying, warrant type (call/put)
-  - `CertificateDetails` model:
-    - Certificate type, participation rate, cap, floor
-  - `IndexDetails` model:
-    - Constituent count, weighting method, base value
-  - `CommodityDetails` model:
-    - Commodity type, unit, contract specs
-  - `CurrencyDetails` model:
-    - Currency pair, exchange rate source
-  
-- [ ] Update Instrument model
-  - Add optional `details` field (Union of all specific models)
-  - Ensure backward compatibility
-  - Note: Currently named `BaseData`, will be renamed to `Instrument` in refactoring phase
-  
-- [ ] Update database schemas
-  - Ensure MongoDB can store extended models
-
-#### 3.2 Implement Missing Parsers
-
-- [ ] Create INDEX parser
-  - File: `app/parsers/plugins/index_parser.py`
-  - Extract index-specific data from comdirect
-  - Register in factory
-  
-- [ ] Create COMMODITY parser
-  - File: `app/parsers/plugins/commodity_parser.py`
-  - Extract commodity-specific data
-  - Register in factory
-  
-- [ ] Create CURRENCY parser
-  - File: `app/parsers/plugins/currency_parser.py`
-  - Extract currency pair data
-  - Register in factory
-  
-- [ ] Extend existing parsers
-  - Update StockParser to extract StockDetails
-  - Update WarrantParser to extract WarrantDetails
-  - Add parsers for BOND, ETF, FONDS, CERTIFICATE
-  
-- [ ] Test all parsers with sample data
-  - Use test data from BUSINESS_REQUIREMENTS.md:
-    - test_warrants, test_indizes, test_bonds, test_etfs, test_commodities, test_currencies
-
-#### 3.3 Update API Endpoints
-
-- [ ] Enhance `/v1/instruments/{wkn}` response
-  - Include asset-class-specific details in response
-  - Update response model to include details union type
-  
-- [ ] Add asset class filtering
-  - GET `/v1/instruments?asset_class={asset_class}`
-  
-- [ ] Add bulk operations (if needed)
-  - POST `/v1/instruments/bulk` for multiple instruments
-
-#### 3.4 Remove Legacy Parsing Code
-
-Once all 9 asset classes have been migrated to the plugin system, remove the legacy parsing infrastructure to simplify the codebase.
-
-- [ ] Remove legacy parsing functions from `app/parsers/instruments.py` (currently `basedata.py`)
-  - Delete `parse_name()` function (legacy)
-  - Delete `parse_wkn()` function (legacy)
-  - Delete `parse_isin()` function (legacy)
-  - Delete `parse_id_notations()` function (legacy)
-  - Delete `parse_preferred_notation_id_life_trading()` function
-  - Delete `parse_preferred_notation_id_exchange_trading()` function
-  - Delete `_parse_base_data_legacy()` function
-  - Remove legacy fallback logic from `parse_instrument_data()` function
-
-- [ ] Remove legacy constants from `app/core/constants.py`
-  - Delete `standard_asset_classes` list
-  - Delete `special_asset_classes` list
-  - Update `asset_classes` to use `AssetClass` enum directly
-
-- [ ] Update imports in dependent modules
-  - Remove legacy function imports from `app/parsers/quotes.py` (currently `pricedata.py`)
-  - Update any other modules importing legacy functions
-
-- [ ] Verify all asset classes work with plugin system
-  - Test each asset class with real instruments
-  - Confirm no regressions compared to legacy behavior
-  - Validate all fields are correctly extracted
-
-- [ ] Update documentation
-  - Remove references to legacy parsing in comments
-  - Update PLUGIN_SYSTEM_DOCUMENTATION.md if needed
-  - Add migration notes to DEVELOPMENT_ROADMAP.md
-
-**Benefits of removing legacy code:**
-
-- Simplified codebase (removes ~200+ lines of duplicate logic)
-- Single source of truth for parsing (plugin system only)
-- Easier to maintain and extend
-- Consistent behavior across all asset classes
-- No confusion about which parsing path is used
-
-**Deliverables:**
-
-- All 9 asset classes supported
-- Asset-class-specific data models
-- Complete parser plugin system
-- Updated API with extended data
-- Legacy parsing code completely removed
-- Cleaner, more maintainable codebase
 
 ---
 
@@ -760,19 +642,18 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 - Health endpoints (`/health` and `/health/ready`) implemented and tested
 - Azure Container Apps health probes configured
 
-### Phase 2 (Security)
+### Phase 2 (Asset Classes)
+
+- All 9 asset classes parseable
+- Asset-class-specific data models defined and integrated into `Instrument`
+- Parsers extended to extract asset-class-specific fields
+- `GET /v1/instruments/{wkn}` returns full enriched data per asset class
+
+### Phase 3 (Security)
 
 - All routes protected with authentication
 - JWT-based login/registration working
 - Role-based access control implemented
-
-### Phase 3 (Asset Classes)
-
-- All 9 asset classes parseable
-- Asset-class-specific data models created
-- Parser plugin system complete
-- Legacy parsing code removed
-- Single parsing architecture (plugin system only)
 
 ### Phase 4 (Testing)
 
@@ -813,10 +694,10 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 1. **Web Scraping Fragility**: Comdirect may change HTML structure
    - Mitigation: Comprehensive tests, monitoring for failures, abstraction layer
-   
+
 2. **Database Performance**: MongoDB performance at scale
    - Mitigation: Proper indexing, query optimization, load testing
-   
+
 3. **Authentication Complexity**: Security implementation errors
    - Mitigation: Use battle-tested libraries, security audit
 
@@ -824,7 +705,7 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 1. **Scope Creep**: Too many features at once
    - Mitigation: Phased approach, clear deliverables per phase
-   
+
 2. **Technical Debt**: Rushing implementation
    - Mitigation: Code reviews, test coverage requirements
 
@@ -906,24 +787,20 @@ scripts/
 
 **Phase 2:**
 
+- `app/models/stock_details.py`
+- `app/models/bond_details.py`
+- `app/models/etf_details.py`
+- [plus 6 more detail models]
+- `tests/unit/test_parsers.py`
+
+**Phase 3:**
+
 - `app/auth/__init__.py`
 - `app/auth/security.py`
 - `app/auth/models.py`
 - `app/routers/auth.py`
 - `tests/unit/test_auth.py`
 - `tests/integration/test_auth_flow.py`
-
-**Phase 3:**
-
-- `app/models/stock_details.py`
-- `app/models/bond_details.py`
-- `app/models/etf_details.py`
-- [plus 6 more detail models]
-- `app/parsers/plugins/index_parser.py`
-- `app/parsers/plugins/commodity_parser.py`
-- `app/parsers/plugins/currency_parser.py`
-- [plus parsers for bond, etf, fonds, certificate]
-- `tests/unit/test_parsers.py`
 
 **Phase 4:**
 

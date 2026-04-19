@@ -13,7 +13,7 @@ The API will be used to feed other software modules with all the data required f
 
 test_warrants = ['MA5GEG', 'MA59PF', 'MC9UZT', 'MA7QYE', 'MA9RMH', 'MA6P6Z', 'MA5UK0', 'MA4R9G', 'SF41HU', 'SF5RSR', \
                    'MA9RH9', 'BASF11', '906866', 'HAFX6Q', 'A0MW0M', 'A0YEDL', 'PH6USA', 'MC02EM']
-test_indizes = ['846900', '846741', '720327', '965338', "969420", '965814', 'A0AE1X', '969420', '965814', 'A0E4N1', 'A3DR38', 'GVEDAX', 'GVENDX', '171704', '171707']
+test_indizes = ['846900', '846741', '720327', '965338', "969420", '965814', 'A0AE1X', '969420', 'A0E4N1', 'A3DR38', 'GVEDAX', 'GVENDX', '171704', '171707']
 
 test_bonds = ['450900', 'A0AUXK', '353254', '128531', 'A0T6UH', 'A0BCJ2']
 

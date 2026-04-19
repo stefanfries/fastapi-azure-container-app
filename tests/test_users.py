@@ -15,7 +15,7 @@ def test_get_user_me() -> None:
         - The response JSON should match {"message": "Welcome USER to this fantastic app!"}.
     """
 
-    response = client.get("/users/me")
+    response = client.get("/v1/users/me")
     assert response.status_code == 200
     assert response.json() == {"message": "Welcome USER to this fantastic app!"}
 
@@ -32,7 +32,7 @@ def test_get_user() -> None:
     """
 
     user = "testuser"
-    response = client.get(f"/users/{user}")
+    response = client.get(f"/v1/users/{user}")
     assert response.status_code == 200
     assert response.json() == {"message": f"Welcome {user} to this fantastic app!"}
 
@@ -49,7 +49,7 @@ def test_get_user_with_special_characters() -> None:
     """
 
     user = "test_user_123"
-    response = client.get(f"/users/{user}")
+    response = client.get(f"/v1/users/{user}")
     assert response.status_code == 200
     assert response.json() == {"message": f"Welcome {user} to this fantastic app!"}
 
@@ -66,6 +66,6 @@ def test_get_user_with_spaces() -> None:
     """
 
     user = "test user"
-    response = client.get(f"/users/{user}")
+    response = client.get(f"/v1/users/{user}")
     assert response.status_code == 200
     assert response.json() == {"message": f"Welcome {user} to this fantastic app!"}

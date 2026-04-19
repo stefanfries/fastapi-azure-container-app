@@ -13,7 +13,7 @@ from fastapi import APIRouter
 
 from app.core.logging import logger
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/v1/users", tags=["users"])
 
 
 @router.get("/me")

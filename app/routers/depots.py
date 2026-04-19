@@ -22,7 +22,7 @@ from fastapi import APIRouter
 from app.core.logging import logger
 from app.models.depots import Depot
 
-router = APIRouter(prefix="/depots", tags=["depots"])
+router = APIRouter(prefix="/v1/depots", tags=["depots"])
 
 
 @router.get("/")

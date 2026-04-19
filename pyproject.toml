@@ -13,6 +13,7 @@ dependencies = [
     "pycountry>=24.6.1",
     "pydantic-extra-types>=2.11.0",
     "pydantic-settings>=2.13.0",
+    "pydantic[email]>=2.12.5",
     "pylint>=4.0.4",
     "pymongo>=4.16.0",
     "pytest>=9.0.2",

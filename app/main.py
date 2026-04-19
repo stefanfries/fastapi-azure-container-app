@@ -25,9 +25,9 @@ from app.routers import (
     indices,
     instruments,
     quotes,
+    root,
     users,
     warrants,
-    welcome,
 )
 
 
@@ -72,7 +72,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.middleware("http")(log_client_ip_middleware)
 
-app.include_router(welcome.router)
+app.include_router(root.router)
 app.include_router(health.router)
 app.include_router(users.router)
 app.include_router(instruments.router)

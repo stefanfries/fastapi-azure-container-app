@@ -88,7 +88,7 @@ async def close_database_connection() -> None:
     
     if _client:
         logger.info("Closing MongoDB connection...")
-        _client.close()
+        await _client.close()
         _client = None
         _database = None
         logger.info("MongoDB connection closed")

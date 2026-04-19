@@ -11,7 +11,7 @@ from app.core.settings import settings
 router = APIRouter()
 
 
-@router.get("/", tags=["welcome"])
+@router.get("/", tags=["root"])
 async def read_root():
     """Root endpoint — returns application metadata for API discovery."""
     logger.info("Root endpoint called")

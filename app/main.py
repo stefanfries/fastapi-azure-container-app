@@ -20,6 +20,7 @@ from app.core.logging import logger
 from app.middleware import log_client_ip_middleware
 from app.routers import (
     depots,
+    health,
     history,
     indices,
     instruments,
@@ -72,6 +73,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.middleware("http")(log_client_ip_middleware)
 
 app.include_router(welcome.router)
+app.include_router(health.router)
 app.include_router(users.router)
 app.include_router(instruments.router)
 app.include_router(quotes.router)

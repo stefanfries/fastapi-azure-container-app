@@ -1,7 +1,7 @@
 [project]
 name = "fastapi-azure-container-app"
 version = "0.1.0"
-description = "FastAPI application for financial data parsing and depot management, deployed on Azure Container Apps"
+description = "Financial data aggregation API providing unified access to instruments, quotes, historical prices, and depot data from comdirect, deployed on Azure Container Apps"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -16,6 +16,13 @@ dependencies = [
     "pylint>=4.0.4",
     "pymongo>=4.16.0",
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
     "uvicorn>=0.40.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing"

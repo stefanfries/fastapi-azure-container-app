@@ -14,7 +14,7 @@ from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     extract_after_label,
-    extract_from_h1,
+    extract_name_from_h1,
     extract_preferred_ex_notation,
     extract_preferred_lt_notation,
     extract_venues_from_dropdown,
@@ -36,7 +36,7 @@ class WarrantParser(InstrumentParser):
         
         For warrants, the name is in the H1 tag with "Optionsschein" removed.
         """
-        name = extract_from_h1(soup, remove_suffix="Optionsschein")
+        name = extract_name_from_h1(soup, remove_suffix="Optionsschein")
         if not name:
             raise ValueError("Could not find H1 headline")
         return name

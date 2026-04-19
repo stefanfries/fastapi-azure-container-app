@@ -1,36 +1,36 @@
 # Technical Requirements
 
-- clean and modulare architecture
-- factory patterns where appropriate to enable future extension for new asset classes, new data sources, etc.
-- get financial instrument information by scaping the comdirect web page using beautiful soup
-- structure parsers for instruments of different asset classes as plugin system
-- async code only based on httpx
-- strict data validation based o pydantic_v2
-- mongo_db as document database
-- strict unittests and integration test using pytest
-- deploy API to azure container app using github actions
+- Clean and modular architecture
+- Factory pattern for parsers to enable future extension for new asset classes and data sources
+- Scrape financial instrument data from comdirect using BeautifulSoup
+- Plugin system for all asset classes (fully implemented — see [PLUGIN_SYSTEM_DOCUMENTATION.md](PLUGIN_SYSTEM_DOCUMENTATION.md))
+- Async code only: httpx for HTTP, PyMongo `AsyncMongoClient` for database
+- Strict data validation with Pydantic v2
+- MongoDB Atlas as document database (via PyMongo native async — **do not use Motor**)
+- Unit and integration tests via pytest
+- Deploy to Azure Container Apps via GitHub Actions CI/CD
 
-# Current situation
+# Current State
 
-- requirements are partially fulfilled
-- a plugin system has been created but only for a limited number of asset classes (stocks and warrants)
-- need to complete the plugin system for theother asset classes
-- instrument model only contain the structure which is common to all asset classes but not the asset class specific data
-- parsers for asset class specific instrument data not implemented yet
-- no unittests and no integration tests existing
-- base logging structue exists but does not match best practices
-- still lots of print statements in the code
-- use role model does not exist
-- no decision how to implement authentication (develop on our own or use autrh0 for example)
-- routes are not protected / authenicated
-- 
+All original technical requirements are met. The following has been implemented:
 
-# Open questions
+- ✅ Plugin system covering all 9 asset classes (STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY)
+  - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
+  - `WarrantParser` — WARRANT (with id_notation refetch mechanism)
+  - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY (non-tradeable, no venues)
+- ✅ Shared parsing utilities in `parsing_utils.py` (used by all parsers and `quotes.py`)
+- ✅ All legacy parsing code removed from `instruments.py`; no fallback path exists
+- ✅ MongoDB Atlas integration using PyMongo `AsyncMongoClient`
+- ✅ FastAPI routers: welcome, instruments, quotes, history, depots, users, warrants, indices
+- ✅ Custom `JSONResponse` with UTF-8 charset for German umlauts
+- ✅ CI/CD via GitHub Actions (lint + tests on PR; build + push + deploy to Azure on main)
 
-- how to priorize all the oen tasks
-- how to generate a plan to further specify implementation details and prioritize implementation
-- what to do first?
-    - ensure code quality?
-    - refactor to align with pluginsystem to et rif of the legay code for backward compatibility?
-    - extend the instrument model to reflect asset class specific information?
-    - or what elso?
+# Open / Future Work
+
+- Authentication/Authorization not yet implemented (routes unprotected)
+- Asset-class-specific extended data models not yet implemented
+- Integration tests for parsers / scrapers not yet added
+- User role model (RBAC) not yet defined
+- API versioning (`/v1/`) not yet applied to routes
+- `print()` statements may still exist in older modules (should be replaced with `logger`)
+

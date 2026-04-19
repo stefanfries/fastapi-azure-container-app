@@ -9,7 +9,8 @@ from typing import Dict, Type
 
 from app.models.instruments import AssetClass
 from app.parsers.plugins.base_parser import InstrumentParser
-from app.parsers.plugins.stock_parser import StockParser
+from app.parsers.plugins.special_asset_parser import SpecialAssetParser
+from app.parsers.plugins.standard_asset_parser import StandardAssetParser
 from app.parsers.plugins.warrant_parser import WarrantParser
 
 
@@ -55,8 +56,8 @@ class ParserFactory:
         if parser_class is None:
             raise ValueError(f"No parser registered for asset class: {asset_class}")
         
-        # For StockParser, we need to pass the asset_class
-        if parser_class == StockParser:
+        # Parsers that require the asset_class constructor argument
+        if parser_class in (StandardAssetParser, SpecialAssetParser):
             return parser_class(asset_class)
         else:
             return parser_class()
@@ -76,15 +77,18 @@ class ParserFactory:
 
 
 # Register all parsers
-# Standard assets use the StockParser
-ParserFactory.register_parser(AssetClass.STOCK, StockParser)
-ParserFactory.register_parser(AssetClass.BOND, StockParser)
-ParserFactory.register_parser(AssetClass.ETF, StockParser)
-ParserFactory.register_parser(AssetClass.FONDS, StockParser)
-ParserFactory.register_parser(AssetClass.CERTIFICATE, StockParser)
+
+# Standard assets use the StandardAssetParser
+ParserFactory.register_parser(AssetClass.STOCK, StandardAssetParser)
+ParserFactory.register_parser(AssetClass.BOND, StandardAssetParser)
+ParserFactory.register_parser(AssetClass.ETF, StandardAssetParser)
+ParserFactory.register_parser(AssetClass.FONDS, StandardAssetParser)
+ParserFactory.register_parser(AssetClass.CERTIFICATE, StandardAssetParser)
+
+# Special (non-tradeable) asset classes — no venues or id_notations
+ParserFactory.register_parser(AssetClass.INDEX, SpecialAssetParser)
+ParserFactory.register_parser(AssetClass.COMMODITY, SpecialAssetParser)
+ParserFactory.register_parser(AssetClass.CURRENCY, SpecialAssetParser)
 
 # Warrant uses its own parser
 ParserFactory.register_parser(AssetClass.WARRANT, WarrantParser)
-
-# TODO: Add parsers for special asset classes (INDEX, COMMODITY, CURRENCY)
-# These would need their own parser implementations

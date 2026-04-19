@@ -3,43 +3,26 @@ Parser for instrument master data.
 
 Scrapes comdirect instrument detail pages to extract master data such as
 name, WKN, ISIN, asset class, trading venue notations, and global identifiers.
-Uses a plugin system for asset class-specific parsing; falls back to legacy
-parsing for asset classes without a registered plugin.
+Uses a plugin system for asset class-specific parsing.
 
 Functions:
-    valid_id_notation:                           Check whether an id_notation is valid for an instrument.
-    parse_asset_class:                           Extract the asset class from an HTTP response.
-    parse_default_id_notation:                   Extract the default id_notation from an HTTP response URL.
-    parse_name:                                  Extract the instrument name from a parsed HTML page.
-    parse_wkn:                                   Extract the WKN from a parsed HTML page.
-    parse_isin:                                  Extract the ISIN from a parsed HTML page.
-    parse_symbol:                                Extract the ticker symbol from a parsed HTML page.
-    parse_id_notations:                          Extract life-trading and exchange-trading id_notations.
-    parse_venues:                                Extract trading venues from a parsed HTML page.
-    parse_price_fixings:                         Extract price-fixing counts from a parsed HTML page.
-    parse_preferred_notation_id_life_trading:    Find the life-trading venue with the most price fixings.
-    parse_preferred_notation_id_exchange_trading: Find the exchange-trading venue with the most price fixings.
-    parse_instrument_data:                       Fetch and parse complete instrument master data (plugin-based).
-    _parse_instrument_data_legacy:               Legacy fallback parser for unregistered asset classes.
+    valid_id_notation:        Check whether an id_notation is valid for an instrument.
+    parse_asset_class:        Extract the asset class from an HTTP response.
+    parse_default_id_notation: Extract the default id_notation from an HTTP response URL.
+    parse_symbol:             Extract the ticker symbol from a parsed HTML page.
+    parse_instrument_data:    Fetch and parse complete instrument master data (plugin-based).
 """
 
 import re
 import urllib.parse
-from typing import Dict, List, Optional, Tuple
 
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
-from app.core.constants import (
-    asset_class_identifier_to_asset_class_map,
-    special_asset_classes,
-    standard_asset_classes,
-)
+from app.core.constants import asset_class_identifier_to_asset_class_map
 from app.core.logging import logger
-from app.models.instruments import AssetClass, Instrument, NotationType, VenueInfo
-from app.parsers.plugins.parsing_utils import infer_currency
-from app.scrapers.helper_functions import convert_to_int
+from app.models.instruments import AssetClass, Instrument
 from app.scrapers.scrape_url import fetch_one
 from app.services.identifier_enrichment import build_global_identifiers
 
@@ -98,73 +81,6 @@ def parse_default_id_notation(response: httpx.Response) -> str | None:
     return default_id_notation
 
 
-def parse_name(asset_class: AssetClass, soup: BeautifulSoup) -> str:
-    """
-    Extracts the name of the instrument from the given HTTP response.
-    Args:
-        response (httpx.Response): The HTTP response object from which to extract the name.
-    Returns:
-        str: The extracted name of the instrument.
-    """
-
-    headline_h1 = soup.select_one("h1")
-    name = headline_h1.text.replace(asset_class.comdirect_label, "").strip()
-    return name
-
-
-def parse_wkn(asset_class: AssetClass, soup: BeautifulSoup) -> str:
-    """
-    Extracts the WKN (Wertpapierkennnummer) from the given BeautifulSoup object based on the asset class.
-    Args:
-        asset_class (AssetClass): The class of the asset, which determines how the WKN is extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the WKN is to be extracted.
-    Returns:
-        str: The extracted WKN.
-    Raises:
-        ValueError: If the asset class is not supported.
-    """
-
-    headline_h2 = soup.select_one("h2")
-    if asset_class in standard_asset_classes:
-        wkn = headline_h2.text.strip().split()[1]
-        return wkn
-    if asset_class in special_asset_classes:
-        wkn = headline_h2.text.strip().split()[2]
-        return wkn
-    logger.error("Unsupported asset class %s", asset_class)
-    raise ValueError("Unsupported asset class")
-
-
-def parse_isin(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
-    """
-    Extracts the ISIN from the given BeautifulSoup object.
-    Args:
-        soup (BeautifulSoup): A BeautifulSoup object containing the HTML content.
-    Returns:
-        str: The ISIN as a string or None if not found.
-    """
-
-    headline_h2 = soup.select_one("h2")
-    if asset_class in standard_asset_classes:
-        if not headline_h2:
-            logger.warning("H2 element not found for asset class %s", asset_class)
-            return None
-        h2_text = headline_h2.text.strip()
-        logger.debug("H2 text for ISIN extraction: %s", h2_text)
-        h2_parts = h2_text.split()
-        logger.debug("H2 parts: %s", h2_parts)
-        if len(h2_parts) > 3:
-            isin = h2_parts[3]
-            return isin
-        else:
-            logger.warning("Not enough parts in H2 text to extract ISIN: %s", h2_parts)
-            return None
-    if asset_class in special_asset_classes:
-        return None
-    logger.error("Unsupported asset class %s", asset_class)
-    raise ValueError("Unsupported asset class")
-
-
 def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     """
     Extracts the symbol from the given BeautifulSoup object based on the asset class.
@@ -189,253 +105,40 @@ def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         return symbol
 
 
-def parse_id_notations(
-    asset_class: AssetClass, soup: BeautifulSoup
-) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
-    """
-    Extracts the notations from the given BeautifulSoup object based on the asset class.
-    Args:
-        asset_class (AssetClass): The class of the asset, which determines how the notations are extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the notations are to be extracted.
-    Returns:
-        list[str]: The extracted notations or None if notations not available.
-    Raises:
-        ValueError: If the asset class is not supported.
-    """
-
-    if asset_class not in standard_asset_classes:
-        return None, None
-
-    id_notations_dict = {}
-    id_notations_list = soup.select("#marketSelect option")
-
-    if len(id_notations_list) > 0:
-        # multible trading venues available, therefore list of 'option's found
-        for id_notation in id_notations_list:
-            id_notations_dict[id_notation.attrs["label"]] = id_notation.attrs["value"]
-    else:
-        # only one trading venue, no selection option available, therefore no 'option's and no 'id_notation's found
-        table_rows = soup.select("body div.grid.grid--no-gutter table.simple-table")[
-            0
-        ].select("tr")
-        # Originalzeile: name = table_rows[0].select("td")[1].text.strip()
-        name = table_rows[0].select("td")[0].text.strip()
-        notation_id = (
-            table_rows[-1]
-            .select_one("a")
-            .attrs["data-plugin"]
-            .split("ID_NOTATION%3D")[1]
-            .split("%26")[0]
-        )
-        id_notations_dict[name] = notation_id
-
-    # Extract Life Trading venues, add ID_Notation from Dictionary:
-    lt_venues = soup.find_all("td", {"data-label": "LiveTrading"})
-    lt_venue_dict: dict[str, VenueInfo] = {}
-    for v in lt_venues:
-        venue = v.text.strip()
-        if venue != "--":
-            lt_venue_dict[venue] = VenueInfo(
-                id_notation=id_notations_dict[venue],
-                currency=infer_currency(venue),
-            )
-
-    # Extract Exchange Trading venues, add ID_Notation from Dictionary:
-    ex_venues = soup.find_all("td", {"data-label": "Börse"})
-    ex_venue_dict: dict[str, VenueInfo] = {}
-    for v in ex_venues:
-        venue = v.text.strip()
-        if venue != "--":
-            ex_venue_dict[venue] = VenueInfo(
-                id_notation=id_notations_dict[venue],
-                currency=infer_currency(venue),
-            )
-
-    return lt_venue_dict, ex_venue_dict
-
-
-def parse_venues(notation_type: NotationType, soup: BeautifulSoup) -> List[str]:
-    """
-    Extracts the venues from the given BeautifulSoup object based on the notation type.
-    Args:
-        notation_type (NotationType): The type of the notation, which determines how the venues are extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the venues are to be extracted.
-    Returns:
-        list[str]: The extracted venues.
-    """
-    venues = [
-        venue.text.strip()
-        for venue in soup.find_all("td", {"data-label": f"{notation_type.value}"})
-        if venue.text.strip() != "--"
-    ]
-    return venues
-
-
-def parse_price_fixings(notation_type: NotationType, soup: BeautifulSoup) -> List[int]:
-    """
-    Extracts the number of price fixings from the given BeautifulSoup object based on the notation type.
-    Args:
-        notation_type (NotationType): The type of the notation, which determines how the price fixings are extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the price fixings are to be extracted.
-    Returns:
-        list[int]: The extracted number of price fixings.
-    """
-    data_label = (
-        "Gestellte Kurse"
-        if notation_type == NotationType.LIFE_TRADING
-        else "Anzahl Kurse"
-    )
-    price_fixings_list = [
-        convert_to_int(price_fixing.text.strip().replace(".", ""))
-        for price_fixing in soup.find_all("td", {"data-label": f"{data_label}"})
-        if price_fixing.text.strip() != "--"
-    ]
-
-    return price_fixings_list
-
-
-def parse_preferred_notation_id_life_trading(
-    asset_class: AssetClass, id_notations_dict: Dict[str, VenueInfo], soup: BeautifulSoup
-) -> str | None:
-    """Return the id_notation of the life-trading venue with the highest number of price fixings.
-
-    Returns ``None`` for asset classes that do not support life trading
-    (i.e. all classes outside *standard_asset_classes*).
-
-    Args:
-        asset_class:       The asset class of the instrument.
-        id_notations_dict: Mapping of trading-venue name to id_notation string.
-        soup:              Parsed HTML of the instrument's comdirect detail page.
-
-    Returns:
-        The id_notation string for the preferred life-trading venue, or ``None``
-        if the asset class does not support life trading or no venues are found.
-    """
-    if asset_class not in standard_asset_classes:
-        return None
-
-    # parse Life Trading venues:
-    venues_list = parse_venues(NotationType.LIFE_TRADING, soup)
-
-    # parse number of price fixings:
-    price_fixings_list = parse_price_fixings(NotationType.LIFE_TRADING, soup)
-
-    # create dictionary with venue as key and notation_id and price_fixings as values:
-    venue_dict = {
-        venue: {
-            "notation_id": id_notations_dict[venue].id_notation,
-            "price_fixings": price_fixing,
-        }
-        for venue, price_fixing in zip(venues_list, price_fixings_list)
-    }
-
-    # select and return trading venue with highes number of price setting:
-    if venue_dict:
-        top_venue = max(venue_dict.values(), key=lambda v: int(v["price_fixings"]))
-        notation_id = top_venue["notation_id"]
-    else:
-        notation_id = None
-
-    return notation_id
-
-
-def parse_preferred_notation_id_exchange_trading(
-    asset_class: AssetClass, id_notations_dict: Dict[str, VenueInfo], soup: BeautifulSoup
-) -> str | None:
-    """Return the id_notation of the exchange-trading venue with the highest number of price fixings.
-
-    Returns ``None`` for asset classes that do not support exchange trading
-    (i.e. all classes outside *standard_asset_classes*).
-
-    Args:
-        asset_class:       The asset class of the instrument.
-        id_notations_dict: Mapping of trading-venue name to id_notation string.
-        soup:              Parsed HTML of the instrument's comdirect detail page.
-
-    Returns:
-        The id_notation string for the preferred exchange-trading venue, or
-        ``None`` if the asset class does not support exchange trading or no
-        venues are found.
-    """
-    if asset_class not in standard_asset_classes:
-        return None
-
-    # extract Exchange Trading venues:
-    venues_list = parse_venues(NotationType.EXCH_TRADING, soup)
-
-    # extract number of price fixings:
-    price_fixings_list = parse_price_fixings(NotationType.EXCH_TRADING, soup)
-
-    # create dictionary with venue as key and notation_id and price_fixings as values:
-    venue_dict = {
-        venue: {
-            "notation_id": id_notations_dict[venue].id_notation,
-            "price_fixings": price_fixing,
-        }
-        for venue, price_fixing in zip(venues_list, price_fixings_list)
-    }
-
-    # select and return trading venue with highes number of price setting:
-    if venue_dict:
-        top_venue = max(venue_dict.values(), key=lambda v: int(v["price_fixings"]))
-        notation_id = top_venue["notation_id"]
-    else:
-        notation_id = None
-
-    return notation_id
-
-
 async def parse_instrument_data(instrument: str) -> Instrument:
     """
     Fetches and parses the instrument master data for a given instrument using the plugin system.
-    
-    This function uses a plugin-based architecture where each asset class has its own
-    parser implementation. This allows for flexible handling of different HTML structures
-    across asset classes.
-    
+
     Args:
         instrument: The ID of the instrument to fetch data for (WKN, ISIN, etc.)
-        
+
     Returns:
         Instrument: An object containing the master data of the instrument.
-        
+
     Raises:
         HTTPException: If the request to fetch the instrument data fails.
-        ValueError: If the instrument type or ID cannot be extracted from the response,
-                   or if no parser is available for the asset class.
+        ValueError: If the instrument type or ID cannot be extracted from the response.
     """
     from app.parsers.plugins.factory import ParserFactory
-    
-    # First fetch to determine asset class and get initial data
+
     response = await fetch_one(instrument)
     soup = BeautifulSoup(response.content, "html.parser")
     asset_class = parse_asset_class(response)
-    
-    # Get the appropriate parser for this asset class
-    if not ParserFactory.is_registered(asset_class):
-        # Fall back to legacy parsing for unregistered asset classes
-        logger.warning(
-            "No parser plugin registered for %s, falling back to legacy parsing",
-            asset_class
-        )
-        return await _parse_instrument_data_legacy(instrument, response, soup, asset_class)
-    
+
     parser = ParserFactory.get_parser(asset_class)
-    
-    # Extract the ID_NOTATION comdirect appended to the redirect URL
+
     default_id_notation = parse_default_id_notation(response)
-    
-    # Parse all fields using the plugin
+
     name = parser.parse_name(soup)
     wkn = parser.parse_wkn(soup)
     isin = parser.parse_isin(soup)
-    symbol = parse_symbol(asset_class, soup)  # Still using legacy for symbol
-    
+    symbol = parse_symbol(asset_class, soup)
+
     (
-        id_notations_life_trading, 
+        id_notations_life_trading,
         id_notations_exchange_trading,
         preferred_id_notation_life_trading,
-        preferred_id_notation_exchange_trading
+        preferred_id_notation_exchange_trading,
     ) = parser.parse_id_notations(soup, default_id_notation)
 
     global_identifiers = await build_global_identifiers(
@@ -444,7 +147,7 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         symbol_comdirect=symbol,
         asset_class=asset_class,
     )
-    
+
     instrument_data = Instrument(
         name=name,
         wkn=wkn,
@@ -456,54 +159,5 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
         global_identifiers=global_identifiers,
-    )
-    return instrument_data
-
-
-async def _parse_instrument_data_legacy(
-    instrument: str, 
-    response: httpx.Response, 
-    soup: BeautifulSoup, 
-    asset_class: AssetClass
-) -> Instrument:
-    """
-    Legacy parsing function for asset classes without plugin support.
-    
-    This maintains backward compatibility for asset classes that haven't been
-    migrated to the plugin system yet.
-    """
-    default_id_notation = parse_default_id_notation(response)
-    name = parse_name(asset_class, soup)
-    wkn = parse_wkn(asset_class, soup)
-    isin = parse_isin(asset_class, soup)
-    symbol = parse_symbol(asset_class, soup)
-    id_notations_life_trading, id_notations_exchange_trading = parse_id_notations(
-        asset_class, soup
-    )
-    preferred_id_notation_life_trading = parse_preferred_notation_id_life_trading(
-        asset_class, id_notations_life_trading, soup
-    )
-    preferred_id_notation_exchange_trading = (
-        parse_preferred_notation_id_exchange_trading(
-            asset_class, id_notations_exchange_trading, soup
-        )
-    )
-    global_identifiers = await build_global_identifiers(
-        isin=isin,
-        wkn=wkn,
-        symbol_comdirect=symbol,
-        asset_class=asset_class,
-    )
-    instrument_data = Instrument(
-        name=name,
-        wkn=wkn,
-        isin=isin,
-        global_identifiers=global_identifiers,
-        asset_class=asset_class,
-        id_notations_life_trading=id_notations_life_trading,
-        id_notations_exchange_trading=id_notations_exchange_trading,
-        preferred_id_notation_life_trading=preferred_id_notation_life_trading,
-        preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
-        default_id_notation=default_id_notation,
     )
     return instrument_data

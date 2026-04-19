@@ -149,7 +149,7 @@ def extract_after_label(soup: BeautifulSoup, label: str, max_length: Optional[in
     return value
 
 
-def extract_from_h1(soup: BeautifulSoup, remove_suffix: Optional[str] = None) -> Optional[str]:
+def extract_name_from_h1(soup: BeautifulSoup, remove_suffix: Optional[str] = None) -> Optional[str]:
     """
     Extract text from H1 element, optionally removing a suffix.
     
@@ -162,16 +162,22 @@ def extract_from_h1(soup: BeautifulSoup, remove_suffix: Optional[str] = None) ->
         
     Example:
         H1 text: "NVIDIA Aktie"
-        extract_from_h1(soup, "Aktie") -> "NVIDIA"
+        extract_name_from_h1(soup, "Aktie") -> "NVIDIA"
     """
     headline_h1 = soup.select_one("h1")
     if not headline_h1:
         return None
-    
-    text = headline_h1.text.strip()
+
+    # Remove all <span> children before reading text — spans on comdirect
+    # H1 elements contain a repeated asset-class suffix (e.g. "Euro-Anleihe")
+    # that is already present in the main H1 text and must not be doubled.
+    for span in headline_h1.find_all("span"):
+        span.decompose()
+
+    text = headline_h1.get_text(separator=" ", strip=True)
     
     if remove_suffix:
-        text = text.replace(remove_suffix, "").strip()
+        text = text.removesuffix(remove_suffix).strip()
     
     return text
 

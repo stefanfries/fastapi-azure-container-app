@@ -14,9 +14,11 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 
+from app.core.constants import special_asset_classes
 from app.models.instruments import AssetClass
 from app.models.quotes import Quote
-from app.parsers.instruments import parse_instrument_data, parse_name, parse_wkn
+from app.parsers.instruments import parse_instrument_data
+from app.parsers.plugins.parsing_utils import extract_name_from_h1, extract_wkn_from_h2
 from app.parsers.utils import check_valid_id_notation
 from app.scrapers.scrape_url import fetch_one
 
@@ -66,10 +68,11 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
     currency = soup.find_all("meta", itemprop="priceCurrency")[0]["content"]
 
     # extract name from soup object
-    name = parse_name(instrument_data.asset_class, soup)
+    name = extract_name_from_h1(soup, remove_suffix=instrument_data.asset_class.comdirect_label)
 
     # extract WKN from soup object
-    wkn = parse_wkn(instrument_data.asset_class, soup)
+    wkn_position = 2 if instrument_data.asset_class in special_asset_classes else 1
+    wkn = extract_wkn_from_h2(soup, position_offset=wkn_position)
 
     # extract Table "Kursdaten" from soup object
     table = soup.find("h2", text=re.compile("Kursdaten")).parent.find("table")

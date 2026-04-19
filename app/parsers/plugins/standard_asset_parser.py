@@ -15,7 +15,7 @@ from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     extract_after_label,
-    extract_from_h1,
+    extract_name_from_h1,
     extract_preferred_ex_notation,
     extract_preferred_lt_notation,
     extract_venue_from_single_table,
@@ -24,7 +24,7 @@ from app.parsers.plugins.parsing_utils import (
 )
 
 
-class StockParser(InstrumentParser):
+class StandardAssetParser(InstrumentParser):
     """Parser for STOCK, BOND, ETF, FUND, and CERTIFICATE asset classes."""
     
     def __init__(self, asset_class: AssetClass):
@@ -48,7 +48,7 @@ class StockParser(InstrumentParser):
         For standard assets, the name is in the H1 tag with the asset class
         name removed.
         """
-        name = extract_from_h1(soup, remove_suffix=self.asset_class.comdirect_label)
+        name = extract_name_from_h1(soup, remove_suffix=self.asset_class.comdirect_label)
         if not name:
             raise ValueError("Could not find H1 headline")
         return name

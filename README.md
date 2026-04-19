@@ -8,10 +8,11 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 ## 🚀 Features
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
-- **Plugin-Based Parser System**: Extensible architecture for data parsing
+- **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
+- **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser
+- **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
 - **CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
-- **Health Check Endpoint**: Monitoring and availability verification
 - **Docker Support**: Containerized application for consistent deployments
 
 ## 📋 Quick Start
@@ -28,39 +29,26 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 2. **Create and activate virtual environment**:
 
    ```bash
-   python -m venv .venv
-   ./.venv/Scripts/activate  # Windows
-   source .venv/bin/activate  # Linux/Mac
+   uv sync
    ```
 
-3. **Install dependencies**:
+3. **Run the application**:
 
    ```bash
-   pip install -r requirements.txt
+   uv run uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
    ```
 
-4. **Run the application**:
-
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
-   ```
-
-5. **Access the API**:
+4. **Access the API**:
    - Application: <http://localhost:8080>
    - API Documentation: <http://localhost:8080/docs>
    - Alternative docs: <http://localhost:8080/redoc>
 
-### Using Make Commands
+### Using Make / PowerShell Commands
 
 ```bash
 # Install dependencies
-make install
-
-# Format code
-make format
-
-# Lint code
-make lint
+make install   # Linux/Mac
+.\make.ps1 install   # Windows
 
 # Run tests with coverage
 make test
@@ -138,30 +126,29 @@ pytest tests/test_main.py
 
 ```text
 fastapi-azure-container-app/
-├── app/                      # Application source code
-│   ├── core/                 # Core functionality (constants, config)
-│   ├── crud/                 # Database operations
-│   ├── models/               # Data models
+├── app/
+│   ├── clients/              # External API clients (e.g. OpenFIGI)
+│   ├── core/                 # Settings, database connection, constants, logging
+│   ├── models/               # Pydantic response models
 │   ├── parsers/              # Data parsing logic
-│   │   └── plugins/          # Plugin-based parser system
+│   │   └── plugins/          # Plugin parsers (StandardAsset, Warrant, SpecialAsset)
+│   ├── repositories/         # Database access layer
 │   ├── routers/              # API route handlers
-│   ├── scrapers/             # Web scraping utilities
-│   ├── static/               # Static files
-│   ├── main.py               # Application entry point
-│   ├── middleware.py         # Custom middleware
-│   └── logging_config.py     # Logging configuration
+│   ├── scrapers/             # Web scraping utilities (httpx + BeautifulSoup)
+│   ├── services/             # Business logic services
+│   ├── main.py               # Application entry point + lifespan hooks
+│   └── middleware.py         # Client IP logging middleware
 ├── tests/                    # Test suite
 ├── docs/                     # Documentation
-│   └── DEPLOYMENT.md         # Deployment guide
-├── scripts/                  # Deployment and utility scripts
-│   └── deploy-to-azure.ps1   # Azure deployment script
-├── .github/workflows/        # CI/CD pipelines
-│   ├── ci-quality.yml        # Code quality checks
-│   └── cd-deploy.yml         # Build and deploy
-├── Dockerfile                # Docker configuration
-├── requirements.txt          # Python dependencies
-├── Makefile                  # Development commands
-└── README.md                 # This file
+├── scripts/                  # Utility and deployment scripts
+│   └── deploy-to-azure.ps1   # Manual Azure deployment script
+├── .github/workflows/
+│   ├── ci-quality.yml        # Lint + tests on pull requests
+│   └── cd-deploy.yml         # Build → push → deploy to Azure on main
+├── Dockerfile
+├── pyproject.toml            # Dependencies managed with uv
+├── Makefile / make.ps1       # Development commands
+└── README.md
 ```
 
 ## 🔧 Configuration
@@ -188,9 +175,11 @@ DOCKER_OWNER=your-github-username
 
 ## 📚 Documentation
 
-- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Comprehensive deployment guide
-- **[PLUGIN_SYSTEM_DOCUMENTATION.md](PLUGIN_SYSTEM_DOCUMENTATION.md)** - Plugin architecture
-- **[QUICK_START_NEW_PARSER.md](QUICK_START_NEW_PARSER.md)** - Adding new parsers
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Deployment guide
+- **[docs/PLUGIN_SYSTEM_DOCUMENTATION.md](docs/PLUGIN_SYSTEM_DOCUMENTATION.md)** - Plugin architecture (all 9 asset classes)
+- **[docs/QUICK_START_NEW_PARSER.md](docs/QUICK_START_NEW_PARSER.md)** - Adding new parsers
+- **[docs/TECHNICAL_REQUIREMENTS.md](docs/TECHNICAL_REQUIREMENTS.md)** - Technical requirements and current state
+- **[docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md)** - Prioritized development plan
 
 ## 🔐 Security
 

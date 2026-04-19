@@ -10,169 +10,52 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ✅ Completed Components
 
-- FastAPI application structure with routers (welcome, users, instruments, depots, quotes, history)
-- Plugin-based parser system architecture (factory pattern)
-- Parsers for STOCK and WARRANT asset classes
+- FastAPI application structure with routers (welcome, users, instruments, quotes, history, depots, warrants, indices)
+- Plugin-based parser system — **all 9 asset classes fully covered** (no legacy fallback):
+  - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
+  - `WarrantParser` — WARRANT (id_notation refetch mechanism)
+  - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY (non-tradeable, no venues)
+- Shared parsing utilities in `parsing_utils.py` used by all parsers and `quotes.py`
+- All legacy parsing code removed from `instruments.py`
 - Web scraping infrastructure (httpx + BeautifulSoup)
-- Basic data models (Instrument, User, Depot, History, Quote)
+- Data models (Instrument, User, Depot, History, Quote)
 - CRUD operations for users, depots, and instruments
+- MongoDB Atlas integration using PyMongo `AsyncMongoClient`
 - Docker containerization
 - CI/CD pipeline with GitHub Actions (quality checks + Azure deployment)
-- Basic logging configuration
+- Logging configuration
 - ID notation system for trading venues
+- API terminology aligned with financial domain (instruments, quotes, history)
 
 ### ⚠️ Partially Completed
 
-- **Plugin System**: Only 2 of 9 asset classes have parsers (STOCK, WARRANT)
-- **Data Models**: Instrument model only contains common attributes, no asset-class-specific fields
-- **Testing**: Only 3 basic tests (test_main.py, test_users.py, test_welcome.py)
-- **Logging**: Configuration exists but print() statements still used in code
-- **Error Handling**: Basic middleware exists, needs enhancement
-- **API Documentation**: Auto-generated OpenAPI only, no detailed endpoint docs
+- **Data Models**: Instrument model contains only common attributes; no asset-class-specific extended fields
+- **Testing**: Basic tests (test_main.py, test_users.py, test_welcome.py); no parser/scraper integration tests
+- **Logging**: Configuration exists but some `print()` statements may remain in older modules
+- **Error Handling**: Basic middleware exists, could be enhanced
+- **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
 ### ❌ Missing Components
 
-- **MongoDB Integration**: No database driver or connection code (despite technical requirements)
 - **Authentication/Authorization**: No implementation (routes unprotected)
-- **Data Persistence**: No repository layer for instruments/quotes caching
-- **Asset-Class-Specific Models**: Missing extended models for each asset class
-- **Parsers for Special Asset Classes**: INDEX, COMMODITY, CURRENCY not implemented
+- **Asset-Class-Specific Models**: Extended models per asset class not yet defined
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
 - **User Role Model**: No RBAC or role definitions
-- **API Versioning**: No route versioning (e.g., /v1/, /v2/) implemented
+- **API Versioning**: Route versioning (`/v1/`) not yet applied to routes
 - **Software Release Versioning**: No semantic versioning or version endpoint
-- **API Terminology**: Current endpoints use technical names (basedata, pricedata) instead of financial domain terms (instruments, quotes)
 
 ---
 
 ## Prioritized Development Plan
 
-### Phase 0: API Terminology Refactoring (Week 0 - Before Starting Phase 1)
+### Phase 0: API Terminology Refactoring ✅ COMPLETED
 
-**Priority: CRITICAL - Foundation for all future development**
-
-**Rationale**: The current API uses technical implementation names (`basedata`, `pricedata`) instead of standard financial industry terminology. Refactoring now prevents technical debt accumulation and ensures the API speaks the financial domain language correctly.
-
-#### 0.1 Financial Domain Terminology
-
-**Industry Standard Terms:**
-- **Instrument** = Any tradeable financial asset (stocks, bonds, ETFs, warrants, commodities, currencies, indices)
-- **Quote** = Current market price data (bid/ask prices, timestamp, volume)
-- **History/OHLC** = Historical price data (Open, High, Low, Close, Volume over time)
-
-**Why NOT "Equity"?** Equity only refers to stocks/shares. Since this API supports 9 asset classes, "instrument" is the correct, broader term.
-
-**Industry References:**
-- Bloomberg API: `/instruments`, `/quotes`, `/historical-data`
-- Alpha Vantage: `/quote`, `/time-series`
-- IEX Cloud: `/stock`, `/quote`, `/chart`
-
-#### 0.2 Refactoring Plan
-
-**Target API Structure:**
-```
-/                                    # Application info (existing /welcome)
-/health                              # Liveness probe
-/health/ready                        # Readiness probe
-/docs                                # OpenAPI documentation
-
-/v1/instruments/{wkn}                # Instrument master data (was /basedata/{wkn})
-/v1/instruments/{wkn}/quote          # Current quote (was /pricedata/{wkn})
-/v1/instruments/{wkn}/history        # Historical OHLC (was /history/{wkn})
-/v1/instruments?asset_class=STOCK    # Filter instruments
-
-/v1/auth/register                    # User registration
-/v1/auth/login                       # User login
-/v1/auth/me                          # Current user
-
-/v1/depots                           # User portfolios (existing)
-/v1/depots/{depot_id}                # Depot details
-```
-
-#### 0.3 File Renaming Checklist
-
-- [ ] **Models**
-  - Rename `app/models/basedata.py` → `app/models/instruments.py`
-  - Rename class `BaseData` → `Instrument` within the file
-  - Rename `app/models/pricedata.py` → `app/models/quotes.py`
-  - Rename class `PriceData` → `Quote` within the file
-  - Update all imports across the codebase
-
-- [ ] **Parsers**
-  - Rename `app/parsers/basedata.py` → `app/parsers/instruments.py`
-  - Rename function `parse_base_data()` → `parse_instrument_data()`
-  - Rename `app/parsers/pricedata.py` → `app/parsers/quotes.py`
-  - Rename function `parse_price_data()` → `parse_quote()`
-  - Update all parser plugin references
-
-- [ ] **Routers**
-  - Rename `app/routers/basedata.py` → `app/routers/instruments.py`
-  - Update router prefix: `@router = APIRouter(prefix="/v1/instruments")`
-  - Rename `app/routers/pricedata.py` → `app/routers/quotes.py`
-  - Update router prefix: `@router = APIRouter(prefix="/v1/quotes")`
-  - Alternative: Keep quotes nested under instruments (`/v1/instruments/{wkn}/quote`)
-  - Update `app/routers/welcome.py` → integrate into root `/` endpoint
-  - Update `app/routers/history.py` to nest under instruments if desired
-
-- [ ] **CRUD Operations**
-  - Rename `app/crud/instruments.py` (currently empty, will handle instrument CRUD)
-  - Update function names: any references to "basedata" → "instrument"
-  - Update function names: any references to "pricedata" → "quote"
-
-- [ ] **Update main.py**
-  - Update router includes with new import paths
-  - Update API version tags in OpenAPI metadata
-
-- [ ] **Update Tests**
-  - Rename test files to match new naming
-  - Update import statements
-  - Update API endpoint paths in integration tests
-
-- [ ] **Update Documentation**
-  - Update all `.md` files in `docs/` with new terminology
-  - Update code comments with correct terminology
-  - Update OpenAPI descriptions
-
-#### 0.4 Migration Strategy
-
-**Option A: Big Bang Refactoring (Recommended)**
-
-- Complete all renaming in one PR
-- Ensures consistency immediately
-- Easier to track changes
-- Minimizes confusion
-- **Estimated time: 2-4 hours**
-
-**Option B: Gradual Migration**
-
-- Support both old and new endpoints temporarily
-- Add deprecation warnings to old endpoints
-- Migrate over multiple PRs
-- More complex, higher maintenance burden
-- **Not recommended** for this stage (no production users yet)
-
-#### 0.5 Validation Checklist
-
-After refactoring, verify:
-
-- [ ] All tests pass
-- [ ] No broken imports
-- [ ] OpenAPI docs reflect new endpoint names
-- [ ] Docker build succeeds
-- [ ] All endpoints accessible at new paths
-- [ ] No references to old terminology in code or docs
-
-**Deliverables:**
-
-- Codebase uses financial domain terminology throughout
-- API endpoints follow industry standards
-- Models, parsers, and routers renamed consistently
-- Documentation updated
-- All tests passing
-- Clean foundation for Phase 1 work
+All renaming from legacy `basedata`/`pricedata` terminology to financial domain terminology (`instruments`, `quotes`) has been completed. The plugin system now covers all 9 asset classes.
 
 ---
+
+### Phase 1: Foundation & Code Quality (Week 1-2)
 
 ### Phase 1: Foundation & Code Quality (Week 1-2)
 
@@ -183,9 +66,6 @@ After refactoring, verify:
 - [ ] Replace all `print()` statements with `logger` calls
   - Files affected: `app/scrapers/scrape_url.py`, `app/parsers/history.py`, `app/parsers/quotes.py`
   - Quality impact: Consistent logging across application
-  
-- [ ] Remove legacy backward compatibility code (if any identified)
-  - Review parser plugins for deprecated patterns
   
 - [ ] Add comprehensive logging to all modules
   - Ensure all functions log entry/exit for debugging

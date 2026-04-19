@@ -4,16 +4,16 @@ The objective of this project is to develop an API which is able to fetch variou
 
 The API will be used to feed other software modules with all the data required for financial analysis. To do so the most important endpoints to be developed are:
 
- - /instruments: returns base information of a financial instruments which are ficed and do not change over time. Examples are instrument name (perhaps short and long name), WKN, ISIN, Symbol, asset class (incl subclass if available), trading venues and internal trading venue id´s.
- - instruments should be persisted to reduce scraping of the comdirect webpage to a minimum
- - /quotes: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, timestamp, asset class
- - /history: returns historic financial data (open, high, low, close, volume) for a given instrument at a given trading venue for a given time period in given intervals
+- /instruments: returns base information of a financial instruments which are ficed and do not change over time. Examples are instrument name (perhaps short and long name), WKN, ISIN, Symbol, asset class (incl subclass if available), trading venues and internal trading venue id´s.
+- instruments should be persisted to reduce scraping of the comdirect webpage to a minimum
+- /quotes: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, timestamp, asset class
+- /history: returns historic financial data (open, high, low, close, volume) for a given instrument at a given trading venue for a given time period in given intervals
 
  The API supports all major asset classes like stocks, warants, fonds, etfs, certificates, bonds, indices, commodities, and currencies.
 
 test_warrants = ['MA5GEG', 'MA59PF', 'MC9UZT', 'MA7QYE', 'MA9RMH', 'MA6P6Z', 'MA5UK0', 'MA4R9G', 'SF41HU', 'SF5RSR', \
                    'MA9RH9', 'BASF11', '906866', 'HAFX6Q', 'A0MW0M', 'A0YEDL', 'PH6USA', 'MC02EM']
-test_indizes = ['846900', '846741', '720327', '965338', '965814', 'A0AE1X', '969420', '965814']
+test_indizes = ['846900', '846741', '720327', '965338', "969420", '965814', 'A0AE1X', '969420', '965814', 'A0E4N1', 'A3DR38', 'GVEDAX', 'GVENDX', '171704', '171707']
 
 test_bonds = ['450900', 'A0AUXK', '353254', '128531', 'A0T6UH', 'A0BCJ2']
 

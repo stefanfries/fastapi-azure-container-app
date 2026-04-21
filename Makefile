@@ -15,15 +15,16 @@ install: ## Install Python dependencies
 	uv sync
 
 format: ## Format code with black
-	black $(APP_DIR) $(TEST_DIR)
+	uv run black $(APP_DIR) $(TEST_DIR)
 
 lint: ## Run pylint checks
-	pylint --disable=R,C $(APP_DIR) $(TEST_DIR)
+	uv run pylint --disable=R,C $(APP_DIR) $(TEST_DIR)
 
 test: ## Run tests with coverage
-	python -m pytest --verbose --cov=app tests/
+	uv run pytest --verbose --cov=app tests/
 
-check: format lint test ## Run format, lint, and tests
+check: lint test ## Run format check, lint, and tests
+	uv run black --check $(APP_DIR) $(TEST_DIR)
 
 run-local: ## Run FastAPI app locally
 	uvicorn app.main:app --reload --host 0.0.0.0 --port 8080

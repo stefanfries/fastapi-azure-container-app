@@ -10,7 +10,7 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ✅ Completed Components
 
-- FastAPI application structure with routers (root, users, instruments, quotes, history, depots, warrants, indices, health)
+- FastAPI application structure with routers (root, instruments, quotes, history, depots, warrants, indices, health)
 - Plugin-based parser system — **all 9 asset classes fully covered** (no legacy fallback):
   - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
   - `WarrantParser` — WARRANT (id_notation refetch mechanism)
@@ -18,20 +18,22 @@ Based on a comprehensive review of the codebase against business and technical r
 - Shared parsing utilities in `parsing_utils.py` used by all parsers and `quotes.py`
 - All legacy parsing code removed from `instruments.py`
 - Web scraping infrastructure (httpx + BeautifulSoup)
-- Data models (Instrument, User, Depot, History, Quote)
-- CRUD operations for users, depots, and instruments
+- Data models (Instrument, Depot, History, Quote)
+- CRUD operations for depots and instruments
 - MongoDB Atlas integration using PyMongo `AsyncMongoClient`
 - Docker containerization
 - CI/CD pipeline with GitHub Actions (quality checks + Azure deployment)
 - Logging configuration
 - ID notation system for trading venues
 - API terminology aligned with financial domain (instruments, quotes, history)
-- Repository pattern implemented for all entities (`InstrumentRepository`, `UserRepository`, `DepotRepository`)
-- All API routes versioned under `/v1/` (instruments, quotes, history, warrants, indices, users, depots)
+- Repository pattern implemented for data entities (`InstrumentRepository`, `DepotRepository`)
+- All API routes versioned under `/v1/` (instruments, quotes, history, warrants, indices, depots)
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 28 unit tests passing; coverage reporting enabled
+- 26 unit tests passing; coverage reporting enabled (~45%)
+- `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
+- Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
@@ -42,11 +44,11 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ❌ Missing Components
 
-- **Authentication/Authorization**: No implementation (routes unprotected)
+- **Authentication**: API key protection implemented (`app/core/security.py`); user management intentionally excluded — belongs in consuming application
 - **Asset-Class-Specific Models**: Extended models per asset class not yet defined
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
-- **User Role Model**: No RBAC or role definitions
+- **User Role Model**: Intentionally not implemented — user management belongs in consuming application
 - **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
 - **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
 
@@ -85,8 +87,8 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 - [x] Implement repository pattern ✅
   - [x] `app/repositories/` directory created ✅
   - [x] **InstrumentRepository** implemented ✅ (find_by_wkn, find_by_isin, caching)
-  - [x] **UserRepository** implemented ✅ (find_by_username, find_by_email, create, update, delete)
   - [x] **DepotRepository** implemented ✅ (find_all, find_by_id, create, update, delete)
+  - ~~UserRepository~~ — removed; user management belongs in the consuming application
   - [ ] **QuoteRepository** (optional - for quote caching if needed)
   
 - [ ] Add database initialization script
@@ -112,7 +114,7 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 #### 1.4 API & Software Versioning
 
 - [x] Implement API route versioning ✅
-  - [x] `/v1/` prefix on all data routers: `instruments`, `quotes`, `history`, `warrants`, `indices`, `users`, `depots` ✅
+  - [x] `/v1/` prefix on all data routers: `instruments`, `quotes`, `history`, `warrants`, `indices`, `depots` ✅
   - [ ] Consider restructuring into `app/api/v1/` if versioning beyond v1 is needed
   
 - [x] Add software release versioning ✅
@@ -156,13 +158,15 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 - ✅ No print() statements — all modules use structured logger
 - ✅ MongoDB connected and configured (`app/core/database.py`, lifespan hooks)
-- ✅ All repositories implemented: `InstrumentRepository`, `UserRepository`, `DepotRepository`
-- ✅ All routes under `/v1/` (instruments, quotes, history, warrants, indices, users, depots)
+- ✅ Repositories implemented: `InstrumentRepository`, `DepotRepository`
+- ✅ All routes under `/v1/` (instruments, quotes, history, warrants, indices, depots)
+- ✅ API key protection on all data endpoints (`app/core/security.py`, `X-API-Key` header)
 - ✅ `app_version` in settings and FastAPI metadata
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 28 unit tests passing; coverage reporting active (~38%)
+- ✅ 26 unit tests passing; coverage reporting active (~45%)
+- ✅ Toolchain: `ruff` for linting and formatting
 - [ ] DB initialization script (WKN/ISIN indexes on instruments collection)
 - [ ] Docker image version tagging in CD pipeline
 
@@ -225,70 +229,19 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ---
 
-### Phase 3: Security & Authentication (Week 6-7)
+### Phase 3: Security & Authentication ✅ COMPLETED
 
-**Priority: HIGH - Required before production / external users**
+**Decision:** This API is a private financial data service. User management (registration, login, roles, RBAC) belongs in the consuming application — not here.
 
-#### 3.1 Authentication Design Decision
-
-- [ ] Choose authentication approach
-  - **Option A**: FastAPI built-in security (OAuth2 + JWT)
-  - **Option B**: Auth0 integration
-  - **Recommendation**: Start with FastAPI OAuth2 for simplicity, migrate to Auth0 if needed
-
-#### 3.2 Implement Authentication
-
-- [ ] Add security dependencies
-  - `python-jose[cryptography]` for JWT
-  - `passlib[bcrypt]` for password hashing
-  - `python-multipart` for form data
-  
-- [ ] Create authentication module
-  - `app/auth/` directory
-  - Password hashing utilities
-  - JWT token generation/validation
-  - User authentication logic
-  
-- [ ] Implement user registration/login endpoints
-  - POST `/auth/register`
-  - POST `/auth/login` (returns JWT)
-  - GET `/auth/me` (current user info)
-  
-- [ ] Add authentication middleware
-  - JWT validation on protected routes
-  - User context injection into requests
-
-#### 3.3 Authorization & Roles
-
-- [ ] Define user role model
-  - Roles: `admin`, `user`, `readonly`
-  - Store roles in User model
-  
-- [ ] Implement role-based access control (RBAC)
-  - Create permission decorators
-  - Protect routes based on roles
-  
-- [ ] Document security model
-  - Authentication flow diagrams
-  - Role permission matrix
-
-#### 3.4 Secure Existing Routes
-
-- [ ] Protect all API endpoints
-  - Apply authentication to instruments, quotes, history routes
-  - Public: `/`, `/docs`, `/auth/login`, `/auth/register`
-  - Protected: All other endpoints
-  
-- [ ] Add rate limiting (optional but recommended)
-  - Use `slowapi` library
-  - Limit requests per user/IP
-
-**Deliverables:**
-
-- Working JWT-based authentication
-- User registration and login
-- All routes protected appropriately
-- Role-based access control
+- [x] API key protection implemented ✅
+  - `app/core/security.py` — `require_api_key` FastAPI dependency
+  - All 6 data routers protected: `instruments`, `quotes`, `history`, `warrants`, `indices`, `depots`
+  - Key passed via `X-API-Key` request header
+  - Configured via `API_KEY` environment variable / Azure Container App secret
+  - Open mode when `API_KEY` is unset or empty (safe for local development)
+  - Empty string treated identically to unset (no accidental lockout)
+- [x] Public endpoints remain unprotected: `/`, `/docs`, `/health`, `/health/ready`
+- [x] `UserRepository`, `UserModel`, `/v1/users` router removed
 
 ---
 
@@ -306,10 +259,6 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 - [ ] Test all CRUD operations
   - Repository layer tests
   - Mock database interactions
-  
-- [ ] Test authentication/authorization
-  - Token generation/validation
-  - Role permission checks
   
 - [ ] Test data models
   - Pydantic validation

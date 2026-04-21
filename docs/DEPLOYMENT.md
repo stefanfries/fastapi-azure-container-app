@@ -104,8 +104,8 @@ Copy-Item .env.example .env
 Two workflows are configured:
 
 1. **[ci-quality.yml](.github/workflows/ci-quality.yml)** - Runs on every push/PR
-   - Linting with pylint
-   - Code formatting check with black
+   - Linting with ruff
+   - Code formatting check with ruff
    - Tests with pytest and coverage
 
 2. **[cd-deploy.yml](.github/workflows/cd-deploy.yml)** - Runs on push to `main`

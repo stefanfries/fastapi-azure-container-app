@@ -8,8 +8,15 @@ APP_DIR = app
 TEST_DIR = tests
 
 help: ## Show this help message
-	@echo "Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@echo Available commands:
+	@echo   install     Install Python dependencies
+	@echo   format      Format code with black (auto-fix)
+	@echo   lint        Run pylint checks
+	@echo   test        Run tests with coverage
+	@echo   check       Run lint, tests, and black format check
+	@echo   run-local   Run FastAPI app locally
+	@echo   clean       Remove Python cache files
+	@echo   all         Install dependencies and run all checks
 
 install: ## Install Python dependencies
 	uv sync

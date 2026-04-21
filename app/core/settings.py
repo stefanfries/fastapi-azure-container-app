@@ -186,32 +186,17 @@ class OpenFIGISettings(BaseSettings):
 
 
 class AuthSettings(BaseSettings):
-    """Authentication and authorization configuration settings (for future use)."""
-    
-    secret_key: str | None = Field(
+    """API key authentication settings."""
+
+    api_key: SecretStr | None = Field(
         default=None,
-        description="Secret key for JWT token signing",
-        validation_alias="AUTH_SECRET_KEY",
+        description=(
+            "API key required in the X-API-Key header for all data endpoints. "
+            "If unset the API runs in open mode (development only)."
+        ),
+        validation_alias="API_KEY",
     )
-    
-    algorithm: str = Field(
-        default="HS256",
-        description="JWT signing algorithm",
-        validation_alias="AUTH_ALGORITHM",
-    )
-    
-    access_token_expire_minutes: int = Field(
-        default=30,
-        description="Access token expiration time in minutes",
-        validation_alias="AUTH_ACCESS_TOKEN_EXPIRE_MINUTES",
-    )
-    
-    refresh_token_expire_days: int = Field(
-        default=7,
-        description="Refresh token expiration time in days",
-        validation_alias="AUTH_REFRESH_TOKEN_EXPIRE_DAYS",
-    )
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

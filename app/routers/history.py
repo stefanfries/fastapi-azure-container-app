@@ -15,13 +15,14 @@ Dependencies:
 
 from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.core.logging import logger
+from app.core.security import require_api_key
 from app.models.history import HistoryData, Interval
 from app.parsers.history import parse_history_data
 
-router = APIRouter(prefix="/v1/history", tags=["history"])
+router = APIRouter(prefix="/v1/history", tags=["history"], dependencies=[Depends(require_api_key)])
 
 
 @router.get("/{instrument_id}", response_model=HistoryData)

@@ -6,13 +6,14 @@ Provides endpoints for listing and retrieving depot data from MongoDB.
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.logging import logger
+from app.core.security import require_api_key
 from app.models.depots import Depot
 from app.repositories.depots import DepotRepository
 
-router = APIRouter(prefix="/v1/depots", tags=["depots"])
+router = APIRouter(prefix="/v1/depots", tags=["depots"], dependencies=[Depends(require_api_key)])
 
 _repo = DepotRepository()
 

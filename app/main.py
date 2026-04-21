@@ -26,7 +26,6 @@ from app.routers import (
     instruments,
     quotes,
     root,
-    users,
     warrants,
 )
 
@@ -74,7 +73,6 @@ app.middleware("http")(log_client_ip_middleware)
 
 app.include_router(root.router)
 app.include_router(health.router)
-app.include_router(users.router)
 app.include_router(instruments.router)
 app.include_router(quotes.router)
 app.include_router(history.router)

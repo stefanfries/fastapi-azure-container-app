@@ -10,13 +10,14 @@ Dependencies:
     app.logging_config.logger: Logger instance for logging information.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.core.logging import logger
+from app.core.security import require_api_key
 from app.models.instruments import Instrument
 from app.parsers.instruments import parse_instrument_data
 
-router = APIRouter(prefix="/v1/instruments", tags=["instruments"])
+router = APIRouter(prefix="/v1/instruments", tags=["instruments"], dependencies=[Depends(require_api_key)])
 
 
 @router.get("/{instrument_id}", response_model=Instrument)

@@ -14,13 +14,14 @@ Dependencies:
     app.core.logging.logger: Logger instance for logging information.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.core.logging import logger
+from app.core.security import require_api_key
 from app.models.indices import IndexInfo, IndexMember
 from app.parsers.indices import fetch_index_list, fetch_index_members
 
-router = APIRouter(prefix="/v1/indices", tags=["indices"])
+router = APIRouter(prefix="/v1/indices", tags=["indices"], dependencies=[Depends(require_api_key)])
 
 
 @router.get("/", response_model=list[IndexInfo])

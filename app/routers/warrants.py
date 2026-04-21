@@ -16,9 +16,10 @@ Dependencies:
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.core.logging import logger
+from app.core.security import require_api_key
 from app.models.warrants import (
     WarrantDetailResponse,
     WarrantFinderResponse,
@@ -27,7 +28,7 @@ from app.models.warrants import (
 from app.parsers.warrant_detail import parse_warrant_detail
 from app.parsers.warrants import fetch_warrants
 
-router = APIRouter(prefix="/v1/warrants", tags=["warrants"])
+router = APIRouter(prefix="/v1/warrants", tags=["warrants"], dependencies=[Depends(require_api_key)])
 
 
 @router.get("/", response_model=WarrantFinderResponse)

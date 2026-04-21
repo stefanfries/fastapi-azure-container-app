@@ -92,9 +92,7 @@ async def _map(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return first.get("data", [])
 
     except httpx.HTTPStatusError as exc:
-        logger.warning(
-            "OpenFIGI HTTP error %s — skipping enrichment", exc.response.status_code
-        )
+        logger.warning("OpenFIGI HTTP error %s — skipping enrichment", exc.response.status_code)
         return []
     except httpx.RequestError as exc:
         logger.warning("OpenFIGI request failed (%s) — skipping enrichment", exc)

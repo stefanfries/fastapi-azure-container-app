@@ -48,7 +48,6 @@ Greek / indicator filter parameters (not yet exposed in the API — reserved for
 
 import asyncio
 from datetime import date, datetime
-from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -100,7 +99,7 @@ _GREEK_FILTER_PARAMS: dict[str, str] = {
 }
 
 
-def _parse_maturity_param(value: Optional[str]) -> tuple[str, str, bool]:
+def _parse_maturity_param(value: str | None) -> tuple[str, str, bool]:
     """Parse a maturity date input into a ``(range_value, calendar_value, use_date_picker)`` tuple.
 
     When an explicit date is supplied comdirect also requires a companion
@@ -157,11 +156,11 @@ def build_warrant_finder_url(
     preselection: WarrantPreselection = WarrantPreselection.ALL,
     issuer_action: bool = False,
     issuer_no_fee_action: bool = False,
-    strike_min: Optional[float] = None,
-    strike_max: Optional[float] = None,
-    maturity_from: Optional[str] = None,
-    maturity_to: Optional[str] = None,
-    issuer_group_id: Optional[str] = None,
+    strike_min: float | None = None,
+    strike_max: float | None = None,
+    maturity_from: str | None = None,
+    maturity_to: str | None = None,
+    issuer_group_id: str | None = None,
 ) -> str:
     """Build the comdirect warrant finder results URL from resolved parameters.
 
@@ -201,18 +200,28 @@ def build_warrant_finder_url(
         "UNDERLYING_TYPE": "FREI",
         "UNDERLYING_NAME_SEARCH": underlying_name,
         "PREDEFINED_UNDERLYING": "",
-        "STRIKE_ABS_FROM": (str(int(strike_min)) if strike_min == int(strike_min) else str(strike_min)) if strike_min is not None else "",
-        "STRIKE_ABS_TO": (str(int(strike_max)) if strike_max == int(strike_max) else str(strike_max)) if strike_max is not None else "",
+        "STRIKE_ABS_FROM": (
+            str(int(strike_min)) if strike_min == int(strike_min) else str(strike_min)
+        )
+        if strike_min is not None
+        else "",
+        "STRIKE_ABS_TO": (
+            str(int(strike_max)) if strike_max == int(strike_max) else str(strike_max)
+        )
+        if strike_max is not None
+        else "",
         "DATE_TIME_MATURITY_FROM": maturity_from_range,
         "DATE_TIME_MATURITY_FROM_CAL": maturity_from_cal,
     }
     # Checkbox param required by comdirect when an explicit date is chosen
     if from_is_date:
         params["date-DATE_TIME_MATURITY_FROM_CAL"] = "on"
-    params.update({
-        "DATE_TIME_MATURITY_TO": maturity_to_range,
-        "DATE_TIME_MATURITY_TO_CAL": maturity_to_cal,
-    })
+    params.update(
+        {
+            "DATE_TIME_MATURITY_TO": maturity_to_range,
+            "DATE_TIME_MATURITY_TO_CAL": maturity_to_cal,
+        }
+    )
     if to_is_date:
         params["date-DATE_TIME_MATURITY_TO_CAL"] = "on"
     params["ID_GROUP_ISSUER"] = issuer_group_id or ""
@@ -246,7 +255,7 @@ def _get_total_pages(soup: BeautifulSoup) -> int:
     return max(page_numbers) if page_numbers else 1
 
 
-def _parse_date(value: str) -> Optional[date]:
+def _parse_date(value: str) -> date | None:
     """Parse a comdirect date string (``DD.MM.YY``) to a :class:`date`.
 
     Returns ``None`` for ``"--"`` or any unparseable value.
@@ -266,7 +275,7 @@ def _parse_date(value: str) -> Optional[date]:
         return None
 
 
-def _cell(row: Tag, label: str) -> Optional[Tag]:
+def _cell(row: Tag, label: str) -> Tag | None:
     """Return the first ``<td>`` or ``<th>`` whose ``data-label`` matches *label*.
 
     Args:
@@ -343,8 +352,8 @@ def _parse_warrant_rows(soup: BeautifulSoup) -> list[Warrant]:
                 link = href if href.startswith("http") else f"{BASE_URL}{href}"
 
         # Strike: "110,00 USD" → (110.0, "USD")
-        strike: Optional[float] = None
-        strike_currency: Optional[str] = None
+        strike: float | None = None
+        strike_currency: str | None = None
         if strike_cell:
             raw = strike_cell.get_text(" ", strip=True).replace("\xa0", " ")
             parts = raw.split()
@@ -357,29 +366,33 @@ def _parse_warrant_rows(soup: BeautifulSoup) -> list[Warrant]:
                     pass
 
         # Ratio: "10 : 1" → stored as-is
-        ratio: Optional[str] = None
+        ratio: str | None = None
         if ratio_cell:
             raw_ratio = ratio_cell.get_text(" ", strip=True).replace("\xa0", " ").strip()
             if raw_ratio and raw_ratio != "--":
                 ratio = raw_ratio
 
         maturity_date = _parse_date(maturity_cell.get_text(strip=True)) if maturity_cell else None
-        last_trading_day = _parse_date(last_day_cell.get_text(strip=True)) if last_day_cell else None
+        last_trading_day = (
+            _parse_date(last_day_cell.get_text(strip=True)) if last_day_cell else None
+        )
         issuer = issuer_cell.get_text(strip=True) if issuer_cell else None
         if issuer == "--":
             issuer = None
 
-        warrants.append(Warrant(
-            isin=isin,
-            wkn=wkn,
-            link=link,
-            strike=strike,
-            strike_currency=strike_currency,
-            ratio=ratio,
-            maturity_date=maturity_date,
-            last_trading_day=last_trading_day,
-            issuer=issuer,
-        ))
+        warrants.append(
+            Warrant(
+                isin=isin,
+                wkn=wkn,
+                link=link,
+                strike=strike,
+                strike_currency=strike_currency,
+                ratio=ratio,
+                maturity_date=maturity_date,
+                last_trading_day=last_trading_day,
+                issuer=issuer,
+            )
+        )
 
     return warrants
 
@@ -389,11 +402,11 @@ async def fetch_warrants(
     preselection: WarrantPreselection = WarrantPreselection.ALL,
     issuer_action: bool = False,
     issuer_no_fee_action: bool = False,
-    strike_min: Optional[float] = None,
-    strike_max: Optional[float] = None,
-    maturity_from: Optional[str] = None,
-    maturity_to: Optional[str] = None,
-    issuer_group_id: Optional[str] = None,
+    strike_min: float | None = None,
+    strike_max: float | None = None,
+    maturity_from: str | None = None,
+    maturity_to: str | None = None,
+    issuer_group_id: str | None = None,
 ) -> WarrantFinderResponse:
     """Resolve the underlying, build the finder URL, fetch results, and parse.
 
@@ -441,7 +454,9 @@ async def fetch_warrants(
     underlying_name = instrument_data.name
     logger.info(
         "Underlying '%s' resolved: id_notation=%s, name='%s'",
-        underlying, id_notation, underlying_name,
+        underlying,
+        id_notation,
+        underlying_name,
     )
 
     # Step 2: build the finder URL

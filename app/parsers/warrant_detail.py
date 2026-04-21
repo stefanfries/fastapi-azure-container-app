@@ -13,7 +13,6 @@ Functions:
 
 import re
 from datetime import date, datetime
-from typing import Optional
 
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
@@ -30,7 +29,8 @@ from app.scrapers.scrape_url import fetch_one
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _section_table(soup: BeautifulSoup, heading: str) -> Optional[Tag]:
+
+def _section_table(soup: BeautifulSoup, heading: str) -> Tag | None:
     """Return the first ``<table>`` inside the section with the given heading."""
     h2 = soup.find("h2", string=re.compile(heading))
     if not h2:
@@ -38,7 +38,7 @@ def _section_table(soup: BeautifulSoup, heading: str) -> Optional[Tag]:
     return h2.parent.find("table")
 
 
-def _td_text(table: Optional[Tag], label: str) -> Optional[str]:
+def _td_text(table: Tag | None, label: str) -> str | None:
     """Find a ``<th>`` whose text contains *label* and return its sibling ``<td>`` text."""
     if table is None:
         return None
@@ -52,7 +52,7 @@ def _td_text(table: Optional[Tag], label: str) -> Optional[str]:
     return None
 
 
-def _parse_float(text: Optional[str]) -> Optional[float]:
+def _parse_float(text: str | None) -> float | None:
     """Parse a German-format number, ignoring trailing units / % signs.
 
     Examples: ``"0,75 %"`` → ``0.75``, ``"1.234,56 EUR"`` → ``1234.56``,
@@ -67,7 +67,7 @@ def _parse_float(text: Optional[str]) -> Optional[float]:
         return None
 
 
-def _parse_amount_currency(text: Optional[str]) -> tuple[Optional[float], Optional[str]]:
+def _parse_amount_currency(text: str | None) -> tuple[float | None, str | None]:
     """Parse ``"225,29 USD"`` → ``(225.29, "USD")``.
 
     Returns ``(None, None)`` for missing / ``"--"`` values.
@@ -75,8 +75,8 @@ def _parse_amount_currency(text: Optional[str]) -> tuple[Optional[float], Option
     if not text or text.strip() in ("", "--", "k. A."):
         return None, None
     parts = text.strip().split()
-    value: Optional[float] = None
-    currency: Optional[str] = None
+    value: float | None = None
+    currency: str | None = None
     if parts:
         try:
             value = float(parts[0].replace(".", "").replace(",", "."))
@@ -87,7 +87,7 @@ def _parse_amount_currency(text: Optional[str]) -> tuple[Optional[float], Option
     return value, currency
 
 
-def _parse_date(text: Optional[str]) -> Optional[date]:
+def _parse_date(text: str | None) -> date | None:
     """Parse ``DD.MM.YY`` or ``DD.MM.YYYY`` date strings."""
     if not text or text.strip() in ("", "--", "k. A."):
         return None
@@ -102,12 +102,13 @@ def _parse_date(text: Optional[str]) -> Optional[date]:
 
 # ── Section parsers ───────────────────────────────────────────────────────────
 
+
 def _parse_market_data(soup: BeautifulSoup) -> WarrantMarketData:
     table = _section_table(soup, "Kursdaten")
 
     # Bid and ask are wrapped in realtime spans (same as quote parser)
-    bid: Optional[float] = None
-    ask: Optional[float] = None
+    bid: float | None = None
+    ask: float | None = None
     if table:
         bid_th = table.find("th", string=re.compile(r"Geld"))
         if bid_th:
@@ -123,7 +124,7 @@ def _parse_market_data(soup: BeautifulSoup) -> WarrantMarketData:
             if ask is None:
                 ask = _parse_float(_td_text(table, "Brief"))
 
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
     timestamp_str = _td_text(table, "Zeit")
     if timestamp_str:
         cleaned = re.sub(r"\s+", " ", timestamp_str).strip()
@@ -247,6 +248,7 @@ def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 async def parse_warrant_detail(identifier: str) -> WarrantDetailResponse:
     """Resolve *identifier* (WKN or ISIN), fetch the comdirect detail page, and parse it.

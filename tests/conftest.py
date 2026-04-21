@@ -27,15 +27,15 @@ def mock_database():
     """
     db = MagicMock()
     db.command = AsyncMock(return_value={"ok": 1})
-    db.__getitem__ = MagicMock(return_value=MagicMock(
-        find_one=AsyncMock(return_value=None),
-        find=MagicMock(return_value=MagicMock(
-            to_list=AsyncMock(return_value=[])
-        )),
-        insert_one=AsyncMock(return_value=MagicMock(inserted_id="fake_id")),
-        update_one=AsyncMock(return_value=MagicMock(modified_count=1)),
-        delete_one=AsyncMock(return_value=MagicMock(deleted_count=1)),
-    ))
+    db.__getitem__ = MagicMock(
+        return_value=MagicMock(
+            find_one=AsyncMock(return_value=None),
+            find=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
+            insert_one=AsyncMock(return_value=MagicMock(inserted_id="fake_id")),
+            update_one=AsyncMock(return_value=MagicMock(modified_count=1)),
+            delete_one=AsyncMock(return_value=MagicMock(deleted_count=1)),
+        )
+    )
     return db
 
 
@@ -58,5 +58,6 @@ def client(mock_database):
         patch("app.core.database.get_database", return_value=mock_database),
     ):
         from app.main import app
+
         with TestClient(app, raise_server_exceptions=True) as test_client:
             yield test_client

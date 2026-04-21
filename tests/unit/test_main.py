@@ -26,9 +26,7 @@ def test_main(mock_run) -> None:
     """
 
     main()
-    mock_run.assert_called_once_with(
-        "app.main:app", host="0.0.0.0", port=8080, reload=False
-    )
+    mock_run.assert_called_once_with("app.main:app", host="0.0.0.0", port=8080, reload=False)
 
 
 def test_main_no_exception() -> None:
@@ -47,6 +45,4 @@ def test_main_no_exception() -> None:
             main()
         except RuntimeError as e:
             pytest.fail(f"main() raised an exception: {e}")
-        mock_run.assert_called_once_with(
-            "app.main:app", host="0.0.0.0", port=8080, reload=False
-        )
+        mock_run.assert_called_once_with("app.main:app", host="0.0.0.0", port=8080, reload=False)

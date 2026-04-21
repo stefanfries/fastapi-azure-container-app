@@ -8,7 +8,6 @@ Tests cover three scenarios:
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -42,6 +41,7 @@ def _mock_settings(api_key_value: str | None) -> MagicMock:
 # Open mode — API_KEY absent or empty
 # --------------------------------------------------------------------------- #
 
+
 class TestOpenMode:
     def test_none_key_no_header_passes(self):
         """No API_KEY configured: request without header is allowed."""
@@ -71,6 +71,7 @@ class TestOpenMode:
 # --------------------------------------------------------------------------- #
 # Protected mode — API_KEY set to a real value
 # --------------------------------------------------------------------------- #
+
 
 class TestProtectedMode:
     def test_correct_key_passes(self):

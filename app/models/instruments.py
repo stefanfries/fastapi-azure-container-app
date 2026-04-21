@@ -12,8 +12,7 @@ Functions:
     is_valid_isin(isin: str) -> bool: Check if the given ISIN is valid using the Luhn algorithm.
 """
 
-from enum import Enum
-from typing import Optional
+from enum import Enum, StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_extra_types.currency_code import Currency
@@ -55,7 +54,7 @@ def is_valid_isin(isin: str) -> bool:
     return total % 10 == 0
 
 
-class AssetClass(str, Enum):
+class AssetClass(str, Enum):  # noqa: UP042 — custom __new__ incompatible with StrEnum
     """
     AssetClass is an enumeration of different types of financial instruments.
 
@@ -71,18 +70,18 @@ class AssetClass(str, Enum):
         obj.comdirect_label = comdirect_label
         return obj
 
-    STOCK       = ("Stock",       "Aktie")
-    BOND        = ("Bond",        "Anleihe")
-    ETF         = ("ETF",         "ETF")
-    FONDS       = ("Fund",        "Fonds")
-    WARRANT     = ("Warrant",     "Optionsschein")
+    STOCK = ("Stock", "Aktie")
+    BOND = ("Bond", "Anleihe")
+    ETF = ("ETF", "ETF")
+    FONDS = ("Fund", "Fonds")
+    WARRANT = ("Warrant", "Optionsschein")
     CERTIFICATE = ("Certificate", "Zertifikat")
-    COMMODITY   = ("Commodity",   "Rohstoff")
-    INDEX       = ("Index",       "Index")
-    CURRENCY    = ("Currency",    "Währung")
+    COMMODITY = ("Commodity", "Rohstoff")
+    INDEX = ("Index", "Index")
+    CURRENCY = ("Currency", "Währung")
 
 
-class NotationType(str, Enum):
+class NotationType(StrEnum):
     """
     Enumeration for different types of trading notations.
     Attributes:
@@ -114,13 +113,13 @@ class GlobalIdentifiers(BaseModel):
                        None when enrichment is skipped or no match is found.
     """
 
-    isin: Optional[ISIN] = Field(None, description="ISIN")
+    isin: ISIN | None = Field(None, description="ISIN")
     wkn: WKN = Field(..., description="German WKN")
-    cusip: Optional[str] = Field(None, description="CUSIP (US/CA instruments only)")
-    figi: Optional[str] = Field(None, description="Composite FIGI from OpenFIGI")
-    symbol_comdirect: Optional[str] = Field(None, description="Ticker symbol on comdirect")
-    symbol_yfinance: Optional[str] = Field(None, description="Ticker symbol for yfinance")
-    name_openfigi: Optional[str] = Field(None, description="Instrument name from OpenFIGI")
+    cusip: str | None = Field(None, description="CUSIP (US/CA instruments only)")
+    figi: str | None = Field(None, description="Composite FIGI from OpenFIGI")
+    symbol_comdirect: str | None = Field(None, description="Ticker symbol on comdirect")
+    symbol_yfinance: str | None = Field(None, description="Ticker symbol for yfinance")
+    name_openfigi: str | None = Field(None, description="Instrument name from OpenFIGI")
 
 
 class VenueInfo(BaseModel):
@@ -135,7 +134,7 @@ class VenueInfo(BaseModel):
     """
 
     id_notation: str
-    currency: Optional[Currency] = None
+    currency: Currency | None = None
 
 
 class Instrument(BaseModel):
@@ -161,33 +160,33 @@ class Instrument(BaseModel):
 
     wkn: WKN = Field(..., description="WKN of the financial instrument")
 
-    isin: Optional[ISIN] = Field(None, description="International Securities Identification Number")
+    isin: ISIN | None = Field(None, description="International Securities Identification Number")
 
     asset_class: AssetClass = Field(
         ...,
         description="The asset class of the financial instrument",
     )
-    global_identifiers: Optional[GlobalIdentifiers] = Field(
+    global_identifiers: GlobalIdentifiers | None = Field(
         None,
         description="Consolidated global identifiers (ISIN, WKN, CUSIP, FIGI, symbols)",
     )
-    id_notations_life_trading: Optional[dict[str, VenueInfo]] = Field(
+    id_notations_life_trading: dict[str, VenueInfo] | None = Field(
         None,
         description="Life-trading venues mapping venue name to VenueInfo (id_notation + currency)",
     )
-    id_notations_exchange_trading: Optional[dict[str, VenueInfo]] = Field(
+    id_notations_exchange_trading: dict[str, VenueInfo] | None = Field(
         None,
         description="Exchange-trading venues mapping venue name to VenueInfo (id_notation + currency)",
     )
-    preferred_id_notation_life_trading: Optional[str] = Field(
+    preferred_id_notation_life_trading: str | None = Field(
         None,
         description="The preferred id_notation for live trading",
     )
-    preferred_id_notation_exchange_trading: Optional[str] = Field(
+    preferred_id_notation_exchange_trading: str | None = Field(
         None,
         description="The preferred id_notation for exchange trading",
     )
-    default_id_notation: Optional[str] = Field(
+    default_id_notation: str | None = Field(
         None,
         description="The default id_notation for live trading",
     )

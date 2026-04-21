@@ -10,7 +10,7 @@ because structured products (Warrants, Certificates) are not listed on Yahoo
 Finance and OpenFIGI returns no useful data for them.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from app.clients import openfigi as openfigi_client
 from app.core.logging import logger
@@ -32,25 +32,25 @@ _EXCH_TO_YAHOO_SUFFIX: dict[str, str] = {
     "UA": "",
     "UP": "",
     # Germany
-    "GY": ".DE",   # Xetra
-    "GF": ".F",    # Frankfurt
-    "GS": ".SG",   # Stuttgart
-    "GM": ".MU",   # München
-    "GH": ".HM",   # Hamburg
-    "GD": ".DU",   # Düsseldorf
-    "GW": ".BE",   # Berlin
-    "GX": ".HA",   # Hannover
+    "GY": ".DE",  # Xetra
+    "GF": ".F",  # Frankfurt
+    "GS": ".SG",  # Stuttgart
+    "GM": ".MU",  # München
+    "GH": ".HM",  # Hamburg
+    "GD": ".DU",  # Düsseldorf
+    "GW": ".BE",  # Berlin
+    "GX": ".HA",  # Hannover
     # Europe
-    "LN": ".L",    # London Stock Exchange
-    "SW": ".SW",   # SIX Swiss Exchange
-    "AV": ".VI",   # Wiener Börse
-    "FP": ".PA",   # Euronext Paris
-    "NA": ".AS",   # Euronext Amsterdam
-    "BB": ".BR",   # Euronext Brussels
+    "LN": ".L",  # London Stock Exchange
+    "SW": ".SW",  # SIX Swiss Exchange
+    "AV": ".VI",  # Wiener Börse
+    "FP": ".PA",  # Euronext Paris
+    "NA": ".AS",  # Euronext Amsterdam
+    "BB": ".BR",  # Euronext Brussels
     # Asia-Pacific
-    "JT": ".T",    # Tokyo Stock Exchange
-    "HK": ".HK",   # Hong Kong Stock Exchange
-    "AU": ".AX",   # ASX
+    "JT": ".T",  # Tokyo Stock Exchange
+    "HK": ".HK",  # Hong Kong Stock Exchange
+    "AU": ".AX",  # ASX
 }
 
 # Maps two-letter ISIN country code to the primary OpenFIGI exchCode for that country.
@@ -70,7 +70,7 @@ _ISIN_COUNTRY_TO_PRIMARY_EXCH: dict[str, str] = {
 }
 
 
-def _derive_cusip(isin: Optional[str]) -> Optional[str]:
+def _derive_cusip(isin: str | None) -> str | None:
     """
     Derive CUSIP from a US ISIN.
 
@@ -88,7 +88,7 @@ def _derive_cusip(isin: Optional[str]) -> Optional[str]:
     return None
 
 
-def _pick_composite_figi(records: list[dict[str, Any]]) -> Optional[str]:
+def _pick_composite_figi(records: list[dict[str, Any]]) -> str | None:
     """
     Select the best compositeFIGI from a list of OpenFIGI mapping records.
 
@@ -118,7 +118,7 @@ def _pick_composite_figi(records: list[dict[str, Any]]) -> Optional[str]:
     return None
 
 
-def _pick_name(records: list[dict[str, Any]]) -> Optional[str]:
+def _pick_name(records: list[dict[str, Any]]) -> str | None:
     """
     Extract the instrument name from the first OpenFIGI record that has one.
 
@@ -135,9 +135,7 @@ def _pick_name(records: list[dict[str, Any]]) -> Optional[str]:
     return None
 
 
-def _derive_yfinance_symbol(
-    records: list[dict[str, Any]], isin_country: Optional[str]
-) -> Optional[str]:
+def _derive_yfinance_symbol(records: list[dict[str, Any]], isin_country: str | None) -> str | None:
     """
     Derive the yfinance-compatible ticker symbol from OpenFIGI mapping records.
 
@@ -188,9 +186,9 @@ def _derive_yfinance_symbol(
 
 
 async def build_global_identifiers(
-    isin: Optional[str],
+    isin: str | None,
     wkn: str,
-    symbol_comdirect: Optional[str],
+    symbol_comdirect: str | None,
     asset_class: AssetClass,
 ) -> GlobalIdentifiers:
     """
@@ -216,9 +214,9 @@ async def build_global_identifiers(
         Populated GlobalIdentifiers instance.
     """
     cusip = _derive_cusip(isin)
-    figi: Optional[str] = None
-    symbol_yfinance: Optional[str] = None
-    name_openfigi: Optional[str] = None
+    figi: str | None = None
+    symbol_yfinance: str | None = None
+    name_openfigi: str | None = None
 
     if asset_class not in _SKIP_ENRICHMENT_FOR:
         logger.debug(

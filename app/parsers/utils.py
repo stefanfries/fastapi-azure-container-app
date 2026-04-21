@@ -39,9 +39,8 @@ def check_valid_id_notation(instrument_data, id_notation) -> None:
 
     lt = instrument_data.id_notations_life_trading or {}
     ex = instrument_data.id_notations_exchange_trading or {}
-    if (
-        any(v.id_notation == id_notation for v in lt.values())
-        or any(v.id_notation == id_notation for v in ex.values())
+    if any(v.id_notation == id_notation for v in lt.values()) or any(
+        v.id_notation == id_notation for v in ex.values()
     ):
         return None
     else:
@@ -115,12 +114,8 @@ def get_trading_venue(instrument_data: Instrument, id_notation: str) -> str:
     """
     trading_venues_dict = get_trading_venues_dict(instrument_data)
     if id_notation not in trading_venues_dict:
-        logger.error(
-            "Invalid id_notation: %s for instrument %s", id_notation, instrument_data.wkn
-        )
-        raise ValueError(
-            f"Invalid id_notation {id_notation} for instrument {instrument_data.wkn}"
-        )
+        logger.error("Invalid id_notation: %s for instrument %s", id_notation, instrument_data.wkn)
+        raise ValueError(f"Invalid id_notation {id_notation} for instrument {instrument_data.wkn}")
     return trading_venues_dict.get(id_notation, "")
 
 

@@ -42,9 +42,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Failed to connect to database during startup: %s", e)
         raise
-    
+
     yield
-    
+
     # Shutdown: Close MongoDB connection
     await close_database_connection()
 

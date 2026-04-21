@@ -6,7 +6,7 @@ Designed for Azure Container Apps health probe configuration:
   - Readiness probe: GET /health/ready  (checks database + external access)
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter
@@ -32,7 +32,7 @@ async def liveness():
     """
     return {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -81,6 +81,6 @@ async def readiness():
             "status": "ready" if overall_ok else "not ready",
             "version": settings.app.app_version,
             "checks": checks,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )

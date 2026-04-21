@@ -19,7 +19,6 @@ Classes:
 """
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -56,7 +55,7 @@ class Depot(BaseModel):
 
     id: str
     name: str
-    items: List[DepotItem]
+    items: list[DepotItem]
     cash: float
     created_at: datetime
     changed_at: datetime

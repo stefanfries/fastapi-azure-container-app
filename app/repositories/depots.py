@@ -2,8 +2,6 @@
 Depot Repository for managing user depots (portfolios) in MongoDB.
 """
 
-from typing import List, Optional
-
 from pymongo.asynchronous.collection import AsyncCollection
 
 from app.core.database import Collections, get_collection
@@ -15,7 +13,7 @@ class DepotRepository:
     """Repository for depot CRUD operations."""
 
     def __init__(self):
-        self._collection: Optional[AsyncCollection] = None
+        self._collection: AsyncCollection | None = None
 
     @property
     def collection(self) -> AsyncCollection:
@@ -23,7 +21,7 @@ class DepotRepository:
             self._collection = get_collection(Collections.DEPOTS)
         return self._collection
 
-    async def find_all(self) -> List[Depot]:
+    async def find_all(self) -> list[Depot]:
         """Return all depots."""
         logger.debug("Fetching all depots")
         cursor = self.collection.find({})
@@ -32,7 +30,7 @@ class DepotRepository:
             doc.pop("_id", None)
         return [Depot(**doc) for doc in docs]
 
-    async def find_by_id(self, depot_id: str) -> Optional[Depot]:
+    async def find_by_id(self, depot_id: str) -> Depot | None:
         """Find a depot by its string ID."""
         logger.debug("Looking up depot: %s", depot_id)
         doc = await self.collection.find_one({"id": depot_id})
@@ -52,9 +50,7 @@ class DepotRepository:
 
     async def update(self, depot_id: str, updates: dict) -> bool:
         """Update fields on an existing depot. Returns True if a document was modified."""
-        result = await self.collection.update_one(
-            {"id": depot_id}, {"$set": updates}
-        )
+        result = await self.collection.update_one({"id": depot_id}, {"$set": updates})
         return result.modified_count > 0
 
     async def delete(self, depot_id: str) -> bool:

@@ -153,7 +153,6 @@ async def parse_history_data(
             df = pd.DataFrame()
 
         if is_intraday(interval):
-
             df.columns = ["date", "time", "open", "high", "low", "close", "volume"]
 
             # Combine date and time columns into a single datetime column
@@ -172,9 +171,7 @@ async def parse_history_data(
         else:
             df.columns = ["datetime", "open", "high", "low", "close", "volume"]
 
-        df["datetime"] = pd.to_datetime(
-            df["datetime"], format="%d.%m.%Y", errors="coerce"
-        )
+        df["datetime"] = pd.to_datetime(df["datetime"], format="%d.%m.%Y", errors="coerce")
         # Convert German number format to float for open, high, low, and close columns
         for col in ["open", "high", "low", "close"]:
             df[col] = (

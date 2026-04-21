@@ -6,7 +6,6 @@ Classes:
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_extra_types.currency_code import Currency
@@ -29,8 +28,10 @@ class Quote(BaseModel):
     """
 
     name: str
-    wkn: str = Field(..., pattern=r"^[A-HJ-NP-Z0-9]{6}$")  # WKNs are 6 characters long and do not contain the letters I and O
-    isin: Optional[str] = None
+    wkn: str = Field(
+        ..., pattern=r"^[A-HJ-NP-Z0-9]{6}$"
+    )  # WKNs are 6 characters long and do not contain the letters I and O
+    isin: str | None = None
     bid: float
     ask: float
     spread_percent: float = Field(..., ge=0)

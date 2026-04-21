@@ -27,14 +27,14 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Lint with pylint
+      - name: Lint with ruff
         run: |
-          find app tests -name '*.py' -type f | xargs uv run pylint --disable=R,C || true
+          uv run ruff check app/ tests/
         continue-on-error: true
 
-      - name: Format check with black
+      - name: Format check with ruff
         run: |
-          uv run black --check app/ tests/
+          uv run ruff format --check app/ tests/
         continue-on-error: true
 
       - name: Run tests with coverage

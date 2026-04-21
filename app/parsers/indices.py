@@ -1,6 +1,5 @@
 import asyncio
 import re
-from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
@@ -25,14 +24,14 @@ def _normalize_name(name: str) -> str:
     return normalized.replace("and", "")
 
 
-def _extract_isin_from_path(path: str) -> Optional[str]:
+def _extract_isin_from_path(path: str) -> str | None:
     """Extract ISIN from the last segment of a URL path."""
     last_segment = path.rstrip("/").split("/")[-1]
     match = _ISIN_RE.search(last_segment)
     return match.group(1) if match else None
 
 
-def _extract_asset_class_label(href: str) -> Optional[str]:
+def _extract_asset_class_label(href: str) -> str | None:
     """Map comdirect URL path segment to AssetClass label."""
     parts = href.split("/")
     if len(parts) >= 3:
@@ -86,7 +85,7 @@ def _parse_members_from_table(soup: BeautifulSoup) -> list[IndexMember]:
     return members
 
 
-async def _fetch_wkn(isin: str) -> Optional[str]:
+async def _fetch_wkn(isin: str) -> str | None:
     """Fetch the WKN for an index from its comdirect detail page."""
     url = f"{BASE_URL}/inf/indizes/{isin}"
     try:
@@ -133,12 +132,14 @@ async def fetch_index_list() -> list[IndexInfo]:
             isin = _extract_isin_from_path(href)
             if not isin:
                 continue
-            candidates.append((
-                link_tag.get_text(strip=True),
-                f"{BASE_URL}{href}",
-                isin,
-                int(werte_text),
-            ))
+            candidates.append(
+                (
+                    link_tag.get_text(strip=True),
+                    f"{BASE_URL}{href}",
+                    isin,
+                    int(werte_text),
+                )
+            )
 
         # Fetch all WKNs in parallel (each with its own client to avoid pool exhaustion)
         wkns = await asyncio.gather(*[_fetch_wkn(isin) for _, _, isin, _ in candidates])
@@ -172,7 +173,9 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
 
     logger.info(
         "Fetching members for index '%s' (expected: %d) from %s",
-        match.name, match.member_count, match.link,
+        match.name,
+        match.member_count,
+        match.link,
     )
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
@@ -187,6 +190,7 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
         members = _parse_members_from_table(first_soup)
 
         if total_pages > 1:
+
             def page_url(offset: int) -> str:
                 return (
                     f"{BASE_URL}/inf/indizes/detail/werte/standard.html"
@@ -194,9 +198,9 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
                     f"&SORT=SHORT_NAME_INSTRUMENT&SORTDIR=ASCENDING"
                 )
 
-            pages = await asyncio.gather(*[
-                client.get(page_url(offset)) for offset in range(1, total_pages)
-            ])
+            pages = await asyncio.gather(
+                *[client.get(page_url(offset)) for offset in range(1, total_pages)]
+            )
             for page_response in pages:
                 page_response.raise_for_status()
                 page_soup = BeautifulSoup(page_response.content, "html.parser")
@@ -205,11 +209,11 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
     if len(members) != match.member_count:
         logger.warning(
             "Member count mismatch for '%s': expected %d from overview, fetched %d",
-            match.name, match.member_count, len(members),
+            match.name,
+            match.member_count,
+            len(members),
         )
     else:
-        logger.info(
-            "Member count OK for '%s': %d members", match.name, len(members)
-        )
+        logger.info("Member count OK for '%s': %d members", match.name, len(members))
 
     return members

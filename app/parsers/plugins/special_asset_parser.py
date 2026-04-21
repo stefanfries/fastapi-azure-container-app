@@ -11,8 +11,6 @@ HTML differences vs. standard assets:
     - No #marketSelect dropdown and no venue table.
 """
 
-from typing import Dict, Optional, Tuple
-
 from bs4 import BeautifulSoup
 
 from app.models.instruments import AssetClass, VenueInfo
@@ -67,7 +65,7 @@ class SpecialAssetParser(InstrumentParser):
             raise ValueError("Could not extract WKN from H2")
         return wkn
 
-    def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
+    def parse_isin(self, soup: BeautifulSoup) -> str | None:
         """
         Always returns None — special assets have no ISIN on comdirect.
         """
@@ -76,12 +74,12 @@ class SpecialAssetParser(InstrumentParser):
     def parse_id_notations(
         self,
         soup: BeautifulSoup,
-        default_id_notation: Optional[str] = None,
-    ) -> Tuple[
-        Optional[Dict[str, VenueInfo]],
-        Optional[Dict[str, VenueInfo]],
-        Optional[str],
-        Optional[str],
+        default_id_notation: str | None = None,
+    ) -> tuple[
+        dict[str, VenueInfo] | None,
+        dict[str, VenueInfo] | None,
+        str | None,
+        str | None,
     ]:
         """
         Always returns (None, None, None, None).

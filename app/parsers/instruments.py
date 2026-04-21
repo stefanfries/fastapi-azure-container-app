@@ -38,9 +38,10 @@ def valid_id_notation(instrument_data: Instrument, id_notation: str) -> bool:
               id_notations_exchange_trading of the instrument_data, False otherwise.
     """
 
-    return (
-        any(v.id_notation == id_notation for v in instrument_data.id_notations_life_trading.values())
-        or any(v.id_notation == id_notation for v in instrument_data.id_notations_exchange_trading.values())
+    return any(
+        v.id_notation == id_notation for v in instrument_data.id_notations_life_trading.values()
+    ) or any(
+        v.id_notation == id_notation for v in instrument_data.id_notations_exchange_trading.values()
     )
 
 
@@ -75,9 +76,9 @@ def parse_default_id_notation(response: httpx.Response) -> str | None:
         str: The extracted default notation ID.
     """
     redirected_url = str(response.url)
-    default_id_notation = urllib.parse.parse_qs(
-        urllib.parse.urlparse(redirected_url).query
-    ).get("ID_NOTATION", [None])[0]
+    default_id_notation = urllib.parse.parse_qs(urllib.parse.urlparse(redirected_url).query).get(
+        "ID_NOTATION", [None]
+    )[0]
     return default_id_notation
 
 

@@ -14,8 +14,6 @@ Dependencies:
     app.logging_config.logger: Logger instance for logging information.
 """
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 
 from app.core.logging import logger
@@ -28,7 +26,9 @@ from app.models.warrants import (
 from app.parsers.warrant_detail import parse_warrant_detail
 from app.parsers.warrants import fetch_warrants
 
-router = APIRouter(prefix="/v1/warrants", tags=["warrants"], dependencies=[Depends(require_api_key)])
+router = APIRouter(
+    prefix="/v1/warrants", tags=["warrants"], dependencies=[Depends(require_api_key)]
+)
 
 
 @router.get("/", response_model=WarrantFinderResponse)
@@ -53,15 +53,15 @@ async def get_warrants(
         False,
         description="Include only market no-fee warrants.",
     ),
-    strike_min: Optional[float] = Query(
+    strike_min: float | None = Query(
         None,
         description="Minimum strike price (STRIKE_ABS_FROM).",
     ),
-    strike_max: Optional[float] = Query(
+    strike_max: float | None = Query(
         None,
         description="Maximum strike price (STRIKE_ABS_TO).",
     ),
-    maturity_from: Optional[str] = Query(
+    maturity_from: str | None = Query(
         None,
         description=(
             "Start of maturity range. "
@@ -70,13 +70,11 @@ async def get_warrants(
             "Defaults to Range_NOW."
         ),
     ),
-    maturity_to: Optional[str] = Query(
+    maturity_to: str | None = Query(
         None,
-        description=(
-            "End of maturity range. Same format options as maturity_from."
-        ),
+        description=("End of maturity range. Same format options as maturity_from."),
     ),
-    issuer_group_id: Optional[str] = Query(
+    issuer_group_id: str | None = Query(
         None,
         description="Comdirect issuer group ID (ID_GROUP_ISSUER).",
     ),
@@ -109,7 +107,12 @@ async def get_warrants(
     logger.info(
         "Warrant finder request: underlying=%s, preselection=%s, "
         "strike=[%s, %s], maturity=[%s, %s]",
-        underlying, preselection.value, strike_min, strike_max, maturity_from, maturity_to,
+        underlying,
+        preselection.value,
+        strike_min,
+        strike_max,
+        maturity_from,
+        maturity_to,
     )
     return await fetch_warrants(
         underlying=underlying,

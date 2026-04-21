@@ -4,9 +4,6 @@ Parser plugin for WARRANT asset class.
 Warrants have a different HTML structure on comdirect and require special handling.
 """
 
-
-from typing import Dict, Optional, Tuple
-
 from bs4 import BeautifulSoup
 
 from app.models.instruments import AssetClass, VenueInfo
@@ -24,74 +21,67 @@ from app.parsers.plugins.parsing_utils import (
 
 class WarrantParser(InstrumentParser):
     """Parser for WARRANT asset class (Optionsscheine)."""
-    
+
     @property
     def asset_class(self) -> AssetClass:
         """Return the asset class this parser handles."""
         return AssetClass.WARRANT
-    
+
     def parse_name(self, soup: BeautifulSoup) -> str:
         """
         Extract the instrument name from the HTML.
-        
+
         For warrants, the name is in the H1 tag with "Optionsschein" removed.
         """
         name = extract_name_from_h1(soup, remove_suffix="Optionsschein")
         if not name:
             raise ValueError("Could not find H1 headline")
         return name
-    
+
     def parse_wkn(self, soup: BeautifulSoup) -> str:
         """
         Extract the WKN from the HTML.
-        
+
         For warrants, WKN is in the H2 tag.
         """
         wkn = extract_wkn_from_h2(soup)
         if not wkn:
             raise ValueError("Could not extract WKN from H2")
         return wkn
-    
-    def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
+
+    def parse_isin(self, soup: BeautifulSoup) -> str | None:
         """
         Extract the ISIN from the HTML.
-        
+
         For warrants, ISIN is in the H2 tag after "ISIN:"
         """
         return extract_after_label(soup, "ISIN:", max_length=12)
-    
+
     def parse_id_notations(
-        self,
-        soup: BeautifulSoup,
-        default_id_notation: Optional[str] = None
-    ) -> Tuple[
-        Optional[Dict[str, VenueInfo]], 
-        Optional[Dict[str, VenueInfo]],
-        Optional[str],
-        Optional[str]
-    ]:
+        self, soup: BeautifulSoup, default_id_notation: str | None = None
+    ) -> tuple[dict[str, VenueInfo] | None, dict[str, VenueInfo] | None, str | None, str | None]:
         """
         Extract trading venues and their ID_NOTATIONs from the HTML,
         including preferred notations based on liquidity.
-        
+
         For warrants, trading venues are in #marketSelect dropdown.
         NOTE: This only works if the page was fetched WITH an ID_NOTATION parameter!
-        
+
         Returns:
-            Tuple of (lt_venue_dict, ex_venue_dict, 
+            Tuple of (lt_venue_dict, ex_venue_dict,
                       preferred_lt_id_notation, preferred_ex_id_notation)
         """
         # Extract venues from dropdown
         id_notations_dict = extract_venues_from_dropdown(soup)
-        
+
         if not id_notations_dict:
             # If we still don't have notations, return empty dicts
             # This can happen if the page wasn't fetched with ID_NOTATION
             return None, None, None, None
-        
+
         # Separate into Life Trading and Exchange Trading
         lt_venue_dict, ex_venue_dict = categorize_lt_ex_venues(id_notations_dict)
-        
+
         # Extract preferred ID_NOTATIONs based on liquidity
         # Use single-venue fallback for warrants
         preferred_lt_id_notation = extract_preferred_lt_notation(
@@ -100,5 +90,5 @@ class WarrantParser(InstrumentParser):
         preferred_ex_id_notation = extract_preferred_ex_notation(
             soup, ex_venue_dict, use_single_venue_fallback=True
         )
-        
+
         return lt_venue_dict, ex_venue_dict, preferred_lt_id_notation, preferred_ex_id_notation

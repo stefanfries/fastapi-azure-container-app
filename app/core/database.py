@@ -5,8 +5,6 @@ This module provides async database connectivity using PyMongo 4.x native async 
 It manages the connection lifecycle integrated with FastAPI's startup/shutdown events.
 """
 
-from typing import Optional
-
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
@@ -15,17 +13,17 @@ from app.core.logging import logger
 from app.core.settings import settings
 
 # Global database client instance
-_client: Optional[AsyncMongoClient] = None
-_database: Optional[AsyncDatabase] = None
+_client: AsyncMongoClient | None = None
+_database: AsyncDatabase | None = None
 
 
 def get_database() -> AsyncDatabase:
     """
     Get the MongoDB database instance.
-    
+
     Returns:
         AsyncDatabase: MongoDB database instance
-        
+
     Raises:
         RuntimeError: If database connection is not initialized
     """
@@ -40,18 +38,18 @@ def get_database() -> AsyncDatabase:
 async def connect_to_database() -> None:
     """
     Establish connection to MongoDB Atlas.
-    
+
     This function should be called during FastAPI application startup.
-    
+
     Raises:
         ValueError: If MONGODB_CONNECTION_STRING is not configured
         ConnectionFailure: If connection to MongoDB fails
     """
     global _client, _database
-    
+
     try:
         logger.info("Connecting to MongoDB Atlas...")
-        
+
         # Create MongoDB client with connection pooling
         _client = AsyncMongoClient(
             settings.database.mongodb_connection_string.get_secret_value(),
@@ -61,15 +59,17 @@ async def connect_to_database() -> None:
             retryWrites=True,
             w="majority",  # Write concern
         )
-        
+
         # Verify connection by pinging the database
         await _client.admin.command("ping")
-        
+
         # Get database instance
         _database = _client[settings.database.db_name]
-        
-        logger.info("Successfully connected to MongoDB Atlas (database: %s)", settings.database.db_name)
-        
+
+        logger.info(
+            "Successfully connected to MongoDB Atlas (database: %s)", settings.database.db_name
+        )
+
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
         logger.error("Failed to connect to MongoDB: %s", e)
         raise
@@ -81,11 +81,11 @@ async def connect_to_database() -> None:
 async def close_database_connection() -> None:
     """
     Close the MongoDB connection.
-    
+
     This function should be called during FastAPI application shutdown.
     """
     global _client, _database
-    
+
     if _client:
         logger.info("Closing MongoDB connection...")
         await _client.close()
@@ -97,10 +97,10 @@ async def close_database_connection() -> None:
 def get_collection(collection_name: str):
     """
     Get a MongoDB collection from the database.
-    
+
     Args:
         collection_name (str): Name of the collection
-        
+
     Returns:
         AsyncCollection: MongoDB collection instance
     """
@@ -111,6 +111,7 @@ def get_collection(collection_name: str):
 # Collection names constants
 class Collections:
     """MongoDB collection names."""
+
     USERS = "users"
     DEPOTS = "depots"
     INSTRUMENTS = "instruments"

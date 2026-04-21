@@ -4,8 +4,6 @@ Router for depot (portfolio) endpoints.
 Provides endpoints for listing and retrieving depot data from MongoDB.
 """
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.logging import logger
@@ -18,8 +16,8 @@ router = APIRouter(prefix="/v1/depots", tags=["depots"], dependencies=[Depends(r
 _repo = DepotRepository()
 
 
-@router.get("/", response_model=List[Depot])
-async def get_all_depots() -> List[Depot]:
+@router.get("/", response_model=list[Depot])
+async def get_all_depots() -> list[Depot]:
     """Return all depots from the database."""
     logger.info("Fetching all depots")
     return await _repo.find_all()

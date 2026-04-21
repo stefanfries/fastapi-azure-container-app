@@ -10,10 +10,10 @@ TEST_DIR = tests
 help: ## Show this help message
 	@echo Available commands:
 	@echo   install     Install Python dependencies
-	@echo   format      Format code with black (auto-fix)
-	@echo   lint        Run pylint checks
+	@echo   format      Format code with ruff (auto-fix)
+	@echo   lint        Run ruff linter
 	@echo   test        Run tests with coverage
-	@echo   check       Run lint, tests, and black format check
+	@echo   check       Run lint, tests, and ruff format check
 	@echo   run-local   Run FastAPI app locally
 	@echo   clean       Remove Python cache files
 	@echo   all         Install dependencies and run all checks
@@ -21,17 +21,18 @@ help: ## Show this help message
 install: ## Install Python dependencies
 	uv sync
 
-format: ## Format code with black
-	uv run black $(APP_DIR) $(TEST_DIR)
+format: ## Format code with ruff (auto-fix)
+	uv run ruff format $(APP_DIR) $(TEST_DIR)
+	uv run ruff check --fix $(APP_DIR) $(TEST_DIR)
 
-lint: ## Run pylint checks
-	uv run pylint --disable=R,C $(APP_DIR) $(TEST_DIR)
+lint: ## Run ruff linter
+	uv run ruff check $(APP_DIR) $(TEST_DIR)
 
 test: ## Run tests with coverage
 	uv run pytest --verbose --cov=app tests/
 
-check: lint test ## Run format check, lint, and tests
-	uv run black --check $(APP_DIR) $(TEST_DIR)
+check: lint test ## Run lint, tests, and format check
+	uv run ruff format --check $(APP_DIR) $(TEST_DIR)
 
 run-local: ## Run FastAPI app locally
 	uvicorn app.main:app --reload --host 0.0.0.0 --port 8080

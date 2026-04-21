@@ -8,11 +8,10 @@ Classes:
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 from pydantic_extra_types.currency_code import Currency
-from typing_extensions import Literal
 
 type Interval = Literal["5min", "15min", "30min", "hour", "day", "week", "month"]
 
@@ -55,11 +54,11 @@ class HistoryData(BaseModel):
 
     name: str
     wkn: str
-    isin: Optional[str] = None
+    isin: str | None = None
     id_notation: str
     trading_venue: str
     currency: Currency
     start: datetime
     end: datetime
     interval: Interval
-    data: List[HistoryRecord]
+    data: list[HistoryRecord]

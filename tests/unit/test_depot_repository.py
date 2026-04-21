@@ -50,6 +50,7 @@ def repo(collection):
 
 # --- find_all ---
 
+
 async def test_find_all_returns_empty_list(repo, collection):
     result = await repo.find_all()
     assert result == []
@@ -66,6 +67,7 @@ async def test_find_all_returns_depots(repo, collection):
 
 
 # --- find_by_id ---
+
 
 async def test_find_by_id_returns_depot(repo, collection):
     depot = _make_depot()
@@ -88,6 +90,7 @@ async def test_find_by_id_not_found(repo, collection):
 
 # --- create ---
 
+
 async def test_create_inserts_depot(repo, collection):
     collection.find_one.return_value = None  # no duplicate
     depot = _make_depot()
@@ -108,6 +111,7 @@ async def test_create_raises_on_duplicate(repo, collection):
 
 # --- update ---
 
+
 async def test_update_returns_true_on_success(repo, collection):
     result = await repo.update("depot-1", {"cash": 9999.0})
     assert result is True
@@ -120,6 +124,7 @@ async def test_update_returns_false_when_no_match(repo, collection):
 
 
 # --- delete ---
+
 
 async def test_delete_returns_true_on_success(repo, collection):
     result = await repo.delete("depot-1")

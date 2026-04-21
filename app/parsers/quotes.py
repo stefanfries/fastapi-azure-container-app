@@ -30,7 +30,7 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         instrument_id (str): The ID of the financial instrument to fetch and parse data for.
         id_notation (str | None): Optional ID notation for specific trading venue.
     Returns:
-        Quote: An object containing parsed quote data including name, WKN, bid price, ask price, 
+        Quote: An object containing parsed quote data including name, WKN, bid price, ask price,
                spread percentage, currency, timestamp, trading venue, and ID notation.
     Raises:
         ValueError: If the response does not contain the expected data.

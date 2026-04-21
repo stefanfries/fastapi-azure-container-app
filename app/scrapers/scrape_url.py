@@ -64,7 +64,6 @@ async def fetch_one(
     """
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-
         url = compose_url(instrument_id, asset_class, id_notation)
         response = await client.get(url)
         response.raise_for_status()

@@ -5,9 +5,6 @@ This parser handles the standard HTML structure used by stocks, bonds, ETFs,
 funds, and certificates on comdirect.
 """
 
-
-from typing import Dict, Optional, Tuple
-
 from bs4 import BeautifulSoup
 
 from app.models.instruments import AssetClass, VenueInfo
@@ -26,25 +23,25 @@ from app.parsers.plugins.parsing_utils import (
 
 class StandardAssetParser(InstrumentParser):
     """Parser for STOCK, BOND, ETF, FUND, and CERTIFICATE asset classes."""
-    
+
     def __init__(self, asset_class: AssetClass):
         """
         Initialize the parser for a specific asset class.
-        
+
         Args:
             asset_class: The asset class this parser will handle
         """
         self._asset_class = asset_class
-    
+
     @property
     def asset_class(self) -> AssetClass:
         """Return the asset class this parser handles."""
         return self._asset_class
-    
+
     def parse_name(self, soup: BeautifulSoup) -> str:
         """
         Extract the instrument name from the HTML.
-        
+
         For standard assets, the name is in the H1 tag with the asset class
         name removed.
         """
@@ -52,11 +49,11 @@ class StandardAssetParser(InstrumentParser):
         if not name:
             raise ValueError("Could not find H1 headline")
         return name
-    
+
     def parse_wkn(self, soup: BeautifulSoup) -> str:
         """
         Extract the WKN from the HTML.
-        
+
         For standard assets, WKN is in the H2 tag, extracted from patterns like:
         "WKN: 123456 / ISIN: DE0001234567"
         """
@@ -64,48 +61,41 @@ class StandardAssetParser(InstrumentParser):
         if not wkn:
             raise ValueError("Could not extract WKN from H2")
         return wkn
-    
-    def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
+
+    def parse_isin(self, soup: BeautifulSoup) -> str | None:
         """
         Extract the ISIN from the HTML.
-        
+
         For standard assets, ISIN is in the H2 tag after "ISIN:"
         """
         return extract_after_label(soup, "ISIN:", max_length=12)
-    
+
     def parse_id_notations(
-        self,
-        soup: BeautifulSoup,
-        default_id_notation: Optional[str] = None
-    ) -> Tuple[
-        Optional[Dict[str, VenueInfo]], 
-        Optional[Dict[str, VenueInfo]],
-        Optional[str],
-        Optional[str]
-    ]:
+        self, soup: BeautifulSoup, default_id_notation: str | None = None
+    ) -> tuple[dict[str, VenueInfo] | None, dict[str, VenueInfo] | None, str | None, str | None]:
         """
         Extract trading venues and their ID_NOTATIONs from the HTML,
         including preferred notations based on liquidity.
-        
+
         For standard assets, trading venues are in #marketSelect dropdown
         or in a table if there's only one venue.
-        
+
         Returns:
-            Tuple of (lt_venue_dict, ex_venue_dict, 
+            Tuple of (lt_venue_dict, ex_venue_dict,
                       preferred_lt_id_notation, preferred_ex_id_notation)
         """
         # Try dropdown first (multiple venues)
         id_notations_dict = extract_venues_from_dropdown(soup)
-        
+
         # If no dropdown, try single-venue table
         if not id_notations_dict:
             id_notations_dict = extract_venue_from_single_table(soup)
-        
+
         # Separate into Life Trading and Exchange Trading
         lt_venue_dict, ex_venue_dict = categorize_lt_ex_venues(id_notations_dict)
-        
+
         # Extract preferred ID_NOTATIONs based on liquidity
         preferred_lt_id_notation = extract_preferred_lt_notation(soup, lt_venue_dict)
         preferred_ex_id_notation = extract_preferred_ex_notation(soup, ex_venue_dict)
-        
+
         return lt_venue_dict, ex_venue_dict, preferred_lt_id_notation, preferred_ex_id_notation

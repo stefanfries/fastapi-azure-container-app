@@ -60,7 +60,5 @@ async def get_history_data(
         interval=interval,
         id_notation=id_notation,
     )
-    logger.info(
-        "successfully retrieved history data for instrument_id %s", instrument_id
-    )
+    logger.info("successfully retrieved history data for instrument_id %s", instrument_id)
     return history_data

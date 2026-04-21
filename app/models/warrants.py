@@ -13,13 +13,12 @@ Classes:
 """
 
 from datetime import date, datetime
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class WarrantPreselection(str, Enum):
+class WarrantPreselection(StrEnum):
     """Pre-selection filter for the warrant type."""
 
     CALL = "CALL"
@@ -28,7 +27,7 @@ class WarrantPreselection(str, Enum):
     ALL = "ALL"
 
 
-class WarrantMaturityRange(str, Enum):
+class WarrantMaturityRange(StrEnum):
     """Predefined relative maturity date range codes accepted by the comdirect finder."""
 
     NOW = "Range_NOW"
@@ -62,12 +61,12 @@ class Warrant(BaseModel):
     isin: str = Field(..., description="ISIN")
     wkn: str = Field(..., description="WKN (6-character German securities number)")
     link: str = Field(..., description="URL to the comdirect warrant detail page")
-    strike: Optional[float] = Field(None, description="Strike price")
-    strike_currency: Optional[str] = Field(None, description="Currency of the strike price")
-    ratio: Optional[str] = Field(None, description="Contract ratio (Bezugsverhältnis), e.g. '10 : 1'")
-    maturity_date: Optional[date] = Field(None, description="Maturity / expiry date")
-    last_trading_day: Optional[date] = Field(None, description="Last trading day")
-    issuer: Optional[str] = Field(None, description="Name of the issuer")
+    strike: float | None = Field(None, description="Strike price")
+    strike_currency: str | None = Field(None, description="Currency of the strike price")
+    ratio: str | None = Field(None, description="Contract ratio (Bezugsverhältnis), e.g. '10 : 1'")
+    maturity_date: date | None = Field(None, description="Maturity / expiry date")
+    last_trading_day: date | None = Field(None, description="Last trading day")
+    issuer: str | None = Field(None, description="Name of the issuer")
 
 
 class WarrantFinderResponse(BaseModel):
@@ -88,57 +87,65 @@ class WarrantFinderResponse(BaseModel):
 class WarrantMarketData(BaseModel):
     """Live price and quote data (Kursdaten) for a warrant."""
 
-    venue: Optional[str] = Field(None, description="Trading venue name")
-    bid: Optional[float] = Field(None, description="Bid (Geld) price")
-    ask: Optional[float] = Field(None, description="Ask (Brief) price")
-    timestamp: Optional[datetime] = Field(None, description="Quote timestamp")
-    spread_percent: Optional[float] = Field(None, description="Bid-ask spread as % of ask")
-    spread_homogenized: Optional[float] = Field(None, description="Homogenised spread")
-    prev_close: Optional[float] = Field(None, description="Previous close price (Vortag)")
-    open: Optional[float] = Field(None, description="Opening price (Eröffnung)")
-    high: Optional[float] = Field(None, description="Intraday high (Hoch)")
-    low: Optional[float] = Field(None, description="Intraday low (Tief)")
+    venue: str | None = Field(None, description="Trading venue name")
+    bid: float | None = Field(None, description="Bid (Geld) price")
+    ask: float | None = Field(None, description="Ask (Brief) price")
+    timestamp: datetime | None = Field(None, description="Quote timestamp")
+    spread_percent: float | None = Field(None, description="Bid-ask spread as % of ask")
+    spread_homogenized: float | None = Field(None, description="Homogenised spread")
+    prev_close: float | None = Field(None, description="Previous close price (Vortag)")
+    open: float | None = Field(None, description="Opening price (Eröffnung)")
+    high: float | None = Field(None, description="Intraday high (Hoch)")
+    low: float | None = Field(None, description="Intraday low (Tief)")
 
 
 class WarrantAnalytics(BaseModel):
     """Greeks and derived key metrics (Kennzahlen) for a warrant."""
 
-    delta: Optional[float] = Field(None, description="Delta")
-    leverage: Optional[float] = Field(None, description="Leverage ratio (Hebel)")
-    omega: Optional[float] = Field(None, description="Omega (effective leverage)")
-    implied_volatility: Optional[float] = Field(None, description="Implied volatility in %")
-    premium_per_annum: Optional[float] = Field(None, description="Time value cost per year in %")
-    time_value: Optional[float] = Field(None, description="Time value (Zeitwert)")
-    theta: Optional[float] = Field(None, description="Theta (time decay per day)")
-    theoretical_value: Optional[float] = Field(None, description="Theoretical fair value")
-    intrinsic_value: Optional[float] = Field(None, description="Intrinsic value (Innerer Wert)")
-    break_even: Optional[float] = Field(None, description="Break-even price of the underlying")
-    break_even_currency: Optional[str] = Field(None, description="Currency of the break-even price")
-    moneyness: Optional[float] = Field(None, description="Moneyness")
-    premium: Optional[float] = Field(None, description="Premium (Aufgeld) in %")
-    vega: Optional[float] = Field(None, description="Vega (sensitivity to IV change)")
-    gamma: Optional[float] = Field(None, description="Gamma (rate of change of delta)")
+    delta: float | None = Field(None, description="Delta")
+    leverage: float | None = Field(None, description="Leverage ratio (Hebel)")
+    omega: float | None = Field(None, description="Omega (effective leverage)")
+    implied_volatility: float | None = Field(None, description="Implied volatility in %")
+    premium_per_annum: float | None = Field(None, description="Time value cost per year in %")
+    time_value: float | None = Field(None, description="Time value (Zeitwert)")
+    theta: float | None = Field(None, description="Theta (time decay per day)")
+    theoretical_value: float | None = Field(None, description="Theoretical fair value")
+    intrinsic_value: float | None = Field(None, description="Intrinsic value (Innerer Wert)")
+    break_even: float | None = Field(None, description="Break-even price of the underlying")
+    break_even_currency: str | None = Field(None, description="Currency of the break-even price")
+    moneyness: float | None = Field(None, description="Moneyness")
+    premium: float | None = Field(None, description="Premium (Aufgeld) in %")
+    vega: float | None = Field(None, description="Vega (sensitivity to IV change)")
+    gamma: float | None = Field(None, description="Gamma (rate of change of delta)")
 
 
 class WarrantReferenceData(BaseModel):
     """Static instrument attributes (Stammdaten) for a warrant."""
 
-    isin: Optional[str] = Field(None, description="ISIN")
-    wkn: Optional[str] = Field(None, description="WKN")
-    last_trading_day: Optional[date] = Field(None, description="Last trading day (letzter Handelstag)")
-    maturity_date: Optional[date] = Field(None, description="Maturity / expiry date (Fälligkeit)")
-    strike: Optional[float] = Field(None, description="Strike price (Basispreis)")
-    strike_currency: Optional[str] = Field(None, description="Currency of the strike price")
-    underlying_name: Optional[str] = Field(None, description="Name of the underlying (Basiswert)")
-    underlying_price: Optional[float] = Field(None, description="Current price of the underlying")
-    underlying_price_currency: Optional[str] = Field(None, description="Currency of the underlying price")
-    ratio: Optional[str] = Field(None, description="Subscription ratio (Bezugsverhältnis), e.g. '10 : 1'")
-    warrant_type: Optional[str] = Field(None, description="Warrant type, e.g. 'Call (Amer.)'")
-    issuer: Optional[str] = Field(None, description="Issuer name (Emittent)")
-    currency: Optional[str] = Field(None, description="Settlement currency (Währung)")
-    symbol: Optional[str] = Field(None, description="Comdirect Ticker symbol")
-    issuer_action: bool = Field(False, description="Off-market flat-fee comdirect Aktion (ISSUER_ACTION)")
-    issuer_no_fee_action: bool = Field(False, description="On-exchange no-fee comdirect Aktion (ISSUER_NO_FEE_ACTION)")
+    isin: str | None = Field(None, description="ISIN")
+    wkn: str | None = Field(None, description="WKN")
+    last_trading_day: date | None = Field(None, description="Last trading day (letzter Handelstag)")
+    maturity_date: date | None = Field(None, description="Maturity / expiry date (Fälligkeit)")
+    strike: float | None = Field(None, description="Strike price (Basispreis)")
+    strike_currency: str | None = Field(None, description="Currency of the strike price")
+    underlying_name: str | None = Field(None, description="Name of the underlying (Basiswert)")
+    underlying_price: float | None = Field(None, description="Current price of the underlying")
+    underlying_price_currency: str | None = Field(
+        None, description="Currency of the underlying price"
+    )
+    ratio: str | None = Field(
+        None, description="Subscription ratio (Bezugsverhältnis), e.g. '10 : 1'"
+    )
+    warrant_type: str | None = Field(None, description="Warrant type, e.g. 'Call (Amer.)'")
+    issuer: str | None = Field(None, description="Issuer name (Emittent)")
+    currency: str | None = Field(None, description="Settlement currency (Währung)")
+    symbol: str | None = Field(None, description="Comdirect Ticker symbol")
+    issuer_action: bool = Field(
+        False, description="Off-market flat-fee comdirect Aktion (ISSUER_ACTION)"
+    )
+    issuer_no_fee_action: bool = Field(
+        False, description="On-exchange no-fee comdirect Aktion (ISSUER_NO_FEE_ACTION)"
+    )
 
 
 class WarrantDetailResponse(BaseModel):

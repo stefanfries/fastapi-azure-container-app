@@ -37,18 +37,16 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ⚠️ Partially Completed
 
-- **Data Models**: Instrument model contains only common attributes; no asset-class-specific extended fields
-- **Testing**: Unit tests for routers and repositories exist; no parser/scraper integration tests yet
+- **Asset-Class-Specific Parsers**: `StockDetails` and `WarrantDetails` parsers implemented; Bond, ETF, Fonds, Certificate, Index, Commodity, Currency parsers return `None` (models exist)
+- **Testing**: 104 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
 ### ❌ Missing Components
 
-- **Authentication**: API key protection implemented (`app/core/security.py`); user management intentionally excluded — belongs in consuming application
-- **Asset-Class-Specific Models**: Extended models per asset class not yet defined
+- **Remaining Detail Parsers**: Bond, ETF, Fonds, Certificate, Index, Commodity, Currency `parse_details()` not yet implemented
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
-- **User Role Model**: Intentionally not implemented — user management belongs in consuming application
 - **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
 - **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
 
@@ -176,22 +174,23 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 **Priority: HIGH - Core business requirement**
 
-#### 2.1 Extend Data Models
+#### 2.1 Extend Data Models ✅ COMPLETED
 
-- [ ] Create asset-class-specific model extensions
-  - `StockDetails` model: market cap, sector, industry, dividend yield, P/E ratio, etc.
-  - `BondDetails` model: coupon rate, maturity date, credit rating, issuer, etc.
-  - `ETFDetails` model: expense ratio, tracking index, AUM, distribution policy, etc.
-  - `FondsDetails` model: fund type, manager, inception date, NAV, etc.
-  - `WarrantDetails` model: strike price, expiry, underlying, type (call/put)
-  - `CertificateDetails` model: certificate type, participation rate, cap, floor
-  - `IndexDetails` model: constituent count, weighting method, base value
-  - `CommodityDetails` model: commodity type, unit, contract specs
-  - `CurrencyDetails` model: currency pair, exchange rate source
+- [x] Create asset-class-specific model extensions (`app/models/instrument_details.py`) ✅
+  - `StockDetails` — security_type, market_segment, sector, fiscal_year_end (DD-MM), market_cap, market_cap_currency, free_float, nominal_value, nominal_value_currency, shares_outstanding
+  - `BondDetails` — issuer, coupon_rate, coupon_type, issue_date, maturity_date, nominal_value, bond_type, credit_rating_moodys, credit_rating_sp, currency
+  - `ETFDetails` — tracked_index, expense_ratio, replication_method, distribution_policy, fund_domicile, inception_date, fund_currency, fund_size
+  - `FondsDetails` — fund_type, fund_manager, inception_date, fund_domicile, distribution_policy, expense_ratio, fund_currency, fund_size
+  - `WarrantDetails` — warrant_type (full exercise style), underlying_name, underlying_link, strike, strike_currency, ratio, maturity_date, last_trading_day, issuer
+  - `CertificateDetails` — certificate_type, underlying_name, cap, cap_currency, barrier, barrier_currency, participation_rate, maturity_date, issuer, currency
+  - `IndexDetails` — index_type, index_provider, country, base_value, base_date, num_constituents
+  - `CommodityDetails` — commodity_type, unit, source_exchange
+  - `CurrencyDetails` — base_currency, quote_currency
+  - `InstrumentDetails` discriminated union keyed on `asset_class` literal
 
-- [ ] Update `Instrument` model
-  - Add optional `details` field (discriminated union of all specific models)
-  - Ensure backward compatibility (field is optional/nullable)
+- [x] Update `Instrument` model ✅
+  - Optional `details: InstrumentDetails | None` field added
+  - Fully backward-compatible (field is `None` when parser not yet implemented)
 
 - [ ] Update database schema
   - MongoDB stores `details` as embedded subdocument; verify `InstrumentRepository` handles it
@@ -202,16 +201,22 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
   - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
   - `WarrantParser` — WARRANT
   - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY
-- [ ] Extend parsers to extract **asset-class-specific fields** (currently only common fields extracted):
-  - Extend `StandardAssetParser` (or create subclasses) for StockDetails, BondDetails, ETFDetails, etc.
-  - Extend `WarrantParser` to extract WarrantDetails (strike, expiry, underlying, type)
-  - Extend `SpecialAssetParser` to extract IndexDetails, CommodityDetails, CurrencyDetails
-- [ ] Test all parsers with sample WKNs from `docs/BUSINESS_REQUIREMENTS.md`
-  - `test_bonds`, `test_etfs`, `test_commodities`, `test_currencies`, `test_warrants`, `test_indizes`
+- [x] `parse_details()` default implementation in `InstrumentParser` base class returns `None` ✅
+- [x] `StockDetails` parser implemented in `StandardAssetParser._parse_stock_details()` ✅
+  - Reads "Aktieninformationen" table; handles `<span title>` for Branche, `Bil.`/`Mrd.`/`Mio.` for market cap
+  - 52 unit tests in `tests/unit/test_stock_details_parser.py`
+- [x] `WarrantDetails` parser implemented in `WarrantParser._parse_warrant_details()` ✅
+  - `Typ`: reconstructs full exercise style from `<span title>` ("Call (Amerikanisch)")
+  - `Basiswert`: full name from `<span title>`, `underlying_link` from `<a href>`
+  - `Emittent`: full institution name from `<a title>`
+  - 31 unit tests in `tests/unit/test_warrant_details_parser.py`
+- [ ] Remaining `parse_details()` implementations (models exist, return `None`):
+  - `StandardAssetParser`: BondDetails, ETFDetails, FondsDetails, CertificateDetails
+  - `SpecialAssetParser`: IndexDetails, CommodityDetails, CurrencyDetails
 
-#### 2.3 Update API Endpoints
+#### 2.3 Update API Endpoints ✅ COMPLETED
 
-- [ ] Enhance `GET /v1/instruments/{wkn}` response to include asset-class-specific `details`
+- [x] `GET /v1/instruments/{wkn}` response includes `details` field with asset-class-specific data ✅
 - [ ] Add asset class filtering: `GET /v1/instruments?asset_class={asset_class}`
 
 #### 2.4 Remove Legacy Parsing Code ✅ COMPLETED
@@ -223,9 +228,10 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 **Deliverables:**
 
 - ✅ All 9 asset classes supported by plugin system
-- [ ] Asset-class-specific data models defined and integrated into `Instrument`
-- [ ] Parsers extended to extract asset-class-specific fields
-- [ ] `GET /v1/instruments/{wkn}` returns full enriched data per asset class
+- ✅ Asset-class-specific data models defined and integrated into `Instrument`
+- ✅ `GET /v1/instruments/{wkn}` returns enriched `details` for STOCK and WARRANT
+- ✅ 104 unit tests (52 stock + 31 warrant + existing)
+- [ ] Remaining `parse_details()` for Bond, ETF, Fonds, Certificate, Index, Commodity, Currency
 
 ---
 

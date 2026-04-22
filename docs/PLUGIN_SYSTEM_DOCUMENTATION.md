@@ -28,17 +28,17 @@ app/parsers/plugins/
 
 ## Asset Class Coverage
 
-| Asset Class | Parser | Notes |
-| ----------- | ------ | ----- |
-| STOCK | `StandardAssetParser` | Full venue + id_notation support |
-| BOND | `StandardAssetParser` | Full venue + id_notation support |
-| ETF | `StandardAssetParser` | Full venue + id_notation support |
-| FONDS | `StandardAssetParser` | Full venue + id_notation support |
-| CERTIFICATE | `StandardAssetParser` | Full venue + id_notation support |
-| WARRANT | `WarrantParser` | Requires id_notation in URL for full venue data |
-| INDEX | `SpecialAssetParser` | No venues (non-tradeable) |
-| COMMODITY | `SpecialAssetParser` | No venues (non-tradeable) |
-| CURRENCY | `SpecialAssetParser` | No venues (non-tradeable) |
+| Asset Class | Parser | `parse_details()` | Notes |
+| ----------- | ------ | ----------------- | ----- |
+| STOCK | `StandardAssetParser` | ✅ `StockDetails` | Full venue + id_notation support |
+| BOND | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
+| ETF | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
+| FONDS | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
+| CERTIFICATE | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
+| WARRANT | `WarrantParser` | ✅ `WarrantDetails` | Requires id_notation in URL for full venue data |
+| INDEX | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
+| COMMODITY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
+| CURRENCY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
 
 ## Key Components
 
@@ -65,7 +65,13 @@ class InstrumentParser(ABC):
     def parse_id_notations(
         self, soup: BeautifulSoup, default_id_notation: Optional[str]
     ) -> Tuple[Optional[Dict], Optional[Dict], Optional[str], Optional[str]]: ...
+
+    def parse_details(self, soup: BeautifulSoup) -> InstrumentDetails | None:
+        """Default: return None. Override in subclasses."""
+        return None
 ```
+
+The non-abstract `parse_details()` default lets parsers not yet extended remain fully valid — the `Instrument.details` field will be `None` until the subclass implements it.
 
 ### 2. StandardAssetParser
 
@@ -75,6 +81,11 @@ Handles the standard comdirect HTML structure used by STOCK, BOND, ETF, FONDS, a
 - ISIN at position 3 in H2 token list
 - Trading venues from `#marketSelect` dropdown or single-venue `.simple-table`
 - Asset-class label stripped from end of H1 using `str.removesuffix()`
+- **`parse_details()`** dispatches to `_parse_stock_details()` for STOCK (others return `None`):
+  - Reads the "Aktieninformationen" table
+  - Extracts `Branche` from `<span title>` (avoids truncated display text)
+  - Handles market cap magnitude suffixes: `Bil.` (10¹²), `Mrd.` (10⁹), `Mio.` (10⁶)
+  - Returns a `StockDetails` instance
 
 ### 3. WarrantParser
 
@@ -83,6 +94,11 @@ Handles WARRANT (Optionsscheine):
 - Same H1/H2 structure as standard assets
 - Trading venues only available when page fetched **with** `ID_NOTATION` query parameter
 - Falls back gracefully to `(None, None, None, None)` if page was fetched without `ID_NOTATION`
+- **`parse_details()`** always returns a `WarrantDetails` instance from the "Stammdaten" table:
+  - `Typ`: reconstructs full text using `<span title>` — "Call (Amerikanisch)" instead of "Call (Amer.)"
+  - `Basiswert`: `underlying_name` from `<span title>`, `underlying_link` built from `<a href>`
+  - `Emittent`: full institution name from `<a title>` (e.g. "HSBC, Deutschland, Düsseldorf")
+  - All fields fall back to `None` for `"--"` or `"k. A."` placeholders
 
 ### 4. SpecialAssetParser
 
@@ -118,11 +134,13 @@ Common HTML extraction helpers shared across all parsers:
 | `extract_after_label` | Extracts value after a label (e.g. `"ISIN:"`) in H2 |
 | `extract_venues_from_dropdown` | Extracts venue→id_notation map from `#marketSelect` |
 | `extract_venue_from_single_table` | Extracts single venue from `.simple-table` |
+| `extract_table_cell_by_label` | Extracts a `<td>` value by finding a matching `<th>` under a named section |
 | `categorize_lt_ex_venues` | Splits venues into Life Trading / Exchange Trading dicts |
 | `extract_preferred_lt_notation` | Picks LT venue with highest "Gestellte Kurse" |
 | `extract_preferred_ex_notation` | Picks EX venue with highest "Anzahl Kurse" |
 | `infer_currency` | Infers ISO 4217 currency from venue name |
-| `clean_numeric_value` | Parses German-format numbers with magnitude suffixes |
+| `clean_numeric_value` | Parses German-format numbers with magnitude suffixes (`Tsd.`, `Mio.`, `Mrd.`, `Bil.`) |
+| `clean_float_value` | Parses German decimal strings (`"2,34 %"` → `2.34`, `"--"` → `None`) |
 
 ## How It Works
 
@@ -132,7 +150,8 @@ Common HTML extraction helpers shared across all parsers:
 2. Parse asset class from redirected URL path
 3. Retrieve `StandardAssetParser(asset_class)` from factory
 4. Parse name, WKN, ISIN, id_notations, preferred notations
-5. Return `Instrument`
+5. Call `parse_details(soup)` — returns `StockDetails` for STOCK, `None` for others (pending)
+6. Return `Instrument` with optional `details`
 
 ### Warrant Flow
 
@@ -140,6 +159,7 @@ Common HTML extraction helpers shared across all parsers:
 2. Parse asset class → `WarrantParser`
 3. Extract `default_id_notation` from redirected URL query string
 4. Parse all fields; venue data is populated when `ID_NOTATION` was present in the URL
+5. Call `parse_details(soup)` — returns `WarrantDetails` with full names from span/a attributes
 
 ### Special Asset Flow (INDEX, COMMODITY, CURRENCY)
 
@@ -147,6 +167,29 @@ Common HTML extraction helpers shared across all parsers:
 2. Parse asset class → `SpecialAssetParser(asset_class)`
 3. Parse name (full H1 text including suffix) and WKN (H2 position 2)
 4. All venue/notation fields are `None` — these instruments are not tradeable directly
+5. `parse_details()` returns `None` (pending implementation)
+
+## Asset-Class-Specific Detail Models
+
+All models live in `app/models/instrument_details.py` as a Pydantic v2 discriminated union:
+
+```python
+InstrumentDetails = Annotated[
+    StockDetails | BondDetails | ETFDetails | FondsDetails | WarrantDetails
+    | CertificateDetails | IndexDetails | CommodityDetails | CurrencyDetails,
+    Field(discriminator="asset_class")
+]
+```
+
+Each model carries the static "Stammdaten" fields for its asset class. The `Instrument` model exposes them via an optional field:
+
+```python
+class Instrument(BaseModel):
+    ...
+    details: InstrumentDetails | None = None
+```
+
+FastAPI serialises the correct concrete model based on the `asset_class` literal — no manual type-switching needed.
 
 ## Adding a New Asset Class
 

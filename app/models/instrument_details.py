@@ -173,9 +173,14 @@ class WarrantDetails(BaseModel):
     asset_class: Literal["Warrant"] = "Warrant"
 
     warrant_type: str | None = Field(
-        None, description="Warrant type, e.g. 'Call (Amer.)', 'Put (Europ.)'"
+        None, description="Warrant type with full exercise style, e.g. 'Call (Amerikanisch)'"
     )
-    underlying_name: str | None = Field(None, description="Underlying instrument name (Basiswert)")
+    underlying_name: str | None = Field(
+        None, description="Full underlying instrument name from span title (Basiswert)"
+    )
+    underlying_link: str | None = Field(
+        None, description="Absolute URL to the underlying instrument page on comdirect"
+    )
     strike: float | None = Field(None, description="Strike price (Basispreis)")
     strike_currency: str | None = Field(None, description="Currency of the strike price")
     ratio: str | None = Field(
@@ -183,7 +188,9 @@ class WarrantDetails(BaseModel):
     )
     maturity_date: date | None = Field(None, description="Maturity / expiry date (Fälligkeit)")
     last_trading_day: date | None = Field(None, description="Last trading day (Letzter Handelstag)")
-    issuer: str | None = Field(None, description="Issuing institution (Emittent)")
+    issuer: str | None = Field(
+        None, description="Full issuer name from a title attribute, e.g. 'HSBC, Deutschland, Düsseldorf'"
+    )
 
 
 class CertificateDetails(BaseModel):

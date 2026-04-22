@@ -32,17 +32,38 @@ ASSET_CLASS_DETAILS_PATH = {
 }
 ```
 
-### 3. Create a Parser
+### 3. Add a Detail Model
+
+In `app/models/instrument_details.py`, add a new Pydantic model and register it in the union:
+
+```python
+class NewClassDetails(BaseModel):
+    asset_class: Literal["NewClass"] = "NewClass"
+    # add your fields here, all optional
+    some_field: str | None = Field(None, description="...")
+
+# Add to the union at the bottom of the file:
+InstrumentDetails = Annotated[
+    StockDetails | ... | NewClassDetails,
+    Field(discriminator="asset_class")
+]
+```
+
+### 4. Create a Parser
 
 If the new class has a **standard tradeable structure** (venues, id_notations), extend `StandardAssetParser` or create a new subclass of `InstrumentParser`:
 
 ```python
 # app/parsers/plugins/new_class_parser.py
-from typing import Dict, Optional, Tuple
 from bs4 import BeautifulSoup
+from app.models.instrument_details import InstrumentDetails, NewClassDetails
 from app.models.instruments import AssetClass, VenueInfo
 from app.parsers.plugins.base_parser import InstrumentParser
-from app.parsers.plugins.parsing_utils import extract_name_from_h1, extract_wkn_from_h2
+from app.parsers.plugins.parsing_utils import (
+    extract_name_from_h1,
+    extract_wkn_from_h2,
+    extract_after_label,
+)
 
 class NewClassParser(InstrumentParser):
     """Parser for NEW_CLASS asset class."""
@@ -63,20 +84,24 @@ class NewClassParser(InstrumentParser):
             raise ValueError("Could not extract WKN from H2")
         return wkn
 
-    def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
-        from app.parsers.plugins.parsing_utils import extract_after_label
+    def parse_isin(self, soup: BeautifulSoup) -> str | None:
         return extract_after_label(soup, "ISIN:", max_length=12)
 
     def parse_id_notations(
-        self, soup: BeautifulSoup, default_id_notation: Optional[str] = None
-    ) -> Tuple[Optional[Dict[str, VenueInfo]], Optional[Dict[str, VenueInfo]], Optional[str], Optional[str]]:
+        self, soup: BeautifulSoup, default_id_notation: str | None = None
+    ) -> tuple[dict[str, VenueInfo] | None, ...]:
         # Use shared utilities — see parsing_utils.py
         return None, None, None, None
+
+    def parse_details(self, soup: BeautifulSoup) -> InstrumentDetails | None:
+        return NewClassDetails(
+            some_field=...,
+        )
 ```
 
-If the new class is **non-tradeable** (like INDEX/COMMODITY/CURRENCY), simply register it with the existing `SpecialAssetParser` — no new file needed (see step 4).
+If the new class is **non-tradeable** (like INDEX/COMMODITY/CURRENCY), simply register it with the existing `SpecialAssetParser` — no new file needed (see step 5).
 
-### 4. Register the Parser in the Factory
+### 5. Register the Parser in the Factory
 
 In `app/parsers/plugins/factory.py`:
 
@@ -92,7 +117,18 @@ Or for a non-tradeable class reusing `SpecialAssetParser`:
 ParserFactory.register_parser(AssetClass.NEW_CLASS, SpecialAssetParser)
 ```
 
-### 5. Verify
+### 6. Write Tests
+
+Create `tests/unit/test_new_class_details_parser.py`. Mirror the structure of
+`tests/unit/test_warrant_details_parser.py`:
+
+- Write a `_new_class_page()` helper that builds minimal BeautifulSoup HTML
+  matching the real comdirect Stammdaten table structure for that asset class
+- Test each field individually (happy path)
+- Test `"--"` and `"k. A."` placeholders → `None`
+- Test the no-section fallback
+
+### 7. Verify
 
 ```bash
 uv run pytest tests/ -q
@@ -100,179 +136,59 @@ uv run uvicorn app.main:app --port 8080 --reload
 # GET http://localhost:8080/v1/instruments/<your-test-wkn>
 ```
 
+## Discovering Real HTML Structure
 
-## Step-by-Step Guide
-
-### 1. Create Your Parser File
-
-Create `app/parsers/plugins/your_asset_parser.py`:
+Before writing the parser, fetch a real page to inspect the HTML:
 
 ```python
-from typing import Dict, Optional, Tuple
-from bs4 import BeautifulSoup
-from app.models.basedata import AssetClass
-from app.parsers.plugins.base_parser import BaseDataParser
-
-class YourAssetParser(BaseDataParser):
-    """Parser for YOUR_ASSET asset class."""
-    
-    @property
-    def asset_class(self) -> AssetClass:
-        return AssetClass.YOUR_ASSET
-    
-    def parse_name(self, soup: BeautifulSoup) -> str:
-        """Extract instrument name from HTML."""
-        # Your implementation
-        headline = soup.select_one("h1")
-        return headline.text.strip() if headline else ""
-    
-    def parse_wkn(self, soup: BeautifulSoup) -> str:
-        """Extract WKN from HTML."""
-        # Your implementation
-        pass
-    
-    def parse_isin(self, soup: BeautifulSoup) -> Optional[str]:
-        """Extract ISIN from HTML."""
-        # Your implementation
-        pass
-    
-    def parse_id_notations(
-        self,
-        soup: BeautifulSoup,
-        default_id_notation: Optional[str] = None
-    ) -> Tuple[Optional[Dict[str, str]], Optional[Dict[str, str]]]:
-        """Extract trading venues and ID_NOTATIONs."""
-        # Your implementation
-        # Return: (life_trading_dict, exchange_trading_dict)
-        pass
-    
-    def needs_id_notation_refetch(self) -> bool:
-        """Override if refetch with ID_NOTATION is needed."""
-        return False  # or True if needed
-```
-
-### 2. Register Your Parser
-
-Add to `app/parsers/plugins/factory.py`:
-
-```python
-from app.parsers.plugins.your_asset_parser import YourAssetParser
-
-# At the bottom of the file
-ParserFactory.register_parser(AssetClass.YOUR_ASSET, YourAssetParser)
-```
-
-### 3. Test Your Parser
-
-Create `test_your_asset.py`:
-
-```python
+# scripts/debug_<new_class>.py
 import asyncio
-from app.parsers.basedata import parse_base_data
+from app.parsers.instruments import parse_instrument_data
+from app.models.instruments import AssetClass
+from app.scrapers.scrape_url import fetch_one
+from bs4 import BeautifulSoup
+import re
 
-async def test_your_asset():
-    basedata = await parse_base_data("YOUR_WKN")
-    print(f"Name: {basedata.name}")
-    print(f"WKN: {basedata.wkn}")
-    print(f"Trading Venues: {basedata.id_notations_life_trading}")
+async def main():
+    inst = await parse_instrument_data("YOUR_WKN")
+    resp = await fetch_one("YOUR_WKN", AssetClass.NEW_CLASS, inst.default_id_notation)
+    soup = BeautifulSoup(resp.content, "html.parser")
 
-if __name__ == "__main__":
-    asyncio.run(test_your_asset())
+    # Print all rows of the relevant section table
+    h2 = soup.find("h2", string=re.compile("Stammdaten"))
+    if h2:
+        for tr in h2.parent.find("table").find_all("tr"):
+            print(repr(str(tr)))
+
+asyncio.run(main())
 ```
 
-### 4. Run Tests
+Key things to check:
+- Are values in plain `<td>` text, or inside `<span title>` / `<a title>` / `<a href>`?
+- Do abbreviated display texts need to be replaced with the `title` attribute?
+- Are numeric values in German format (`"1.234,56"`) or with magnitude suffixes (`"4,20 Bil.")?
 
-```bash
-python test_your_asset.py
-```
+## Common Extraction Patterns
 
-## Common Patterns
-
-### Pattern 1: Standard Asset (like Stock)
-
-Use `#marketSelect` dropdown:
-
-```python
-def parse_id_notations(self, soup, default_id_notation=None):
-    id_notations_dict = {}
-    options = soup.select("#marketSelect option")
-    
-    for option in options:
-        label = option.get("label", "")
-        value = option.get("value", "")
-        if label and value:
-            id_notations_dict[label] = value
-    
-    # Categorize into life/exchange trading
-    # ...
-    return lt_dict, ex_dict
-```
-
-### Pattern 2: Needs Refetch (like Warrant)
-
-```python
-def needs_id_notation_refetch(self) -> bool:
-    return True
-
-def parse_id_notations(self, soup, default_id_notation=None):
-    # This will be called after refetch
-    market_select = soup.select_one("#marketSelect")
-    # Parse options...
-```
-
-### Pattern 3: Table-Based
-
-```python
-def parse_id_notations(self, soup, default_id_notation=None):
-    tables = soup.select("table.simple-table")
-    if tables:
-        rows = tables[0].select("tr")
-        # Extract from table rows...
-```
-
-## Debugging Tips
-
-### 1. Save HTML for Inspection
-
-```python
-with open("debug.html", "w", encoding="utf-8") as f:
-    f.write(soup.prettify())
-```
-
-### 2. Check Selectors
-
-```python
-print(f"Found {len(soup.select('#marketSelect'))} marketSelect elements")
-print(f"Found {len(soup.find_all('table'))} tables")
-```
-
-### 3. Inspect Response URL
-
-```python
-print(f"Final URL: {response.url}")
-```
+| HTML pattern | Extraction |
+| ------------ | ---------- |
+| `<td>plain text</td>` | `extract_table_cell_by_label(soup, section, label)` |
+| `<td><span title="Full Name">Abbr..</span></td>` | Read `span["title"]` |
+| `<td><a href="/path" title="Full Name">Short</a></td>` | Read `a["title"]` for name, `a["href"]` for link |
+| `"1.234,56 USD"` | `clean_float_value()` + split currency suffix |
+| `"4,20 Bil. EUR"` | `clean_numeric_value()` + split currency suffix |
+| `"DD.MM.YY"` or `"DD.MM.YYYY"` | `datetime.strptime()` with both formats |
 
 ## Checklist
 
-- [ ] Created parser file in `app/parsers/plugins/`
-- [ ] Implemented all required abstract methods
-- [ ] Registered parser in factory
-- [ ] Created test file
-- [ ] Tested with real WKN
-- [ ] Verified trading venues are extracted
-- [ ] Checked if refetch is needed
-- [ ] Added docstrings
-- [ ] Updated PLUGIN_SYSTEM_DOCUMENTATION.md
+- [ ] `AssetClass` enum member added
+- [ ] URL mappings in `constants.py` updated
+- [ ] `NewClassDetails` model created and added to `InstrumentDetails` union
+- [ ] Parser file created with all abstract methods implemented
+- [ ] `parse_details()` implemented and returning the new model
+- [ ] Parser registered in `ParserFactory`
+- [ ] Tests written (happy path + None cases + no-section fallback)
+- [ ] All tests pass (`uv run pytest tests/ -q`)
+- [ ] Verified live with a real WKN
+- [ ] `PLUGIN_SYSTEM_DOCUMENTATION.md` asset class table updated
 
-## Need Help?
-
-1. Look at existing parsers:
-   - `stock_parser.py` - Standard pattern
-   - `warrant_parser.py` - Refetch pattern
-
-2. Check the base class:
-   - `base_parser.py` - Interface definition
-
-3. Review test files:
-   - `test_plugin_system.py`
-   - `test_warrant_MJ85T6.py`

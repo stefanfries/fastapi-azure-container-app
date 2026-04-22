@@ -9,11 +9,13 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
 - **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
-- **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser
+- **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn}` returns a typed `details` block per asset class — `StockDetails` (sector, market cap, free float, …) and `WarrantDetails` (full exercise style, underlying link, issuer) fully implemented
+- **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with `parse_details()` support
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
 - **CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions
 - **Docker Support**: Containerized application for consistent deployments
+- **CORS Support**: `GET` requests permitted from any origin (suitable for browser-based clients)
 
 ## 📋 Quick Start
 
@@ -176,10 +178,10 @@ DOCKER_OWNER=your-github-username
 ## 📚 Documentation
 
 - **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Deployment guide
-- **[docs/PLUGIN_SYSTEM_DOCUMENTATION.md](docs/PLUGIN_SYSTEM_DOCUMENTATION.md)** - Plugin architecture (all 9 asset classes)
-- **[docs/QUICK_START_NEW_PARSER.md](docs/QUICK_START_NEW_PARSER.md)** - Adding new parsers
-- **[docs/TECHNICAL_REQUIREMENTS.md](docs/TECHNICAL_REQUIREMENTS.md)** - Technical requirements and current state
-- **[docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md)** - Prioritized development plan
+- **[docs/PLUGIN_SYSTEM_DOCUMENTATION.md](docs/PLUGIN_SYSTEM_DOCUMENTATION.md)** - Plugin architecture, asset-class coverage, and detail models
+- **[docs/QUICK_START_NEW_PARSER.md](docs/QUICK_START_NEW_PARSER.md)** - Adding new parsers and detail models
+- **[docs/TECHNICAL_REQUIREMENTS.md](docs/TECHNICAL_REQUIREMENTS.md)** - Technical requirements and current implementation state
+- **[docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md)** - Prioritized development plan and progress tracking
 
 ## 🔐 Security
 

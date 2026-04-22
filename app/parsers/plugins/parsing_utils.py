@@ -250,7 +250,11 @@ def clean_numeric_value(value: str) -> int | None:
 
         # Check for magnitude suffixes (German format)
         multiplier = 1
-        if "Mrd." in value or "Mrd" in value:
+        if "Bil." in value or "Bil" in value:
+            # Billion (Billion in German = Trillion in English) = 10^12
+            multiplier = 1_000_000_000_000
+            value = value.replace("Bil.", "").replace("Bil", "").strip()
+        elif "Mrd." in value or "Mrd" in value:
             # Billion (Milliarde)
             multiplier = 1_000_000_000
             value = value.replace("Mrd.", "").replace("Mrd", "").strip()
@@ -640,3 +644,36 @@ def extract_preferred_ex_notation(
         return list(ex_venue_dict.values())[0].id_notation
 
     return None
+
+
+def clean_float_value(value: str) -> float | None:
+    """
+    Parse a German-formatted decimal string (with optional ``%`` suffix) to float.
+
+    Handles:
+    - Comma as decimal separator: ``"2,34"`` → ``2.34``
+    - Dot as thousand separator: ``"1.234,56"`` → ``1234.56``
+    - Trailing percent sign: ``"2,34 %"`` → ``2.34``
+    - Missing / placeholder values: ``"--"``, ``""`` → ``None``
+
+    Args:
+        value: Raw string from a comdirect HTML cell.
+
+    Returns:
+        Parsed float or ``None`` when the value is absent or unparseable.
+
+    Examples:
+        clean_float_value("2,34 %") -> 2.34
+        clean_float_value("1.234,56") -> 1234.56
+        clean_float_value("--") -> None
+    """
+    if not value or value.strip() in ("--", "-", ""):
+        return None
+    try:
+        cleaned = value.strip().rstrip("%").strip()
+        # Remove thousand-separator dots only when a comma is present
+        if "," in cleaned:
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        return float(cleaned)
+    except (ValueError, AttributeError):
+        return None

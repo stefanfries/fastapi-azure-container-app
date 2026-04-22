@@ -149,6 +149,8 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         asset_class=asset_class,
     )
 
+    details = parser.parse_details(soup)
+
     instrument_data = Instrument(
         name=name,
         wkn=wkn,
@@ -160,5 +162,6 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         preferred_id_notation_exchange_trading=preferred_id_notation_exchange_trading,
         default_id_notation=default_id_notation,
         global_identifiers=global_identifiers,
+        details=details,
     )
     return instrument_data

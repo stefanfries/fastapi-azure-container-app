@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic_extra_types.currency_code import Currency
 
 from app.core.logging import logger
+from app.models.instrument_details import InstrumentDetails
 from app.models.types import ISIN, WKN
 
 
@@ -189,6 +190,10 @@ class Instrument(BaseModel):
     default_id_notation: str | None = Field(
         None,
         description="The default id_notation for live trading",
+    )
+    details: InstrumentDetails | None = Field(
+        None,
+        description="Asset-class-specific reference data (Stammdaten); None until parsed",
     )
 
     @field_validator("isin")

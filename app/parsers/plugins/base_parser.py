@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 
 from bs4 import BeautifulSoup
 
+from app.models.instrument_details import InstrumentDetails
 from app.models.instruments import AssetClass
 
 
@@ -85,3 +86,20 @@ class InstrumentParser(ABC):
             - preferred_ex_id_notation: ID_NOTATION with highest "Anzahl Kurse"
         """
         pass
+
+    def parse_details(self, soup: BeautifulSoup) -> InstrumentDetails | None:
+        """
+        Extract asset-class-specific reference data (Stammdaten) from the HTML.
+
+        Subclasses override this method to populate the appropriate
+        ``InstrumentDetails`` variant.  The default implementation returns
+        ``None`` so that parsers that have not yet been extended remain valid.
+
+        Args:
+            soup: BeautifulSoup object containing the instrument page HTML
+
+        Returns:
+            A populated ``InstrumentDetails`` instance, or ``None`` when not
+            implemented for this asset class.
+        """
+        return None

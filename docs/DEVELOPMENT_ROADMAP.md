@@ -62,7 +62,7 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ### Phase 1: Foundation & Code Quality (Week 1-2)
 
-**Priority: HIGH - Required for reliable development**
+Priority: HIGH - Required for reliable development
 
 #### 1.1 Clean Up Technical Debt
 
@@ -172,7 +172,7 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ### Phase 2: Complete Asset Class Support (Week 3-5)
 
-**Priority: HIGH - Core business requirement**
+Priority: HIGH - Core business requirement
 
 #### 2.1 Extend Data Models ✅ COMPLETED
 
@@ -204,14 +204,22 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 - [x] `parse_details()` default implementation in `InstrumentParser` base class returns `None` ✅
 - [x] `StockDetails` parser implemented in `StandardAssetParser._parse_stock_details()` ✅
   - Reads "Aktieninformationen" table; handles `<span title>` for Branche, `Bil.`/`Mrd.`/`Mio.` for market cap
-  - 52 unit tests in `tests/unit/test_stock_details_parser.py`
+- [x] `BondDetails` parser implemented in `StandardAssetParser._parse_bond_details()` ✅
+  - Reads "Anleiheinformationen" table; extracts coupon, maturity, credit ratings
+- [x] `ETFDetails` parser implemented in `StandardAssetParser._parse_etf_details()` ✅
+  - Reads "ETF-Informationen" table; extracts TER, replication method, fund size
+- [x] `FondsDetails` parser implemented in `StandardAssetParser._parse_fonds_details()` ✅
+  - Reads "Fondsinformationen" table; extracts fund manager, distribution policy, fund size
+- [x] `CertificateDetails` parser implemented in `StandardAssetParser._parse_certificate_details()` ✅
+  - Reads "Zertifikatinformationen" table; extracts type, cap, barrier, participation rate
 - [x] `WarrantDetails` parser implemented in `WarrantParser._parse_warrant_details()` ✅
   - `Typ`: reconstructs full exercise style from `<span title>` ("Call (Amerikanisch)")
   - `Basiswert`: full name from `<span title>`, `underlying_link` from `<a href>`
-  - `Emittent`: full institution name from `<a title>`
-  - 31 unit tests in `tests/unit/test_warrant_details_parser.py`
+  - `Emittent`: visible `<td>` display text (`get_text()`)
+  - 32 unit tests in `tests/unit/test_warrant_details_parser.py`
+- [x] All `StandardAssetParser` tests merged into `tests/unit/test_standard_asset_parser.py` ✅
+  - 110 tests covering all 5 standard asset classes + shared utilities
 - [ ] Remaining `parse_details()` implementations (models exist, return `None`):
-  - `StandardAssetParser`: BondDetails, ETFDetails, FondsDetails, CertificateDetails
   - `SpecialAssetParser`: IndexDetails, CommodityDetails, CurrencyDetails
 
 #### 2.3 Update API Endpoints ✅ COMPLETED
@@ -229,9 +237,9 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 - ✅ All 9 asset classes supported by plugin system
 - ✅ Asset-class-specific data models defined and integrated into `Instrument`
-- ✅ `GET /v1/instruments/{wkn}` returns enriched `details` for STOCK and WARRANT
-- ✅ 104 unit tests (52 stock + 31 warrant + existing)
-- [ ] Remaining `parse_details()` for Bond, ETF, Fonds, Certificate, Index, Commodity, Currency
+- ✅ `GET /v1/instruments/{wkn}` returns enriched `details` for STOCK, BOND, ETF, FONDS, CERTIFICATE, and WARRANT
+- ✅ 168 unit tests (110 standard asset + 32 warrant + existing)
+- [ ] Remaining `parse_details()` for Index, Commodity, Currency
 
 ---
 
@@ -244,8 +252,8 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
   - All 6 data routers protected: `instruments`, `quotes`, `history`, `warrants`, `indices`, `depots`
   - Key passed via `X-API-Key` request header
   - Configured via `API_KEY` environment variable / Azure Container App secret
-  - Open mode when `API_KEY` is unset or empty (safe for local development)
-  - Empty string treated identically to unset (no accidental lockout)
+  - Open mode when `API_KEY` is unset (safe for local development)
+  - **Empty string `API_KEY=""` is rejected at startup** with a validation error (prevents accidental open access)
 - [x] Public endpoints remain unprotected: `/`, `/docs`, `/health`, `/health/ready`
 - [x] `UserRepository`, `UserModel`, `/v1/users` router removed
 
@@ -253,7 +261,7 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ### Phase 4: Comprehensive Testing (Week 8-9)
 
-**Priority: MEDIUM-HIGH - Ensure reliability**
+Priority: MEDIUM-HIGH - Ensure reliability
 
 #### 4.1 Unit Tests
 
@@ -311,7 +319,7 @@ All renaming from legacy `basedata`/`pricedata` terminology to financial domain 
 
 ### Phase 5: Performance & Production Readiness (Week 10-11)
 
-**Priority: MEDIUM - Optimize for production**
+Priority: MEDIUM - Optimize for production
 
 #### 5.1 Caching Strategy
 
@@ -499,7 +507,7 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 ### Phase 6: Documentation & API Enhancement (Week 12)
 
-**Priority: MEDIUM - Improve developer experience**
+Priority: MEDIUM - Improve developer experience
 
 #### 6.1 API Documentation
 
@@ -664,13 +672,14 @@ Implement automated checking of comdirect.de's robots.txt before making requests
 
 ```text
 app/
-├── core/              # Settings, database, logging, constants
-├── models/            # Pydantic models (instruments, users, depots, history, quotes)
+├── core/              # Settings, database, logging, constants, security
+├── models/            # Pydantic models (instruments, instrument_details, depots,
+│                      #                  history, quotes, indices, warrants, types)
 ├── parsers/           # Parsing logic
 │   └── plugins/       # Parser plugin system (standard, warrant, special)
-├── repositories/      # MongoDB repository layer (instruments, users, depots)
+├── repositories/      # MongoDB repository layer (instruments, depots)
 ├── routers/           # API routes (root, health, instruments, quotes, history,
-│                      #             users, depots, warrants, indices)
+│                      #             depots, warrants, indices)
 ├── scrapers/          # Web scraping utilities
 ├── services/          # Business logic (identifier enrichment)
 ├── clients/           # External API clients (OpenFIGI)
@@ -683,8 +692,9 @@ tests/
 ├── unit/
 │   ├── test_main.py                    # App startup tests
 │   ├── test_root.py                    # Root endpoint tests
-│   ├── test_users.py                   # User endpoint tests
-│   ├── test_user_repository.py         # UserRepository unit tests
+│   ├── test_security.py                # API key security tests
+│   ├── test_standard_asset_parser.py   # StandardAssetParser tests (all 5 classes)
+│   ├── test_warrant_details_parser.py  # WarrantParser tests
 │   └── test_depot_repository.py        # DepotRepository unit tests
 └── integration/                        # Integration tests (to be added)
 
@@ -761,7 +771,7 @@ scripts/
 
 ### Phase 7: MCP Server Integration (Week 13-14)
 
-**Priority: LOW-MEDIUM - AI Assistant Enhancement**
+Priority: LOW-MEDIUM - AI Assistant Enhancement
 
 Enable AI assistants (Claude Desktop, IDEs, etc.) to interact with the financial data API through the Model Context Protocol (MCP).
 

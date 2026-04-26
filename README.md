@@ -9,7 +9,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
 - **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
-- **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn}` returns a typed `details` block per asset class — `StockDetails` (sector, market cap, free float, …) and `WarrantDetails` (full exercise style, underlying link, issuer) fully implemented
+- **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn}` returns a typed `details` block per asset class — `StockDetails`, `BondDetails`, `ETFDetails`, `FondsDetails`, `CertificateDetails` (sector, market cap, coupon, TER, …) and `WarrantDetails` (exercise style, underlying link, issuer) all fully implemented
 - **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with `parse_details()` support
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
@@ -121,7 +121,7 @@ pytest
 pytest --cov=app
 
 # Run specific test file
-pytest tests/test_main.py
+pytest tests/unit/test_standard_asset_parser.py
 ```
 
 ## 📁 Project Structure
@@ -189,6 +189,7 @@ DOCKER_OWNER=your-github-username
 - ✅ Secrets managed via Azure Key Vault / GitHub Secrets
 - ✅ OIDC authentication for GitHub Actions
 - ✅ No hardcoded credentials in code
+- ✅ API key protection on all data endpoints (`X-API-Key` header); omitting `API_KEY` enables open mode for local dev; setting `API_KEY=""` (empty string) is rejected at startup
 
 ## 🤝 Contributing
 

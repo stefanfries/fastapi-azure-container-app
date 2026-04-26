@@ -212,7 +212,18 @@ def extract_table_cell_by_label(
 
     # Navigate to find the label
     table_section = section.parent.parent
+
+    # Fast path: <th> with a single text node matches string= directly.
     row = table_section.find("th", string=re.compile(cell_label))
+
+    # Fallback: some <th> elements contain nested HTML (tooltips, <br/> tags),
+    # which makes their .string None so the above search misses them.
+    # Search by get_text() instead.
+    if not row:
+        for th in table_section.find_all("th"):
+            if re.search(cell_label, th.get_text(" ", strip=True)):
+                row = th
+                break
 
     if not row:
         return None
@@ -220,6 +231,10 @@ def extract_table_cell_by_label(
     # Get the sibling cell value
     cell = row.find_next_sibling("td")
     if cell:
+        # Prefer <span title="Full Name"> over truncated display text when present.
+        span = cell.find("span", attrs={"title": True})
+        if span and span["title"].strip():
+            return span["title"].strip()
         return cell.text.strip()
 
     return None

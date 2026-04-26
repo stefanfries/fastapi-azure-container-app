@@ -240,33 +240,31 @@ class StandardAssetParser(InstrumentParser):
 
     def _parse_bond_details(self, soup: BeautifulSoup) -> BondDetails:
         """
-        Parse the "Anleiheinformationen" table on the comdirect bond page.
+        Parse the "Stammdaten" table on the comdirect bond page.
 
         German label → field mapping:
-            Emittent          → issuer
-            Zinssatz          → coupon_rate  (e.g. "4,50 %")
-            Zinsart           → coupon_type  (e.g. "Fest")
+            Emittent          → issuer  (full name from <span title>)
+            Nominalzinssatz   → coupon_rate  (e.g. "10,250 %")
+            Kupon-Art         → coupon_type  (e.g. "Fest")
             Ausgabedatum      → issue_date   (DD.MM.YYYY)
             Fälligkeit        → maturity_date
-            Nennwert          → nominal_value + currency
-            Anleihetyp        → bond_type
-            Moody's           → credit_rating_moodys
-            S&P               → credit_rating_sp
+            Stückelung        → nominal_value + currency
+            Typ               → bond_type
             Währung           → currency
         """
-        section = "Anleiheinformationen"
+        section = "Stammdaten"
 
         def _get(label: str) -> str | None:
             v = extract_table_cell_by_label(soup, section, label)
             return v if v and v.strip() not in ("--", "k. A.") else None
 
         issuer = _get("Emittent")
-        coupon_rate = clean_float_value(_get("Zinssatz"))
-        coupon_type = _get("Zinsart")
+        coupon_rate = clean_float_value(_get("Nominalzinssatz"))
+        coupon_type = _get("Kupon-Art")
         issue_date = self._parse_date(_get("Ausgabedatum"))
         maturity_date = self._parse_date(_get("Fälligkeit"))
-        nominal_value, currency_nw = self._split_value_currency(_get("Nennwert"))
-        bond_type = _get("Anleihetyp")
+        nominal_value, currency_nw = self._split_value_currency(_get("Stückelung"))
+        bond_type = _get("Typ")
         credit_rating_moodys = _get("Moody's")
         credit_rating_sp = _get("S&P")
         currency = _get("Währung") or currency_nw
@@ -286,36 +284,40 @@ class StandardAssetParser(InstrumentParser):
 
     def _parse_etf_details(self, soup: BeautifulSoup) -> ETFDetails:
         """
-        Parse the "ETF-Informationen" table on the comdirect ETF page.
+        Parse the "Stammdaten" table on the comdirect ETF page.
 
         German label → field mapping:
-            Abgebildeter Index    → tracked_index
-            TER                  → expense_ratio  (e.g. "0,20 %")
-            Replikationsmethode  → replication_method
-            Ausschüttungsart     → distribution_policy
-            Fondsdomizil         → fund_domicile
-            Auflagedatum         → inception_date  (DD.MM.YYYY)
-            Fondswährung         → fund_currency
-            Fondsvermögen        → fund_size  (e.g. "1,23 Mrd.")
+            Vergleichsindex      → tracked_index  (full name from <span title>)
+            Laufende Kosten      → expense_ratio  (e.g. "0,20 %")
+            Abbildungsart        → replication_method
+            Art                  → distribution_policy
+            Fondsdomizil         → fund_domicile  (not always present)
+            Auflagedatum         → inception_date  (not always present)
+            Währung              → fund_currency
+            Fondsvolumen         → fund_size  (e.g. "1,23 Mrd. EUR")
         """
-        section = "ETF-Informationen"
+        section = "Stammdaten"
 
         def _get(label: str) -> str | None:
             v = extract_table_cell_by_label(soup, section, label)
             return v if v and v.strip() not in ("--", "k. A.") else None
 
-        tracked_index = _get("Abgebildeter Index")
-        expense_ratio = clean_float_value(_get("TER"))
-        replication_method = _get("Replikationsmethode")
-        distribution_policy = _get("Ausschüttungsart")
+        tracked_index = _get("Vergleichsindex")
+        expense_ratio = clean_float_value(_get("Laufende Kosten"))
+        replication_method = _get("Abbildungsart")
+        distribution_policy = _get("Art")
         fund_domicile = _get("Fondsdomizil")
         inception_date = self._parse_date(_get("Auflagedatum"))
-        fund_currency = _get("Fondswährung")
+        fund_currency = _get("Währung")
 
-        fund_size_raw = _get("Fondsvermögen")
+        fund_size_raw = _get("Fondsvolumen")
         fund_size: float | None = None
         if fund_size_raw:
-            numeric = clean_numeric_value(fund_size_raw)
+            # Strip trailing currency code before parsing magnitude (e.g. "311,39 Mio. EUR")
+            parts = fund_size_raw.split()
+            if parts and len(parts[-1]) == 3 and parts[-1].isupper():
+                parts = parts[:-1]
+            numeric = clean_numeric_value(" ".join(parts))
             fund_size = float(numeric) if numeric is not None else None
 
         return ETFDetails(
@@ -331,36 +333,40 @@ class StandardAssetParser(InstrumentParser):
 
     def _parse_fonds_details(self, soup: BeautifulSoup) -> FondsDetails:
         """
-        Parse the "Fondsinformationen" table on the comdirect mutual-fund page.
+        Parse the "Stammdaten" table on the comdirect mutual-fund page.
 
         German label → field mapping:
-            Fondstyp          → fund_type
-            Fondsmanager      → fund_manager
-            Auflagedatum      → inception_date  (DD.MM.YYYY)
-            Fondsdomizil      → fund_domicile
-            Ausschüttungsart  → distribution_policy
-            TER               → expense_ratio  (e.g. "1,50 %")
-            Fondswährung      → fund_currency
-            Fondsvermögen     → fund_size  (e.g. "512,00 Mio.")
+            Fondskategorie    → fund_type
+            Fondsmanager      → fund_manager  (not always present)
+            Auflagedatum      → inception_date  (not always present)
+            Fondsdomizil      → fund_domicile  (not always present)
+            Art               → distribution_policy
+            Laufende Kosten   → expense_ratio  (e.g. "1,50 %")
+            Währung           → fund_currency
+            Fondsvolumen      → fund_size  (e.g. "512,00 Mio.")
         """
-        section = "Fondsinformationen"
+        section = "Stammdaten"
 
         def _get(label: str) -> str | None:
             v = extract_table_cell_by_label(soup, section, label)
             return v if v and v.strip() not in ("--", "k. A.") else None
 
-        fund_type = _get("Fondstyp")
+        fund_type = _get("Fondskategorie")
         fund_manager = _get("Fondsmanager")
         inception_date = self._parse_date(_get("Auflagedatum"))
         fund_domicile = _get("Fondsdomizil")
-        distribution_policy = _get("Ausschüttungsart")
-        expense_ratio = clean_float_value(_get("TER"))
-        fund_currency = _get("Fondswährung")
+        distribution_policy = _get("Art")
+        expense_ratio = clean_float_value(_get("Laufende Kosten"))
+        fund_currency = _get("Währung")
 
-        fund_size_raw = _get("Fondsvermögen")
+        fund_size_raw = _get("Fondsvolumen")
         fund_size: float | None = None
         if fund_size_raw:
-            numeric = clean_numeric_value(fund_size_raw)
+            # Strip trailing currency code before parsing magnitude (e.g. "512,00 Mio. EUR")
+            parts = fund_size_raw.split()
+            if parts and len(parts[-1]) == 3 and parts[-1].isupper():
+                parts = parts[:-1]
+            numeric = clean_numeric_value(" ".join(parts))
             fund_size = float(numeric) if numeric is not None else None
 
         return FondsDetails(
@@ -376,19 +382,19 @@ class StandardAssetParser(InstrumentParser):
 
     def _parse_certificate_details(self, soup: BeautifulSoup) -> CertificateDetails:
         """
-        Parse the "Zertifikatinformationen" table on the comdirect certificate page.
+        Parse the "Stammdaten" table on the comdirect certificate page.
 
         German label → field mapping:
             Zertifikattyp       → certificate_type
-            Basiswert           → underlying_name
+            Basiswert           → underlying_name  (full name from <span title>)
             Cap-Niveau          → cap + cap_currency  (e.g. "100,00 EUR")
             Barriere            → barrier + barrier_currency
             Partizipationsrate  → participation_rate  (e.g. "100,00 %")
             Fälligkeit          → maturity_date  (DD.MM.YYYY or "Open End")
-            Emittent            → issuer
+            Emittent            → issuer  (full name from <span title>)
             Währung             → currency
         """
-        section = "Zertifikatinformationen"
+        section = "Stammdaten"
 
         def _get(label: str) -> str | None:
             v = extract_table_cell_by_label(soup, section, label)

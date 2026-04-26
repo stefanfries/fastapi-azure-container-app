@@ -1,15 +1,14 @@
-"""
-Unit tests for StandardAssetParser.parse_details — all five standard asset classes.
+"""Unit tests for StandardAssetParser.parse_details — all five standard asset classes.
 
 Covers:
 - ``clean_float_value``          — German decimal string → float
 - ``clean_numeric_value``        — German integer/magnitude string → int (incl. Bil.)
 - ``StandardAssetParser.parse_details`` for:
     - STOCK  (Aktieninformationen)
-    - BOND   (Anleiheinformationen)
-    - ETF    (ETF-Informationen)
-    - FONDS  (Fondsinformationen)
-    - CERTIFICATE (Zertifikatinformationen)
+    - BOND   (Stammdaten)
+    - ETF    (Stammdaten)
+    - FONDS  (Stammdaten)
+    - CERTIFICATE (Stammdaten)
 - ``InstrumentDetails`` discriminated union round-trip serialisation
 """
 
@@ -275,14 +274,14 @@ def _bond_page(
     sp: str = "AAA",
     waehrung: str = "EUR",
 ) -> BeautifulSoup:
-    return _section_page("Anleiheinformationen", [
+    return _section_page("Stammdaten", [
         ("Emittent", emittent),
-        ("Zinssatz", zinssatz),
-        ("Zinsart", zinsart),
+        ("Nominalzinssatz", zinssatz),
+        ("Kupon-Art", zinsart),
         ("Ausgabedatum", ausgabedatum),
-        ("Fälligkeit", faelligkeit),
-        ("Nennwert", nennwert),
-        ("Anleihetyp", anleihetyp),
+        ("F\u00e4lligkeit", faelligkeit),
+        ("St\u00fcckelung", nennwert),
+        ("Typ", anleihetyp),
         ("Moody's", moodys),
         ("S&P", sp),
         ("Währung", waehrung),
@@ -365,15 +364,15 @@ def _etf_page(
     currency: str = "USD",
     fund_size: str = "1,23 Mrd.",
 ) -> BeautifulSoup:
-    return _section_page("ETF-Informationen", [
-        ("Abgebildeter Index", index),
-        ("TER", ter),
-        ("Replikationsmethode", replication),
-        ("Ausschüttungsart", distribution),
+    return _section_page("Stammdaten", [
+        ("Vergleichsindex", index),
+        ("Laufende Kosten", ter),
+        ("Abbildungsart", replication),
+        ("Art", distribution),
         ("Fondsdomizil", domicile),
         ("Auflagedatum", inception),
-        ("Fondswährung", currency),
-        ("Fondsvermögen", fund_size),
+        ("W\u00e4hrung", currency),
+        ("Fondsvolumen", fund_size),
     ])
 
 
@@ -444,15 +443,15 @@ def _fonds_page(
     currency: str = "EUR",
     fund_size: str = "512,00 Mio.",
 ) -> BeautifulSoup:
-    return _section_page("Fondsinformationen", [
-        ("Fondstyp", fund_type),
+    return _section_page("Stammdaten", [
+        ("Fondskategorie", fund_type),
         ("Fondsmanager", fund_manager),
         ("Auflagedatum", inception),
         ("Fondsdomizil", domicile),
-        ("Ausschüttungsart", distribution),
-        ("TER", ter),
-        ("Fondswährung", currency),
-        ("Fondsvermögen", fund_size),
+        ("Art", distribution),
+        ("Laufende Kosten", ter),
+        ("W\u00e4hrung", currency),
+        ("Fondsvolumen", fund_size),
     ])
 
 
@@ -520,7 +519,7 @@ def _certificate_page(
     emittent: str = "DZ BANK AG",
     waehrung: str = "EUR",
 ) -> BeautifulSoup:
-    return _section_page("Zertifikatinformationen", [
+    return _section_page("Stammdaten", [
         ("Zertifikattyp", cert_type),
         ("Basiswert", basiswert),
         ("Cap-Niveau", cap),

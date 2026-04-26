@@ -164,6 +164,7 @@ asyncio.run(main())
 ```
 
 Key things to check:
+
 - Are values in plain `<td>` text, or inside `<span title>` / `<a title>` / `<a href>`?
 - Do abbreviated display texts need to be replaced with the `title` attribute?
 - Are numeric values in German format (`"1.234,56"`) or with magnitude suffixes (`"4,20 Bil.")?
@@ -174,7 +175,7 @@ Key things to check:
 | ------------ | ---------- |
 | `<td>plain text</td>` | `extract_table_cell_by_label(soup, section, label)` |
 | `<td><span title="Full Name">Abbr..</span></td>` | Read `span["title"]` |
-| `<td><a href="/path" title="Full Name">Short</a></td>` | Read `a["title"]` for name, `a["href"]` for link |
+| `<td><a href="/path" title="Full Name">Short</a></td>` | Read `a["href"]` for link; use `td.get_text(strip=True)` for the visible institution name |
 | `"1.234,56 USD"` | `clean_float_value()` + split currency suffix |
 | `"4,20 Bil. EUR"` | `clean_numeric_value()` + split currency suffix |
 | `"DD.MM.YY"` or `"DD.MM.YYYY"` | `datetime.strptime()` with both formats |
@@ -191,4 +192,3 @@ Key things to check:
 - [ ] All tests pass (`uv run pytest tests/ -q`)
 - [ ] Verified live with a real WKN
 - [ ] `PLUGIN_SYSTEM_DOCUMENTATION.md` asset class table updated
-

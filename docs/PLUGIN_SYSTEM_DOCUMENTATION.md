@@ -31,10 +31,10 @@ app/parsers/plugins/
 | Asset Class | Parser | `parse_details()` | Notes |
 | ----------- | ------ | ----------------- | ----- |
 | STOCK | `StandardAssetParser` | ✅ `StockDetails` | Full venue + id_notation support |
-| BOND | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
-| ETF | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
-| FONDS | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
-| CERTIFICATE | `StandardAssetParser` | ⏳ pending | Full venue + id_notation support |
+| BOND | `StandardAssetParser` | ✅ `BondDetails` | Full venue + id_notation support |
+| ETF | `StandardAssetParser` | ✅ `ETFDetails` | Full venue + id_notation support |
+| FONDS | `StandardAssetParser` | ✅ `FondsDetails` | Full venue + id_notation support |
+| CERTIFICATE | `StandardAssetParser` | ✅ `CertificateDetails` | Full venue + id_notation support |
 | WARRANT | `WarrantParser` | ✅ `WarrantDetails` | Requires id_notation in URL for full venue data |
 | INDEX | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
 | COMMODITY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
@@ -81,11 +81,14 @@ Handles the standard comdirect HTML structure used by STOCK, BOND, ETF, FONDS, a
 - ISIN at position 3 in H2 token list
 - Trading venues from `#marketSelect` dropdown or single-venue `.simple-table`
 - Asset-class label stripped from end of H1 using `str.removesuffix()`
-- **`parse_details()`** dispatches to `_parse_stock_details()` for STOCK (others return `None`):
-  - Reads the "Aktieninformationen" table
-  - Extracts `Branche` from `<span title>` (avoids truncated display text)
-  - Handles market cap magnitude suffixes: `Bil.` (10¹²), `Mrd.` (10⁹), `Mio.` (10⁶)
-  - Returns a `StockDetails` instance
+- **`parse_details()`** dispatches by `asset_class` to a dedicated private method:
+  - `_parse_stock_details()` — reads "Aktieninformationen"; extracts `Branche` from `<span title>`; handles market cap magnitude suffixes `Bil.` (10¹²), `Mrd.` (10⁹), `Mio.` (10⁶)
+  - `_parse_bond_details()` — reads "Anleiheinformationen"; extracts coupon rate, maturity date, credit ratings
+  - `_parse_etf_details()` — reads "ETF-Informationen"; extracts tracked index, TER, replication method, fund size
+  - `_parse_fonds_details()` — reads "Fondsinformationen"; extracts fund manager, distribution policy, fund size
+  - `_parse_certificate_details()` — reads "Zertifikatinformationen"; extracts certificate type, cap, barrier, participation rate
+  - Returns `None` for unregistered classes (INDEX, COMMODITY, CURRENCY) handled by `SpecialAssetParser`
+  - Shared static helpers: `_parse_date(text)` → `date | None` (DD.MM.YYYY / DD.MM.YY); `_split_value_currency(raw)` → `tuple[float|None, str|None]`
 
 ### 3. WarrantParser
 
@@ -97,7 +100,7 @@ Handles WARRANT (Optionsscheine):
 - **`parse_details()`** always returns a `WarrantDetails` instance from the "Stammdaten" table:
   - `Typ`: reconstructs full text using `<span title>` — "Call (Amerikanisch)" instead of "Call (Amer.)"
   - `Basiswert`: `underlying_name` from `<span title>`, `underlying_link` built from `<a href>`
-  - `Emittent`: full institution name from `<a title>` (e.g. "HSBC, Deutschland, Düsseldorf")
+  - `Emittent`: issuer name from the visible `<td>` display text (`get_text()`), not the `<a title>` attribute
   - All fields fall back to `None` for `"--"` or `"k. A."` placeholders
 
 ### 4. SpecialAssetParser
@@ -150,7 +153,7 @@ Common HTML extraction helpers shared across all parsers:
 2. Parse asset class from redirected URL path
 3. Retrieve `StandardAssetParser(asset_class)` from factory
 4. Parse name, WKN, ISIN, id_notations, preferred notations
-5. Call `parse_details(soup)` — returns `StockDetails` for STOCK, `None` for others (pending)
+5. Call `parse_details(soup)` — returns the asset-class-specific `Details` model
 6. Return `Instrument` with optional `details`
 
 ### Warrant Flow

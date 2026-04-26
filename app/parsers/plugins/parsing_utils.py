@@ -206,13 +206,13 @@ def extract_table_cell_by_label(
     import re
 
     # Find the section containing the table
-    section = soup.find(text=re.compile(table_header))
+    section = soup.find(string=re.compile(table_header))
     if not section:
         return None
 
     # Navigate to find the label
     table_section = section.parent.parent
-    row = table_section.find("th", text=re.compile(cell_label))
+    row = table_section.find("th", string=re.compile(cell_label))
 
     if not row:
         return None

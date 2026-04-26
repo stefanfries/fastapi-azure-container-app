@@ -2,7 +2,8 @@
 Unit tests for app.core.security.require_api_key.
 
 Tests cover three scenarios:
-- Open mode:      API_KEY unset (None) or empty string → all requests pass
+- Open mode:      API_KEY unset (None) → all requests pass
+- Misconfigured:  API_KEY set to empty string → requests are rejected (401)
 - Protected mode: API_KEY set → correct key passes, wrong/missing key → HTTP 401
 """
 
@@ -55,17 +56,17 @@ class TestOpenMode:
             response = _make_client().get("/protected", headers={"X-API-Key": "anything"})
         assert response.status_code == 200
 
-    def test_empty_string_key_is_open_mode(self):
-        """API_KEY set to empty string is treated as unconfigured (open mode)."""
+    def test_empty_string_key_rejects_no_header(self):
+        """API_KEY set to empty string: request without header returns 401."""
         with patch("app.core.security.settings", _mock_settings("")):
             response = _make_client().get("/protected")
-        assert response.status_code == 200
+        assert response.status_code == 401
 
-    def test_empty_string_key_ignores_wrong_header(self):
-        """API_KEY empty string: even a 'wrong' header value is allowed."""
+    def test_empty_string_key_rejects_wrong_header(self):
+        """API_KEY set to empty string: request with non-empty header returns 401."""
         with patch("app.core.security.settings", _mock_settings("")):
             response = _make_client().get("/protected", headers={"X-API-Key": "wrong"})
-        assert response.status_code == 200
+        assert response.status_code == 401
 
 
 # --------------------------------------------------------------------------- #

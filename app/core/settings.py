@@ -6,7 +6,7 @@ type validation, and default values. All settings are loaded from .env file or
 environment variables.
 """
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -192,10 +192,22 @@ class AuthSettings(BaseSettings):
         default=None,
         description=(
             "API key required in the X-API-Key header for all data endpoints. "
-            "If unset the API runs in open mode (development only)."
+            "If unset the API runs in open mode (development only). "
+            "Must be non-empty when set."
         ),
         validation_alias="API_KEY",
     )
+
+    @field_validator("api_key", mode="before")
+    @classmethod
+    def api_key_must_not_be_empty(cls, v: object) -> object:
+        """Reject an empty-string API_KEY to prevent silent open-mode misconfiguration."""
+        if isinstance(v, str) and v.strip() == "":
+            raise ValueError(
+                "API_KEY must not be an empty string. "
+                "Remove the variable to run in open mode, or supply a non-empty secret."
+            )
+        return v
 
     model_config = SettingsConfigDict(
         env_file=".env",

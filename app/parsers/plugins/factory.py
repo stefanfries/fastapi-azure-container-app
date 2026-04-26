@@ -7,8 +7,12 @@ asset class parsers without modifying existing code.
 
 from app.models.instruments import AssetClass
 from app.parsers.plugins.base_parser import InstrumentParser
+from app.parsers.plugins.bond_parser import BondParser
+from app.parsers.plugins.certificate_parser import CertificateParser
+from app.parsers.plugins.etf_parser import ETFParser
+from app.parsers.plugins.fonds_parser import FondsParser
 from app.parsers.plugins.special_asset_parser import SpecialAssetParser
-from app.parsers.plugins.standard_asset_parser import StandardAssetParser
+from app.parsers.plugins.stock_parser import StockParser
 from app.parsers.plugins.warrant_parser import WarrantParser
 
 
@@ -54,11 +58,10 @@ class ParserFactory:
         if parser_class is None:
             raise ValueError(f"No parser registered for asset class: {asset_class}")
 
-        # Parsers that require the asset_class constructor argument
-        if parser_class in (StandardAssetParser, SpecialAssetParser):
+        # SpecialAssetParser still needs an asset_class constructor argument
+        if parser_class is SpecialAssetParser:
             return parser_class(asset_class)
-        else:
-            return parser_class()
+        return parser_class()
 
     @classmethod
     def is_registered(cls, asset_class: AssetClass) -> bool:
@@ -76,12 +79,11 @@ class ParserFactory:
 
 # Register all parsers
 
-# Standard assets use the StandardAssetParser
-ParserFactory.register_parser(AssetClass.STOCK, StandardAssetParser)
-ParserFactory.register_parser(AssetClass.BOND, StandardAssetParser)
-ParserFactory.register_parser(AssetClass.ETF, StandardAssetParser)
-ParserFactory.register_parser(AssetClass.FONDS, StandardAssetParser)
-ParserFactory.register_parser(AssetClass.CERTIFICATE, StandardAssetParser)
+ParserFactory.register_parser(AssetClass.STOCK, StockParser)
+ParserFactory.register_parser(AssetClass.BOND, BondParser)
+ParserFactory.register_parser(AssetClass.ETF, ETFParser)
+ParserFactory.register_parser(AssetClass.FONDS, FondsParser)
+ParserFactory.register_parser(AssetClass.CERTIFICATE, CertificateParser)
 
 # Special (non-tradeable) asset classes — no venues or id_notations
 ParserFactory.register_parser(AssetClass.INDEX, SpecialAssetParser)

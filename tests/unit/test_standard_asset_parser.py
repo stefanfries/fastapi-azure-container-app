@@ -29,9 +29,12 @@ from app.models.instrument_details import (
     StockDetails,
     WarrantDetails,
 )
-from app.models.instruments import AssetClass
+from app.parsers.plugins.bond_parser import BondParser
+from app.parsers.plugins.certificate_parser import CertificateParser
+from app.parsers.plugins.etf_parser import ETFParser
+from app.parsers.plugins.fonds_parser import FondsParser
 from app.parsers.plugins.parsing_utils import clean_float_value, clean_numeric_value
-from app.parsers.plugins.standard_asset_parser import StandardAssetParser
+from app.parsers.plugins.stock_parser import StockParser
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -162,7 +165,7 @@ def _stock_page(
     return _make_soup(html)
 
 
-_stock_parser = StandardAssetParser(AssetClass.STOCK)
+_stock_parser = StockParser()
 
 
 class TestStockDetailsParser:
@@ -288,7 +291,7 @@ def _bond_page(
     ])
 
 
-_bond_parser = StandardAssetParser(AssetClass.BOND)
+_bond_parser = BondParser()
 
 
 class TestBondDetailsParser:
@@ -368,7 +371,7 @@ def _etf_page(
     ])
 
 
-_etf_parser = StandardAssetParser(AssetClass.ETF)
+_etf_parser = ETFParser()
 
 
 class TestETFDetailsParser:
@@ -444,7 +447,7 @@ def _fonds_page(
     ])
 
 
-_fonds_parser = StandardAssetParser(AssetClass.FONDS)
+_fonds_parser = FondsParser()
 
 
 class TestFondsDetailsParser:
@@ -521,7 +524,7 @@ def _certificate_page(
     ])
 
 
-_cert_parser = StandardAssetParser(AssetClass.CERTIFICATE)
+_cert_parser = CertificateParser()
 
 
 class TestCertificateDetailsParser:
@@ -587,20 +590,15 @@ class TestCertificateDetailsParser:
 
 
 class TestParseDetailsDispatch:
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.BOND,
-        AssetClass.ETF,
-        AssetClass.FONDS,
-        AssetClass.CERTIFICATE,
+    @pytest.mark.parametrize("parser", [
+        BondParser(),
+        ETFParser(),
+        FondsParser(),
+        CertificateParser(),
     ])
-    def test_returns_detail_object_not_none(self, asset_class):
+    def test_returns_detail_object_not_none(self, parser):
         """Bond/ETF/Fonds/Certificate parsers return a details object (not None)."""
-        parser = StandardAssetParser(asset_class)
         assert parser.parse_details(_stock_page()) is not None
-
-    def test_index_returns_none(self):
-        """INDEX is handled by SpecialAssetParser — StandardAssetParser returns None."""
-        assert StandardAssetParser(AssetClass.INDEX).parse_details(_stock_page()) is None
 
 
 # ---------------------------------------------------------------------------

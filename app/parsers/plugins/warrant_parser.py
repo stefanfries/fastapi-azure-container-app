@@ -1,7 +1,8 @@
 """
 Parser plugin for WARRANT asset class.
 
-Warrants have a different HTML structure on comdirect and require special handling.
+Inherits shared name/WKN/ISIN/id_notations logic from StandardAssetParser.
+Warrants use a different Stammdaten HTML structure requiring custom detail extraction.
 """
 
 import re
@@ -11,56 +12,23 @@ from bs4 import BeautifulSoup
 
 from app.models.instrument_details import InstrumentDetails, WarrantDetails
 from app.models.instruments import AssetClass, VenueInfo
-from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     clean_float_value,
-    extract_after_label,
-    extract_name_from_h1,
     extract_preferred_ex_notation,
     extract_preferred_lt_notation,
     extract_venues_from_dropdown,
-    extract_wkn_from_h2,
 )
+from app.parsers.plugins.standard_asset_parser import StandardAssetParser
 
 
-class WarrantParser(InstrumentParser):
+class WarrantParser(StandardAssetParser):
     """Parser for WARRANT asset class (Optionsscheine)."""
 
     @property
     def asset_class(self) -> AssetClass:
         """Return the asset class this parser handles."""
         return AssetClass.WARRANT
-
-    def parse_name(self, soup: BeautifulSoup) -> str:
-        """
-        Extract the instrument name from the HTML.
-
-        For warrants, the name is in the H1 tag with "Optionsschein" removed.
-        """
-        name = extract_name_from_h1(soup, remove_suffix="Optionsschein")
-        if not name:
-            raise ValueError("Could not find H1 headline")
-        return name
-
-    def parse_wkn(self, soup: BeautifulSoup) -> str:
-        """
-        Extract the WKN from the HTML.
-
-        For warrants, WKN is in the H2 tag.
-        """
-        wkn = extract_wkn_from_h2(soup)
-        if not wkn:
-            raise ValueError("Could not extract WKN from H2")
-        return wkn
-
-    def parse_isin(self, soup: BeautifulSoup) -> str | None:
-        """
-        Extract the ISIN from the HTML.
-
-        For warrants, ISIN is in the H2 tag after "ISIN:"
-        """
-        return extract_after_label(soup, "ISIN:", max_length=12)
 
     def parse_id_notations(
         self, soup: BeautifulSoup, default_id_notation: str | None = None

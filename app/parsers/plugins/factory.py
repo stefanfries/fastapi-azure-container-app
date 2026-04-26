@@ -84,11 +84,9 @@ ParserFactory.register_parser(AssetClass.BOND, BondParser)
 ParserFactory.register_parser(AssetClass.ETF, ETFParser)
 ParserFactory.register_parser(AssetClass.FONDS, FondsParser)
 ParserFactory.register_parser(AssetClass.CERTIFICATE, CertificateParser)
+ParserFactory.register_parser(AssetClass.WARRANT, WarrantParser)
 
 # Special (non-tradeable) asset classes — no venues or id_notations
 ParserFactory.register_parser(AssetClass.INDEX, SpecialAssetParser)
 ParserFactory.register_parser(AssetClass.COMMODITY, SpecialAssetParser)
 ParserFactory.register_parser(AssetClass.CURRENCY, SpecialAssetParser)
-
-# Warrant uses its own parser
-ParserFactory.register_parser(AssetClass.WARRANT, WarrantParser)

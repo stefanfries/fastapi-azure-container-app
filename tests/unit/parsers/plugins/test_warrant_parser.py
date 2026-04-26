@@ -1,18 +1,16 @@
 """
-Unit tests for warrant-details parsing.
+Unit tests for app.parsers.plugins.warrant_parser.WarrantParser.
 
 Covers:
-- ``WarrantParser.parse_details``
-    - Full warrant Stammdaten: all fields extracted correctly
-    - warrant_type reconstructed from span title: "Call (Amerikanisch)"
-    - underlying_name from <span title> (not truncated display text)
-    - underlying_link built from <a href> (absolute comdirect URL)
-    - issuer from visible anchor/plain text of the td (title attribute ignored)
-    - Strike split into value + currency
-    - Maturity / last-trading-day date parsing (DD.MM.YY and DD.MM.YYYY)
-    - Missing / "--" / "k. A." fields become None
-    - No Stammdaten section returns WarrantDetails with all None fields
-    - Fallbacks when span/a attributes are absent
+- warrant_type reconstructed from span title: "Call (Amerikanisch)"
+- underlying_name from <span title> (not truncated display text)
+- underlying_link built from <a href> (absolute comdirect URL)
+- issuer from visible anchor/plain text of the td (title attribute ignored)
+- Strike split into value + currency
+- Maturity / last-trading-day date parsing (DD.MM.YY and DD.MM.YYYY)
+- Missing / "--" / "k. A." fields become None
+- No Stammdaten section returns WarrantDetails with all None fields
+- Fallbacks when span/a attributes are absent
 """
 
 import textwrap
@@ -266,4 +264,3 @@ class TestMiscFields:
         assert result.underlying_link is None
         assert result.strike is None
         assert result.issuer is None
-

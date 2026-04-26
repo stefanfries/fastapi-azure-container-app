@@ -1,8 +1,4 @@
-"""
-Unit tests for DepotRepository.
-
-All MongoDB interactions are mocked — no real Atlas connection required.
-"""
+"""Unit tests for app.repositories.depots.DepotRepository."""
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch

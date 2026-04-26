@@ -56,8 +56,8 @@ def client(mock_database):
             assert response.status_code == 200
     """
     with (
-        patch("app.core.database.connect_to_database", new_callable=AsyncMock),
-        patch("app.core.database.close_database_connection", new_callable=AsyncMock),
+        patch("app.main.connect_to_database", new_callable=AsyncMock),
+        patch("app.main.close_database_connection", new_callable=AsyncMock),
         patch("app.core.database.get_database", return_value=mock_database),
     ):
         from app.main import app

@@ -16,25 +16,31 @@ The comdirect instrument parser uses a **plugin pattern with factory design**, p
 ### Structure
 
 ```text
-app/parsers/plugins/
-├── __init__.py                  # Package initialization
-├── base_parser.py               # Abstract base class (interface)
-├── standard_asset_parser.py     # Parser for STOCK, BOND, ETF, FONDS, CERTIFICATE
-├── warrant_parser.py            # Parser for WARRANT
-├── special_asset_parser.py      # Parser for INDEX, COMMODITY, CURRENCY
-├── parsing_utils.py             # Shared HTML extraction utilities
-└── factory.py                   # Factory for creating parsers
+app/parsers/
+├── base_parser.py               # InstrumentParser — abstract base class (interface)
+├── standard_asset_parser.py     # StandardAssetParser — shared abstract base for tradeable assets
+├── special_asset_parser.py      # SpecialAssetParser — INDEX, COMMODITY, CURRENCY
+└── plugins/
+    ├── __init__.py                  # Package initialization
+    ├── stock_parser.py              # StockParser — STOCK
+    ├── bond_parser.py               # BondParser — BOND
+    ├── etf_parser.py                # ETFParser — ETF
+    ├── fonds_parser.py              # FondsParser — FONDS
+    ├── certificate_parser.py        # CertificateParser — CERTIFICATE
+    ├── warrant_parser.py            # WarrantParser — WARRANT
+    ├── parsing_utils.py             # Shared HTML extraction utilities
+    └── factory.py                   # Factory for creating parsers
 ```
 
 ## Asset Class Coverage
 
 | Asset Class | Parser | `parse_details()` | Notes |
 | ----------- | ------ | ----------------- | ----- |
-| STOCK | `StandardAssetParser` | ✅ `StockDetails` | Full venue + id_notation support |
-| BOND | `StandardAssetParser` | ✅ `BondDetails` | Full venue + id_notation support |
-| ETF | `StandardAssetParser` | ✅ `ETFDetails` | Full venue + id_notation support |
-| FONDS | `StandardAssetParser` | ✅ `FondsDetails` | Full venue + id_notation support |
-| CERTIFICATE | `StandardAssetParser` | ✅ `CertificateDetails` | Full venue + id_notation support |
+| STOCK | `StockParser` | ✅ `StockDetails` | Full venue + id_notation support |
+| BOND | `BondParser` | ✅ `BondDetails` | Full venue + id_notation support |
+| ETF | `ETFParser` | ✅ `ETFDetails` | Full venue + id_notation support |
+| FONDS | `FondsParser` | ✅ `FondsDetails` | Full venue + id_notation support |
+| CERTIFICATE | `CertificateParser` | ✅ `CertificateDetails` | Full venue + id_notation support |
 | WARRANT | `WarrantParser` | ✅ `WarrantDetails` | Requires id_notation in URL for full venue data |
 | INDEX | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
 | COMMODITY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
@@ -44,7 +50,7 @@ app/parsers/plugins/
 
 ### 1. InstrumentParser (Abstract Base Class)
 
-Defines the interface that all parsers must implement (`app/parsers/plugins/base_parser.py`):
+Defines the interface that all parsers must implement (`app/parsers/base_parser.py`):
 
 ```python
 class InstrumentParser(ABC):
@@ -124,7 +130,7 @@ parser = ParserFactory.get_parser(asset_class)  # raises ValueError if unregiste
 ParserFactory.is_registered(asset_class)  # -> bool
 ```
 
-Parsers that accept `asset_class` in their constructor (`StandardAssetParser`, `SpecialAssetParser`) receive it automatically via the factory.
+Only `SpecialAssetParser` accepts `asset_class` in its constructor — it receives it automatically via the factory.
 
 ## Shared Utilities (parsing_utils.py)
 
@@ -151,7 +157,7 @@ Common HTML extraction helpers shared across all parsers:
 
 1. Fetch instrument page with WKN/ISIN
 2. Parse asset class from redirected URL path
-3. Retrieve `StandardAssetParser(asset_class)` from factory
+3. Retrieve the concrete parser (e.g. `StockParser()`) from factory
 4. Parse name, WKN, ISIN, id_notations, preferred notations
 5. Call `parse_details(soup)` — returns the asset-class-specific `Details` model
 6. Return `Instrument` with optional `details`

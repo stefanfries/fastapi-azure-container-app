@@ -198,27 +198,29 @@ Priority: HIGH - Core business requirement
 #### 2.2 Implement Asset-Class-Specific Parsers
 
 - [x] All 9 asset classes registered in plugin system ✅
-  - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
-  - `WarrantParser` — WARRANT
+  - `StockParser`, `BondParser`, `ETFParser`, `FondsParser`, `CertificateParser` (all extend `StandardAssetParser`) — STOCK, BOND, ETF, FONDS, CERTIFICATE
+  - `WarrantParser` (extends `StandardAssetParser`) — WARRANT
   - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY
 - [x] `parse_details()` default implementation in `InstrumentParser` base class returns `None` ✅
-- [x] `StockDetails` parser implemented in `StandardAssetParser._parse_stock_details()` ✅
+- [x] `StockDetails` parser implemented in `StockParser._parse_stock_details()` ✅
   - Reads "Aktieninformationen" table; handles `<span title>` for Branche, `Bil.`/`Mrd.`/`Mio.` for market cap
-- [x] `BondDetails` parser implemented in `StandardAssetParser._parse_bond_details()` ✅
+- [x] `BondDetails` parser implemented in `BondParser._parse_bond_details()` ✅
   - Reads "Anleiheinformationen" table; extracts coupon, maturity, credit ratings
-- [x] `ETFDetails` parser implemented in `StandardAssetParser._parse_etf_details()` ✅
+- [x] `ETFDetails` parser implemented in `ETFParser._parse_etf_details()` ✅
   - Reads "ETF-Informationen" table; extracts TER, replication method, fund size
-- [x] `FondsDetails` parser implemented in `StandardAssetParser._parse_fonds_details()` ✅
+- [x] `FondsDetails` parser implemented in `FondsParser._parse_fonds_details()` ✅
   - Reads "Fondsinformationen" table; extracts fund manager, distribution policy, fund size
-- [x] `CertificateDetails` parser implemented in `StandardAssetParser._parse_certificate_details()` ✅
+- [x] `CertificateDetails` parser implemented in `CertificateParser._parse_certificate_details()` ✅
   - Reads "Zertifikatinformationen" table; extracts type, cap, barrier, participation rate
 - [x] `WarrantDetails` parser implemented in `WarrantParser._parse_warrant_details()` ✅
   - `Typ`: reconstructs full exercise style from `<span title>` ("Call (Amerikanisch)")
   - `Basiswert`: full name from `<span title>`, `underlying_link` from `<a href>`
   - `Emittent`: visible `<td>` display text (`get_text()`)
-  - 32 unit tests in `tests/unit/test_warrant_details_parser.py`
-- [x] All `StandardAssetParser` tests merged into `tests/unit/test_standard_asset_parser.py` ✅
-  - 110 tests covering all 5 standard asset classes + shared utilities
+  - Tests in `tests/unit/parsers/plugins/test_warrant_parser.py`
+- [x] Tests restructured to mirror `app/` directory layout ✅
+  - `tests/unit/parsers/test_standard_asset_parser.py` — shared helpers (`_parse_date`, `_split_value_currency`)
+  - `tests/unit/parsers/test_special_asset_parser.py` — `SpecialAssetParser` interface
+  - `tests/unit/parsers/plugins/` — one test file per concrete parser
 - [ ] Remaining `parse_details()` implementations (models exist, return `None`):
   - `SpecialAssetParser`: IndexDetails, CommodityDetails, CurrencyDetails
 
@@ -238,7 +240,7 @@ Priority: HIGH - Core business requirement
 - ✅ All 9 asset classes supported by plugin system
 - ✅ Asset-class-specific data models defined and integrated into `Instrument`
 - ✅ `GET /v1/instruments/{wkn}` returns enriched `details` for STOCK, BOND, ETF, FONDS, CERTIFICATE, and WARRANT
-- ✅ 168 unit tests (110 standard asset + 32 warrant + existing)
+- ✅ 188 unit tests; test layout mirrors `app/` directory structure
 - [ ] Remaining `parse_details()` for Index, Commodity, Currency
 
 ---
@@ -691,11 +693,26 @@ tests/
 ├── conftest.py                         # Shared fixtures (mock_database, client)
 ├── unit/
 │   ├── test_main.py                    # App startup tests
-│   ├── test_root.py                    # Root endpoint tests
-│   ├── test_security.py                # API key security tests
-│   ├── test_standard_asset_parser.py   # StandardAssetParser tests (all 5 classes)
-│   ├── test_warrant_details_parser.py  # WarrantParser tests
-│   └── test_depot_repository.py        # DepotRepository unit tests
+│   ├── core/
+│   │   └── test_security.py            # API key security tests
+│   ├── models/
+│   │   └── test_instrument_details.py  # InstrumentDetails union tests
+│   ├── parsers/
+│   │   ├── test_standard_asset_parser.py  # _parse_date, _split_value_currency
+│   │   ├── test_special_asset_parser.py   # SpecialAssetParser interface
+│   │   └── plugins/
+│   │       ├── test_parsing_utils.py      # clean_float_value, clean_numeric_value
+│   │       ├── test_stock_parser.py
+│   │       ├── test_bond_parser.py
+│   │       ├── test_etf_parser.py
+│   │       ├── test_fonds_parser.py
+│   │       ├── test_certificate_parser.py
+│   │       ├── test_warrant_parser.py
+│   │       └── test_factory.py
+│   ├── repositories/
+│   │   └── test_depot_repository.py    # DepotRepository unit tests
+│   └── routers/
+│       └── test_root.py                # Root endpoint tests
 └── integration/                        # Integration tests (to be added)
 
 docs/

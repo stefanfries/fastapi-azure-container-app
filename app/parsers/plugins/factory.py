@@ -6,12 +6,12 @@ asset class parsers without modifying existing code.
 """
 
 from app.models.instruments import AssetClass
-from app.parsers.plugins.base_parser import InstrumentParser
+from app.parsers.base_parser import InstrumentParser
 from app.parsers.plugins.bond_parser import BondParser
 from app.parsers.plugins.certificate_parser import CertificateParser
 from app.parsers.plugins.etf_parser import ETFParser
 from app.parsers.plugins.fonds_parser import FondsParser
-from app.parsers.plugins.special_asset_parser import SpecialAssetParser
+from app.parsers.special_asset_parser import SpecialAssetParser
 from app.parsers.plugins.stock_parser import StockParser
 from app.parsers.plugins.warrant_parser import WarrantParser
 

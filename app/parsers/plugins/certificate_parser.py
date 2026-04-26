@@ -10,7 +10,7 @@ from app.parsers.plugins.parsing_utils import (
     clean_float_value,
     extract_table_cell_by_label,
 )
-from app.parsers.plugins.standard_asset_parser import StandardAssetParser
+from app.parsers.standard_asset_parser import StandardAssetParser
 
 
 class CertificateParser(StandardAssetParser):

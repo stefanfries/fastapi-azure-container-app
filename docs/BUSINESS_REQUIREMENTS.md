@@ -23,6 +23,7 @@ test_commodities = ['965515', '965310']
 
 test_currencies = ['965275', 'A0C32V', '965308']
 
+test_indices = []
 depot_mega_trend= ['JK2M14', 'MB76DR', 'JK3WZ0', 'ME2CU8', 'MJ1278', 'JL8R2L', 'JV8872']
 
 depot_test_fonds = ['A0F4Y2', 'A0NEBA', '921826', '980701']

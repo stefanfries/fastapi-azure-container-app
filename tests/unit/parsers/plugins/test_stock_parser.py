@@ -1,7 +1,6 @@
 """Unit tests for app.parsers.plugins.stock_parser.StockParser."""
 
 import textwrap
-from datetime import date
 
 import pytest
 from bs4 import BeautifulSoup

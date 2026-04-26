@@ -121,7 +121,7 @@ pytest
 pytest --cov=app
 
 # Run specific test file
-pytest tests/unit/test_standard_asset_parser.py
+pytest tests/unit/parsers/test_standard_asset_parser.py
 ```
 
 ## 📁 Project Structure
@@ -133,7 +133,10 @@ fastapi-azure-container-app/
 │   ├── core/                 # Settings, database connection, constants, logging
 │   ├── models/               # Pydantic response models
 │   ├── parsers/              # Data parsing logic
-│   │   └── plugins/          # Plugin parsers (StandardAsset, Warrant, SpecialAsset)
+│   │   ├── base_parser.py    # InstrumentParser abstract base class
+│   │   ├── standard_asset_parser.py  # Shared base for tradeable asset parsers
+│   │   ├── special_asset_parser.py   # Parser for INDEX, COMMODITY, CURRENCY
+│   │   └── plugins/          # Concrete parsers: Stock, Bond, ETF, Fonds, Certificate, Warrant
 │   ├── repositories/         # Database access layer
 │   ├── routers/              # API route handlers
 │   ├── scrapers/             # Web scraping utilities (httpx + BeautifulSoup)

@@ -19,7 +19,7 @@ from app.parsers.plugins.parsing_utils import (
     extract_preferred_lt_notation,
     extract_venues_from_dropdown,
 )
-from app.parsers.plugins.standard_asset_parser import StandardAssetParser
+from app.parsers.standard_asset_parser import StandardAssetParser
 
 
 class WarrantParser(StandardAssetParser):

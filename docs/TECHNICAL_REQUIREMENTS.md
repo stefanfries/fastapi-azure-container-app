@@ -15,25 +15,25 @@
 All original technical requirements are met. The following has been implemented:
 
 - ✅ Plugin system covering all 9 asset classes (STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY)
-  - `StandardAssetParser` — STOCK, BOND, ETF, FONDS, CERTIFICATE
-  - `WarrantParser` — WARRANT (with id_notation refetch mechanism)
+  - `StockParser`, `BondParser`, `ETFParser`, `FondsParser`, `CertificateParser` (all extend `StandardAssetParser`) — STOCK, BOND, ETF, FONDS, CERTIFICATE
+  - `WarrantParser` (extends `StandardAssetParser`) — WARRANT
   - `SpecialAssetParser` — INDEX, COMMODITY, CURRENCY (non-tradeable, no venues)
 - ✅ Asset-class-specific detail models (`app/models/instrument_details.py`)
   - 9 Pydantic models: `StockDetails`, `BondDetails`, `ETFDetails`, `FondsDetails`, `WarrantDetails`, `CertificateDetails`, `IndexDetails`, `CommodityDetails`, `CurrencyDetails`
   - Discriminated union `InstrumentDetails` keyed on `asset_class` literal
   - Optional `details` field on `Instrument` model
-- ✅ Stock details parser — `StandardAssetParser._parse_stock_details()` extracts:
+- ✅ Stock details parser — `StockParser._parse_stock_details()` extracts:
   - `Wertpapiertyp`, `Marktsegment`, `Branche` (full name from `<span title>`), `Geschäftsjahr` (as DD-MM)
   - `Marktkapital.` (with Bil./Mrd./Mio. + currency), `Streubesitz`, `Nennwert`, `Stücke`
-- ✅ Bond details parser — `StandardAssetParser._parse_bond_details()` extracts:
+- ✅ Bond details parser — `BondParser._parse_bond_details()` extracts:
   - `Emittent`, `Kupon`, `Kupontyp`, `Emissionsdatum`, `Fälligkeit`, `Nennwert`, `Anleihetyp`, `Rating Moody's`, `Rating S&P`, `Währung`
-- ✅ ETF details parser — `StandardAssetParser._parse_etf_details()` extracts:
+- ✅ ETF details parser — `ETFParser._parse_etf_details()` extracts:
   - `Referenzindex`, `Gesamtkostenquote (TER)`, `Replikationsmethode`, `Ertragsverwendung`, `Fondsdomizil`, `Auflagedatum`, `Fondswährung`, `Fondsvermögen`
-- ✅ Fonds details parser — `StandardAssetParser._parse_fonds_details()` extracts:
+- ✅ Fonds details parser — `FondsParser._parse_fonds_details()` extracts:
   - `Fondstyp`, `Fondsgesellschaft`, `Auflagedatum`, `Fondsdomizil`, `Ertragsverwendung`, `Gesamtkostenquote (TER)`, `Fondswährung`, `Fondsvermögen`
-- ✅ Certificate details parser — `StandardAssetParser._parse_certificate_details()` extracts:
+- ✅ Certificate details parser — `CertificateParser._parse_certificate_details()` extracts:
   - `Zertifikatstyp`, `Basiswert`, `Cap`, `Barriere`, `Partizipationsrate`, `Fälligkeit`, `Emittent`, `Währung`
-- ✅ Shared helpers `_parse_date()` and `_split_value_currency()` in `StandardAssetParser`
+- ✅ Shared helpers `_parse_date()` and `_split_value_currency()` in `StandardAssetParser` (inherited by all concrete parsers)
 - ✅ Warrant details parser — `WarrantParser._parse_warrant_details()` extracts:
   - `Typ` (full exercise style from `<span title>`, e.g. "Call (Amerikanisch)")
   - `Basiswert` full name from `<span title>` + `underlying_link` from `<a href>`
@@ -49,7 +49,7 @@ All original technical requirements are met. The following has been implemented:
 - ✅ CORS middleware added (`allow_origins=["*"]`, `allow_methods=["GET"]`)
 - ✅ API key protection on all data endpoints (`X-API-Key` header)
   - Open mode when `API_KEY` env var is unset; startup error when `API_KEY` is an empty string
-- ✅ 168 unit tests passing
+- ✅ 188 unit tests passing
 
 ## Open / Future Work
 

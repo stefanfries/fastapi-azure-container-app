@@ -14,7 +14,7 @@ from datetime import date, datetime
 from bs4 import BeautifulSoup
 
 from app.models.instruments import AssetClass, VenueInfo
-from app.parsers.plugins.base_parser import InstrumentParser
+from app.parsers.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     clean_float_value,

@@ -58,7 +58,7 @@ If the new class has a **standard tradeable structure** (venues, id_notations), 
 from bs4 import BeautifulSoup
 from app.models.instrument_details import InstrumentDetails, NewClassDetails
 from app.models.instruments import AssetClass, VenueInfo
-from app.parsers.plugins.base_parser import InstrumentParser
+from app.parsers.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     extract_name_from_h1,
     extract_wkn_from_h2,
@@ -119,8 +119,8 @@ ParserFactory.register_parser(AssetClass.NEW_CLASS, SpecialAssetParser)
 
 ### 6. Write Tests
 
-Create `tests/unit/test_new_class_details_parser.py`. Mirror the structure of
-`tests/unit/test_warrant_details_parser.py`:
+Create `tests/unit/parsers/plugins/test_new_class_parser.py`. Mirror the structure of
+`tests/unit/parsers/plugins/test_warrant_parser.py`:
 
 - Write a `_new_class_page()` helper that builds minimal BeautifulSoup HTML
   matching the real comdirect Stammdaten table structure for that asset class

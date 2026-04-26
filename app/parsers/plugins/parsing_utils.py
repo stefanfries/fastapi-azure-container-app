@@ -20,6 +20,7 @@ VENUE_DEFAULT_CURRENCY: dict[str, str] = {
     "Xetra": "EUR",
     "gettex": "EUR",
     "Frankfurt": "EUR",
+    "Frankfurt - Zertifikate": "EUR",
     "Stuttgart": "EUR",
     "Hamburg": "EUR",
     "München": "EUR",
@@ -31,6 +32,9 @@ VENUE_DEFAULT_CURRENCY: dict[str, str] = {
     "Wiener Börse": "EUR",
     "Euronext Milan MTF Global Equity Market": "EUR",
     "Euronext Milan MTF Trading After Hours": "EUR",
+    "Euronext Milan": "EUR",
+    "Euronext Access Paris": "EUR",
+    "Anleihen FX": "EUR",
     # Life Trading venues (all EUR)
     "LT Societe Generale": "EUR",
     "LT Lang & Schwarz": "EUR",
@@ -46,6 +50,7 @@ VENUE_DEFAULT_CURRENCY: dict[str, str] = {
     # Non-EUR exchange venues
     "Nasdaq": "USD",
     "NYSE": "USD",
+    "London Stock Exchange": "GBP",
     "London Stock Exchange European Trade Reporting": "GBP",
 }
 
@@ -54,15 +59,20 @@ def infer_currency(venue_name: str) -> str | None:
     """
     Infer the ISO 4217 currency for a comdirect trading venue.
 
-    Two rules are applied in order:
+    Three rules are applied in order:
     1. Explicit suffix: if the venue name ends with a 3-letter code in
        parentheses (e.g. ``"SIX SWISS (USD)"``), that code is returned.
-    2. Lookup table: ``VENUE_DEFAULT_CURRENCY`` maps known venue names to
+    2. Inline keyword: if the venue name contains `` in XXX`` near the end
+       (e.g. ``"Fondsges. in EUR"``), that code is returned.
+    3. Lookup table: ``VENUE_DEFAULT_CURRENCY`` maps known venue names to
        their home currency.
 
-    Returns ``None`` when neither rule matches.
+    Returns ``None`` when no rule matches.
     """
-    m = re.search(r"\(([A-Z]{3})\)$", venue_name)
+    m = re.search(r"\(([A-Za-z]{2,4})\)$", venue_name)
+    if m:
+        return m.group(1)
+    m = re.search(r"\bin\s+([A-Z]{3})$", venue_name)
     if m:
         return m.group(1)
     return VENUE_DEFAULT_CURRENCY.get(venue_name)
@@ -333,6 +343,10 @@ def extract_wkn_from_h2(soup: BeautifulSoup, position_offset: int = 1) -> str | 
 
     # Clean up any remaining whitespace or newlines
     wkn = wkn.split()[0] if wkn.split() else wkn
+
+    # "--" means the instrument has no WKN (e.g. foreign/Swiss instruments)
+    if wkn == "--":
+        return None
 
     return wkn
 

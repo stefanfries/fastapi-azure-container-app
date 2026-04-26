@@ -86,7 +86,7 @@ class BondDetails(BaseModel):
     asset_class: Literal["Bond"] = "Bond"
 
     issuer: str | None = Field(None, description="Bond issuer (Emittent)")
-    coupon_rate: float | None = Field(None, description="Annual coupon rate in % (Zinssatz)")
+    coupon_rate_percent: float | None = Field(None, description="Annual coupon rate in % (Zinssatz)")
     coupon_type: str | None = Field(
         None, description="Coupon type: 'fixed', 'floating', or 'zero' (Zinsart)"
     )
@@ -96,8 +96,6 @@ class BondDetails(BaseModel):
     bond_type: str | None = Field(
         None, description="Bond type, e.g. 'Staatsanleihe', 'Unternehmensanleihe' (Anleihetyp)"
     )
-    credit_rating_moodys: str | None = Field(None, description="Moody's credit rating (e.g. 'Aaa')")
-    credit_rating_sp: str | None = Field(None, description="S&P credit rating (e.g. 'AAA')")
     currency: str | None = Field(None, description="Settlement currency (Währung)")
 
 
@@ -114,7 +112,7 @@ class ETFDetails(BaseModel):
     tracked_index: str | None = Field(
         None, description="Index tracked by the ETF (Abgebildeter Index)"
     )
-    expense_ratio: float | None = Field(
+    expense_ratio_percent: float | None = Field(
         None, description="Total expense ratio in % (TER / Gesamtkostenquote)"
     )
     replication_method: str | None = Field(
@@ -125,7 +123,6 @@ class ETFDetails(BaseModel):
         None,
         description="Distribution policy: 'ausschüttend' or 'thesaurierend' (Ausschüttungsart)",
     )
-    fund_domicile: str | None = Field(None, description="Country of fund domicile (Fondsdomizil)")
     inception_date: date | None = Field(None, description="Fund inception / launch date (Auflagedatum)")
     fund_currency: str | None = Field(None, description="Fund base currency (Fondswährung)")
     fund_size: float | None = Field(
@@ -146,12 +143,11 @@ class FondsDetails(BaseModel):
     fund_type: str | None = Field(None, description="Fund type / category (Fondstyp)")
     fund_manager: str | None = Field(None, description="Fund manager name (Fondsmanager)")
     inception_date: date | None = Field(None, description="Fund inception / launch date (Auflagedatum)")
-    fund_domicile: str | None = Field(None, description="Country of fund domicile (Fondsdomizil)")
     distribution_policy: str | None = Field(
         None,
         description="Distribution policy: 'ausschüttend' or 'thesaurierend' (Ausschüttungsart)",
     )
-    expense_ratio: float | None = Field(
+    expense_ratio_percent: float | None = Field(
         None, description="Total expense ratio in % (TER / Gesamtkostenquote)"
     )
     fund_currency: str | None = Field(None, description="Fund base currency (Fondswährung)")
@@ -210,14 +206,32 @@ class CertificateDetails(BaseModel):
     underlying_name: str | None = Field(None, description="Underlying instrument name (Basiswert)")
     cap: float | None = Field(None, description="Cap price level (Cap-Niveau)")
     cap_currency: str | None = Field(None, description="Currency of the cap price")
-    barrier: float | None = Field(None, description="Barrier / knock-out level (Barriere)")
+    barrier: float | None = Field(None, description="Barrier / protection level (Barriere / Absicherungsniveau)")
     barrier_currency: str | None = Field(None, description="Currency of the barrier")
+    barrier_breached: bool | None = Field(
+        None, description="Whether the barrier has been breached (Absich. erreicht?), Bonus certs only"
+    )
+    bonus_level: float | None = Field(
+        None, description="Bonus payout level for Bonus certificates (Bonusniveau)"
+    )
+    bonus_level_currency: str | None = Field(None, description="Currency of the bonus level")
+    knockout: float | None = Field(None, description="Knock-out level for Turbo/Lever certificates (Knock Out)")
+    knockout_currency: str | None = Field(None, description="Currency of the knock-out level")
+    strike: float | None = Field(None, description="Strike / base price for Turbo certificates (Basispreis)")
+    strike_currency: str | None = Field(None, description="Currency of the strike price")
     participation_rate: float | None = Field(
         None, description="Participation rate in % (Partizipationsrate)"
     )
-    maturity_date: date | None = Field(None, description="Maturity / expiry date (Fälligkeit)")
+    maturity_date: date | None = Field(None, description="Maturity / expiry date (Fälligkeit / Laufzeitende)")
     issuer: str | None = Field(None, description="Issuing institution (Emittent)")
     currency: str | None = Field(None, description="Settlement currency (Währung)")
+    subscription_ratio: str | None = Field(
+        None, description="Subscription / participation ratio, e.g. '100 : 1' (Bez.-Verh.)"
+    )
+    region: str | None = Field(None, description="Geographic region of the underlying (Region)")
+    currency_hedged: bool | None = Field(
+        None, description="Whether currency risk is hedged (Währungsgesichert)"
+    )
 
 
 class IndexDetails(BaseModel):
@@ -301,3 +315,4 @@ InstrumentDetails = Annotated[
     | CurrencyDetails,
     Field(discriminator="asset_class"),
 ]
+

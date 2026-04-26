@@ -27,6 +27,6 @@ depot_mega_trend= ['JK2M14', 'MB76DR', 'JK3WZ0', 'ME2CU8', 'MJ1278', 'JL8R2L', '
 
 depot_test_fonds = ['A0F4Y2', 'A0NEBA', '921826', '980701']
 
-depot_certificates = ['PD3W5U', 'MB2BY3', 'PH9PEC', 'SH8ARB', 'PD4A1M', 'MS8JN4', 'SR65CB', 'MB3B7G', 'SR5DBJ']
+depot_certificates = ['DE0005437412', 'DE0005437420', 'DE0005437438']
 
 Instruments from all asset classes share a common set of attributes: name, WKN, ISIN, trading venue and id_notation, currency. But additionally each asset class has a number of characteristics specific for the asset class ("Aktieninformationen" or "Stammdaten")

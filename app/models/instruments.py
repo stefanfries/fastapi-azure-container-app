@@ -15,7 +15,6 @@ Functions:
 from enum import Enum, StrEnum
 
 from pydantic import BaseModel, Field, field_validator
-from pydantic_extra_types.currency_code import Currency
 
 from app.core.logging import logger
 from app.models.instrument_details import InstrumentDetails
@@ -115,7 +114,7 @@ class GlobalIdentifiers(BaseModel):
     """
 
     isin: ISIN | None = Field(None, description="ISIN")
-    wkn: WKN = Field(..., description="German WKN")
+    wkn: WKN | None = Field(None, description="German WKN (None for foreign instruments without a WKN)")
     cusip: str | None = Field(None, description="CUSIP (US/CA instruments only)")
     figi: str | None = Field(None, description="Composite FIGI from OpenFIGI")
     symbol_comdirect: str | None = Field(None, description="Ticker symbol on comdirect")
@@ -129,13 +128,15 @@ class VenueInfo(BaseModel):
 
     Attributes:
         id_notation (str): The comdirect ID_NOTATION for this venue.
-        currency (Optional[str]): ISO 4217 currency code inferred from the venue name.
-            None when the venue is not in the known lookup table and carries no
-            explicit currency suffix (e.g. "SIX SWISS (USD)").
+        currency (Optional[str]): Currency code inferred from the venue name. Typically
+            an ISO 4217 code (e.g. "EUR", "USD") but may also be a quasi-standard
+            code like "GBp" (British pence) which is not in ISO 4217 but is widely
+            used by financial data providers (Bloomberg, LSE, Yahoo Finance).
+            None when no currency can be inferred.
     """
 
     id_notation: str
-    currency: Currency | None = None
+    currency: str | None = None
 
 
 class Instrument(BaseModel):
@@ -159,7 +160,7 @@ class Instrument(BaseModel):
 
     name: str = Field(..., description="Name of the financial instrument")
 
-    wkn: WKN = Field(..., description="WKN of the financial instrument")
+    wkn: WKN | None = Field(None, description="WKN of the financial instrument (None for foreign instruments)")
 
     isin: ISIN | None = Field(None, description="International Securities Identification Number")
 

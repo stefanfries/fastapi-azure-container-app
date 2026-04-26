@@ -64,17 +64,15 @@ class StandardAssetParser(InstrumentParser):
             raise ValueError("Could not find H1 headline")
         return name
 
-    def parse_wkn(self, soup: BeautifulSoup) -> str:
+    def parse_wkn(self, soup: BeautifulSoup) -> str | None:
         """
         Extract the WKN from the HTML.
 
         For standard assets, WKN is in the H2 tag, extracted from patterns like:
         "WKN: 123456 / ISIN: DE0001234567"
+        Returns None for foreign instruments where WKN is '--'.
         """
-        wkn = extract_wkn_from_h2(soup)
-        if not wkn:
-            raise ValueError("Could not extract WKN from H2")
-        return wkn
+        return extract_wkn_from_h2(soup)
 
     def parse_isin(self, soup: BeautifulSoup) -> str | None:
         """
@@ -244,13 +242,15 @@ class StandardAssetParser(InstrumentParser):
 
         German label → field mapping:
             Emittent          → issuer  (full name from <span title>)
-            Nominalzinssatz   → coupon_rate  (e.g. "10,250 %")
+            Nominalzinssatz   → coupon_rate_percent  (e.g. "10,250 %")
             Kupon-Art         → coupon_type  (e.g. "Fest")
             Ausgabedatum      → issue_date   (DD.MM.YYYY)
             Fälligkeit        → maturity_date
             Stückelung        → nominal_value + currency
             Typ               → bond_type
             Währung           → currency
+
+        Note: Moody's and S&P ratings are not provided by comdirect.
         """
         section = "Stammdaten"
 
@@ -259,26 +259,22 @@ class StandardAssetParser(InstrumentParser):
             return v if v and v.strip() not in ("--", "k. A.") else None
 
         issuer = _get("Emittent")
-        coupon_rate = clean_float_value(_get("Nominalzinssatz"))
+        coupon_rate_percent = clean_float_value(_get("Nominalzinssatz"))
         coupon_type = _get("Kupon-Art")
         issue_date = self._parse_date(_get("Ausgabedatum"))
         maturity_date = self._parse_date(_get("Fälligkeit"))
         nominal_value, currency_nw = self._split_value_currency(_get("Stückelung"))
         bond_type = _get("Typ")
-        credit_rating_moodys = _get("Moody's")
-        credit_rating_sp = _get("S&P")
         currency = _get("Währung") or currency_nw
 
         return BondDetails(
             issuer=issuer,
-            coupon_rate=coupon_rate,
+            coupon_rate_percent=coupon_rate_percent,
             coupon_type=coupon_type,
             issue_date=issue_date,
             maturity_date=maturity_date,
             nominal_value=nominal_value,
             bond_type=bond_type,
-            credit_rating_moodys=credit_rating_moodys,
-            credit_rating_sp=credit_rating_sp,
             currency=currency,
         )
 
@@ -288,13 +284,14 @@ class StandardAssetParser(InstrumentParser):
 
         German label → field mapping:
             Vergleichsindex      → tracked_index  (full name from <span title>)
-            Laufende Kosten      → expense_ratio  (e.g. "0,20 %")
+            Laufende Kosten      → expense_ratio_percent  (e.g. "0,20 %")
             Abbildungsart        → replication_method
             Art                  → distribution_policy
-            Fondsdomizil         → fund_domicile  (not always present)
             Auflagedatum         → inception_date  (not always present)
             Währung              → fund_currency
             Fondsvolumen         → fund_size  (e.g. "1,23 Mrd. EUR")
+
+        Note: Fondsdomizil is not provided by comdirect.
         """
         section = "Stammdaten"
 
@@ -303,10 +300,10 @@ class StandardAssetParser(InstrumentParser):
             return v if v and v.strip() not in ("--", "k. A.") else None
 
         tracked_index = _get("Vergleichsindex")
-        expense_ratio = clean_float_value(_get("Laufende Kosten"))
+        expense_ratio_percent = clean_float_value(_get("Laufende Kosten"))
         replication_method = _get("Abbildungsart")
-        distribution_policy = _get("Art")
-        fund_domicile = _get("Fondsdomizil")
+        distribution_policy_raw = _get("Art")
+        distribution_policy = " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
         inception_date = self._parse_date(_get("Auflagedatum"))
         fund_currency = _get("Währung")
 
@@ -322,10 +319,9 @@ class StandardAssetParser(InstrumentParser):
 
         return ETFDetails(
             tracked_index=tracked_index,
-            expense_ratio=expense_ratio,
+            expense_ratio_percent=expense_ratio_percent,
             replication_method=replication_method,
             distribution_policy=distribution_policy,
-            fund_domicile=fund_domicile,
             inception_date=inception_date,
             fund_currency=fund_currency,
             fund_size=fund_size,
@@ -339,11 +335,12 @@ class StandardAssetParser(InstrumentParser):
             Fondskategorie    → fund_type
             Fondsmanager      → fund_manager  (not always present)
             Auflagedatum      → inception_date  (not always present)
-            Fondsdomizil      → fund_domicile  (not always present)
             Art               → distribution_policy
-            Laufende Kosten   → expense_ratio  (e.g. "1,50 %")
+            Laufende Kosten   → expense_ratio_percent  (e.g. "1,50 %")
             Währung           → fund_currency
             Fondsvolumen      → fund_size  (e.g. "512,00 Mio.")
+
+        Note: Fondsdomizil is not provided by comdirect.
         """
         section = "Stammdaten"
 
@@ -354,9 +351,9 @@ class StandardAssetParser(InstrumentParser):
         fund_type = _get("Fondskategorie")
         fund_manager = _get("Fondsmanager")
         inception_date = self._parse_date(_get("Auflagedatum"))
-        fund_domicile = _get("Fondsdomizil")
-        distribution_policy = _get("Art")
-        expense_ratio = clean_float_value(_get("Laufende Kosten"))
+        distribution_policy_raw = _get("Art")
+        distribution_policy = " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
+        expense_ratio_percent = clean_float_value(_get("Laufende Kosten"))
         fund_currency = _get("Währung")
 
         fund_size_raw = _get("Fondsvolumen")
@@ -373,9 +370,8 @@ class StandardAssetParser(InstrumentParser):
             fund_type=fund_type,
             fund_manager=fund_manager,
             inception_date=inception_date,
-            fund_domicile=fund_domicile,
             distribution_policy=distribution_policy,
-            expense_ratio=expense_ratio,
+            expense_ratio_percent=expense_ratio_percent,
             fund_currency=fund_currency,
             fund_size=fund_size,
         )
@@ -385,12 +381,15 @@ class StandardAssetParser(InstrumentParser):
         Parse the "Stammdaten" table on the comdirect certificate page.
 
         German label → field mapping:
-            Zertifikattyp       → certificate_type
-            Basiswert           → underlying_name  (full name from <span title>)
+            Typ                 → certificate_type  (comdirect uses "Typ", older pages "Zertifikattyp")
+            Basiswert           → underlying_name  (may be outside Stammdaten; page-wide fallback used)
             Cap-Niveau          → cap + cap_currency  (e.g. "100,00 EUR")
-            Barriere            → barrier + barrier_currency
+            Absicherungsniveau/Barriere → barrier + barrier_currency
+            Absich. erreicht?   → barrier_breached  (Bonus certs)
+            Bonusniveau         → bonus_level + bonus_level_currency  (Bonus certs)
             Partizipationsrate  → participation_rate  (e.g. "100,00 %")
-            Fälligkeit          → maturity_date  (DD.MM.YYYY or "Open End")
+            Fälligkeit /
+            Laufzeitende        → maturity_date  (DD.MM.YYYY, "Open End", or "endlos" → None)
             Emittent            → issuer  (full name from <span title>)
             Währung             → currency
         """
@@ -400,14 +399,51 @@ class StandardAssetParser(InstrumentParser):
             v = extract_table_cell_by_label(soup, section, label)
             return v if v and v.strip() not in ("--", "k. A.") else None
 
-        certificate_type = _get("Zertifikattyp")
-        underlying_name = _get("Basiswert")
-        cap, cap_currency = self._split_value_currency(_get("Cap-Niveau"))
-        barrier, barrier_currency = self._split_value_currency(_get("Barriere"))
+        def _get_page(label: str) -> str | None:
+            """Search for a label anywhere on the page (used for fields not in Stammdaten)."""
+            for th in soup.find_all("th"):
+                if re.search(label, th.get_text(" ", strip=True)):
+                    td = th.find_next_sibling("td")
+                    if td:
+                        v = td.get_text(" ", strip=True)
+                        return v if v and v.strip() not in ("--", "k. A.") else None
+            return None
+
+        # "Typ" matches both "Typ" (current) and "Zertifikattyp" (older pages) via regex.
+        certificate_type = _get("Typ")
+        # "Basiswert" is not always in the Stammdaten section; fall back to page-wide search.
+        underlying_name = _get("Basiswert") or _get_page("Basiswert")
+        # "Cap" matches both "Cap" (Discount certs) and "Cap-Niveau" (older pages) via substring.
+        cap, cap_currency = self._split_value_currency(_get("Cap"))
+        # Bonus certs use "Absicherungsniveau"; older/other certs may use "Barriere".
+        barrier, barrier_currency = self._split_value_currency(
+            _get("Absicherungsniveau") or _get("Barriere")
+        )
+        barrier_breached_raw = _get("Absich. erreicht?")
+        barrier_breached: bool | None = None
+        if barrier_breached_raw:
+            if barrier_breached_raw.lower() in ("ja", "yes"):
+                barrier_breached = True
+            elif barrier_breached_raw.lower() in ("nein", "no"):
+                barrier_breached = False
+        bonus_level, bonus_level_currency = self._split_value_currency(_get("Bonusniveau"))
+        knockout, knockout_currency = self._split_value_currency(_get("Knock Out"))
+        strike, strike_currency = self._split_value_currency(_get("Basispreis"))
         participation_rate = clean_float_value(_get("Partizipationsrate"))
-        maturity_date = self._parse_date(_get("Fälligkeit"))
+        # comdirect uses "Laufzeitende" on current pages, older pages use "Fälligkeit".
+        maturity_date = self._parse_date(_get("Laufzeitende|Fälligkeit"))
         issuer = _get("Emittent")
-        currency = _get("Währung")
+        # Use anchored regex to avoid matching "Währungsgesichert" when "Währung" label is absent.
+        currency = _get("^Währung$")
+        subscription_ratio = _get("Bez.-Verh.")
+        region = _get("Region")
+        currency_hedged_raw = _get("Währungs\xadgesichert") or _get("Währungsgesichert")
+        currency_hedged: bool | None = None
+        if currency_hedged_raw:
+            if currency_hedged_raw.lower() in ("ja", "yes"):
+                currency_hedged = True
+            elif currency_hedged_raw.lower() in ("nein", "no"):
+                currency_hedged = False
 
         return CertificateDetails(
             certificate_type=certificate_type,
@@ -416,8 +452,18 @@ class StandardAssetParser(InstrumentParser):
             cap_currency=cap_currency,
             barrier=barrier,
             barrier_currency=barrier_currency,
+            barrier_breached=barrier_breached,
+            bonus_level=bonus_level,
+            bonus_level_currency=bonus_level_currency,
+            knockout=knockout,
+            knockout_currency=knockout_currency,
+            strike=strike,
+            strike_currency=strike_currency,
             participation_rate=participation_rate,
             maturity_date=maturity_date,
             issuer=issuer,
             currency=currency,
+            subscription_ratio=subscription_ratio,
+            region=region,
+            currency_hedged=currency_hedged,
         )

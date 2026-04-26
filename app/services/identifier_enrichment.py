@@ -187,7 +187,7 @@ def _derive_yfinance_symbol(records: list[dict[str, Any]], isin_country: str | N
 
 async def build_global_identifiers(
     isin: str | None,
-    wkn: str,
+    wkn: str | None,
     symbol_comdirect: str | None,
     asset_class: AssetClass,
 ) -> GlobalIdentifiers:
@@ -206,7 +206,7 @@ async def build_global_identifiers(
 
     Args:
         isin: ISIN string, or None if the instrument has no ISIN.
-        wkn: WKN string (always present, used as fallback for OpenFIGI lookup).
+        wkn: WKN string, or None for foreign instruments without a WKN.
         symbol_comdirect: Ticker symbol as displayed on comdirect.de.
         asset_class: Asset class of the instrument.
 
@@ -227,9 +227,12 @@ async def build_global_identifiers(
         )
         if isin:
             records = await openfigi_client.map_by_isin(isin)
-        else:
+        elif wkn:
             logger.debug("No ISIN available — falling back to WKN for OpenFIGI lookup")
             records = await openfigi_client.map_by_wkn(wkn)
+        else:
+            logger.debug("No ISIN or WKN available — skipping OpenFIGI lookup")
+            records = []
 
         figi = _pick_composite_figi(records)
         isin_country = isin[:2] if isin and len(isin) >= 2 else None

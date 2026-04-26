@@ -302,7 +302,7 @@ class TestBondDetailsParser:
         assert _bond_parser.parse_details(_bond_page(emittent="Bundesrepublik Deutschland")).issuer == "Bundesrepublik Deutschland"
 
     def test_coupon_rate(self):
-        assert _bond_parser.parse_details(_bond_page(zinssatz="4,50 %")).coupon_rate == pytest.approx(4.50)
+        assert _bond_parser.parse_details(_bond_page(zinssatz="4,50 %")).coupon_rate_percent == pytest.approx(4.50)
 
     def test_coupon_type(self):
         assert _bond_parser.parse_details(_bond_page(zinsart="Fest")).coupon_type == "Fest"
@@ -319,21 +319,13 @@ class TestBondDetailsParser:
     def test_bond_type(self):
         assert _bond_parser.parse_details(_bond_page(anleihetyp="Staatsanleihe")).bond_type == "Staatsanleihe"
 
-    def test_credit_rating_moodys(self):
-        assert _bond_parser.parse_details(_bond_page(moodys="Aaa")).credit_rating_moodys == "Aaa"
-
-    def test_credit_rating_sp(self):
-        assert _bond_parser.parse_details(_bond_page(sp="AAA")).credit_rating_sp == "AAA"
-
     def test_currency(self):
         assert _bond_parser.parse_details(_bond_page(waehrung="EUR")).currency == "EUR"
 
     def test_placeholder_dash_becomes_none(self):
-        result = _bond_parser.parse_details(_bond_page(emittent="--", moodys="--", sp="--", zinssatz="--"))
+        result = _bond_parser.parse_details(_bond_page(emittent="--", zinssatz="--"))
         assert result.issuer is None
-        assert result.coupon_rate is None
-        assert result.credit_rating_moodys is None
-        assert result.credit_rating_sp is None
+        assert result.coupon_rate_percent is None
 
     def test_missing_section_returns_empty_bond_details(self):
         result = _bond_parser.parse_details(_make_soup("<html><body><p>No data</p></body></html>"))
@@ -389,17 +381,14 @@ class TestETFDetailsParser:
     def test_tracked_index(self):
         assert _etf_parser.parse_details(_etf_page(index="MSCI World")).tracked_index == "MSCI World"
 
-    def test_expense_ratio(self):
-        assert _etf_parser.parse_details(_etf_page(ter="0,20 %")).expense_ratio == pytest.approx(0.20)
+    def test_expense_ratio_percent(self):
+        assert _etf_parser.parse_details(_etf_page(ter="0,20 %")).expense_ratio_percent == pytest.approx(0.20)
 
     def test_replication_method(self):
         assert _etf_parser.parse_details(_etf_page(replication="physisch")).replication_method == "physisch"
 
     def test_distribution_policy(self):
         assert _etf_parser.parse_details(_etf_page(distribution="thesaurierend")).distribution_policy == "thesaurierend"
-
-    def test_fund_domicile(self):
-        assert _etf_parser.parse_details(_etf_page(domicile="Irland")).fund_domicile == "Irland"
 
     def test_inception_date(self):
         assert _etf_parser.parse_details(_etf_page(inception="25.10.2005")).inception_date == date(2005, 10, 25)
@@ -474,14 +463,15 @@ class TestFondsDetailsParser:
     def test_inception_date(self):
         assert _fonds_parser.parse_details(_fonds_page(inception="01.04.1994")).inception_date == date(1994, 4, 1)
 
-    def test_fund_domicile(self):
-        assert _fonds_parser.parse_details(_fonds_page(domicile="Luxemburg")).fund_domicile == "Luxemburg"
-
     def test_distribution_policy(self):
         assert _fonds_parser.parse_details(_fonds_page(distribution="ausschüttend")).distribution_policy == "ausschüttend"
 
-    def test_expense_ratio(self):
-        assert _fonds_parser.parse_details(_fonds_page(ter="1,50 %")).expense_ratio == pytest.approx(1.50)
+    def test_distribution_policy_normalizes_whitespace(self):
+        raw = "Ausschüttend\n                        (zuletzt 16.06.25 0,78 EUR)"
+        assert _fonds_parser.parse_details(_fonds_page(distribution=raw)).distribution_policy == "Ausschüttend (zuletzt 16.06.25 0,78 EUR)"
+
+    def test_expense_ratio_percent(self):
+        assert _fonds_parser.parse_details(_fonds_page(ter="1,50 %")).expense_ratio_percent == pytest.approx(1.50)
 
     def test_fund_currency(self):
         assert _fonds_parser.parse_details(_fonds_page(currency="EUR")).fund_currency == "EUR"
@@ -520,7 +510,7 @@ def _certificate_page(
     waehrung: str = "EUR",
 ) -> BeautifulSoup:
     return _section_page("Stammdaten", [
-        ("Zertifikattyp", cert_type),
+        ("Typ", cert_type),
         ("Basiswert", basiswert),
         ("Cap-Niveau", cap),
         ("Barriere", barrier),
@@ -643,13 +633,13 @@ class TestInstrumentDetailsUnion:
         assert data["free_float"] == pytest.approx(68.46)
 
     def test_bond_details_serialises_to_dict(self):
-        details = BondDetails(issuer="Bund", coupon_rate=1.5, maturity_date=date(2030, 1, 15))
+        details = BondDetails(issuer="Bund", coupon_rate_percent=1.5, maturity_date=date(2030, 1, 15))
         data = details.model_dump()
         assert data["asset_class"] == "Bond"
-        assert data["coupon_rate"] == pytest.approx(1.5)
+        assert data["coupon_rate_percent"] == pytest.approx(1.5)
         assert data["maturity_date"] == date(2030, 1, 15)
 
     def test_optional_fields_default_to_none(self):
         details = ETFDetails()
         assert details.tracked_index is None
-        assert details.expense_ratio is None
+        assert details.expense_ratio_percent is None

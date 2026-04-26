@@ -178,9 +178,9 @@ Priority: HIGH - Core business requirement
 
 - [x] Create asset-class-specific model extensions (`app/models/instrument_details.py`) ✅
   - `StockDetails` — security_type, market_segment, sector, fiscal_year_end (DD-MM), market_cap, market_cap_currency, free_float, nominal_value, nominal_value_currency, shares_outstanding
-  - `BondDetails` — issuer, coupon_rate, coupon_type, issue_date, maturity_date, nominal_value, bond_type, credit_rating_moodys, credit_rating_sp, currency
-  - `ETFDetails` — tracked_index, expense_ratio, replication_method, distribution_policy, fund_domicile, inception_date, fund_currency, fund_size
-  - `FondsDetails` — fund_type, fund_manager, inception_date, fund_domicile, distribution_policy, expense_ratio, fund_currency, fund_size
+  - `BondDetails` — issuer, coupon_rate_percent, coupon_type, issue_date, maturity_date, nominal_value, bond_type, currency
+  - `ETFDetails` — tracked_index, expense_ratio_percent, replication_method, distribution_policy, inception_date, fund_currency, fund_size
+  - `FondsDetails` — fund_type, fund_manager, inception_date, distribution_policy, expense_ratio_percent, fund_currency, fund_size
   - `WarrantDetails` — warrant_type (full exercise style), underlying_name, underlying_link, strike, strike_currency, ratio, maturity_date, last_trading_day, issuer
   - `CertificateDetails` — certificate_type, underlying_name, cap, cap_currency, barrier, barrier_currency, participation_rate, maturity_date, issuer, currency
   - `IndexDetails` — index_type, index_provider, country, base_value, base_date, num_constituents

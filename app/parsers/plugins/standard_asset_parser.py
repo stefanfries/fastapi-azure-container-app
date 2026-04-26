@@ -89,8 +89,10 @@ class StandardAssetParser(InstrumentParser):
         Extract trading venues and their ID_NOTATIONs from the HTML,
         including preferred notations based on liquidity.
 
-        For standard assets, trading venues are in #marketSelect dropdown
-        or in a table if there's only one venue.
+        For standard assets, trading venues are in the #marketSelect dropdown
+        or in a table if there's only one venue. comdirect always redirects any
+        instrument lookup to a URL with ID_NOTATION already appended (platform-wide
+        behaviour), so the dropdown is always populated.
 
         Returns:
             Tuple of (lt_venue_dict, ex_venue_dict,

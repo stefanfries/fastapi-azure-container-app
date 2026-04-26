@@ -69,8 +69,9 @@ class WarrantParser(InstrumentParser):
         Extract trading venues and their ID_NOTATIONs from the HTML,
         including preferred notations based on liquidity.
 
-        For warrants, trading venues are in #marketSelect dropdown.
-        NOTE: This only works if the page was fetched WITH an ID_NOTATION parameter!
+        For warrants, trading venues are in the #marketSelect dropdown.
+        comdirect always redirects any instrument lookup to a URL with ID_NOTATION
+        already appended (platform-wide behaviour), so the dropdown is always present.
 
         Returns:
             Tuple of (lt_venue_dict, ex_venue_dict,
@@ -211,12 +212,18 @@ class WarrantParser(InstrumentParser):
                 strike_raw = " ".join(parts[:-1])
             strike = clean_float_value(strike_raw)
 
-        # Emittent: display text of the <td> (anchor text or plain text)
+        # Emittent: prefer the <a title="Issuer Name, Emittent Kontakt"> attribute,
+        # taking only the part before the first comma to get the clean issuer name.
+        # Falls back to display text if no title attribute is present.
         issuer: str | None = None
         emittent_td = _find_td(table, "Emittent")
         if emittent_td:
-            text = emittent_td.get_text(" ", strip=True).replace("\xa0", " ")
-            issuer = text if text and text not in ("--", "k. A.") else None
+            a_tag = emittent_td.find("a", attrs={"title": True})
+            if a_tag and a_tag["title"].strip() and a_tag["title"].strip() not in ("--", "k. A."):
+                issuer = a_tag["title"].split(",")[0].strip()
+            else:
+                text = emittent_td.get_text(" ", strip=True).replace("\xa0", " ")
+                issuer = text if text and text not in ("--", "k. A.") else None
 
         return WarrantDetails(
             warrant_type=warrant_type,

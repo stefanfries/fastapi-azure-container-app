@@ -71,3 +71,54 @@ class TestSplitValueCurrency:
 
     def test_empty_string_returns_none_none(self):
         assert StandardAssetParser._split_value_currency("") == (None, None)
+
+
+# ---------------------------------------------------------------------------
+# parse_name — exercised via a concrete subclass (StockParser)
+# ---------------------------------------------------------------------------
+
+class TestParseName:
+    def test_raises_value_error_when_no_h1(self):
+        from bs4 import BeautifulSoup
+
+        from app.parsers.plugins.stock_parser import StockParser
+
+        soup = BeautifulSoup("<html><body><p>no headline</p></body></html>", "html.parser")
+        with pytest.raises(ValueError, match="H1 headline"):
+            StockParser().parse_name(soup)
+
+
+# ---------------------------------------------------------------------------
+# parse_id_notations — exercises the dropdown + categorize path
+# ---------------------------------------------------------------------------
+
+class TestParseIdNotations:
+    def test_with_dropdown_returns_categorized_venues(self):
+        from bs4 import BeautifulSoup
+
+        from app.parsers.plugins.stock_parser import StockParser
+
+        html = """
+        <html><body>
+          <select id="marketSelect">
+            <option label="LT HSBC" value="111"></option>
+            <option label="Xetra" value="222"></option>
+          </select>
+        </body></html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        lt, ex, lt_pref, ex_pref = StockParser().parse_id_notations(soup)
+        assert lt is not None
+        assert ex is not None
+        assert "LT HSBC" in lt
+        assert "Xetra" in ex
+
+    def test_empty_page_returns_empty_dicts(self):
+        from bs4 import BeautifulSoup
+
+        from app.parsers.plugins.stock_parser import StockParser
+
+        soup = BeautifulSoup("<html><body></body></html>", "html.parser")
+        lt, ex, lt_pref, ex_pref = StockParser().parse_id_notations(soup)
+        assert lt == {}
+        assert ex == {}

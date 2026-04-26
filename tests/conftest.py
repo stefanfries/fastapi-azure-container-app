@@ -14,7 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def mock_database():
     """
     Return a MagicMock that mimics an AsyncDatabase instance.
@@ -39,10 +39,13 @@ def mock_database():
     return db
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def client(mock_database):
     """
     FastAPI TestClient with the MongoDB database patched to mock_database.
+
+    Module-scoped: the app is started once per test module (file) rather than
+    once per test, which avoids repeated lifespan startup overhead.
 
     Patches both connect_to_database (no-op on startup) and get_database
     (returns mock_database) so no real Atlas connection is made.

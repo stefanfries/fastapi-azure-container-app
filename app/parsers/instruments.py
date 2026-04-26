@@ -94,8 +94,8 @@ def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         ValueError: If the asset class is not supported.
     """
     if asset_class == AssetClass.STOCK:
-        row = soup.find(text=re.compile("Aktieninformationen")).parent.parent.find(
-            "th", text=re.compile("Symbol")
+        row = soup.find(string=re.compile("Aktieninformationen")).parent.parent.find(
+            "th", string=re.compile("Symbol")
         )
         symbol = None
         symbol_cell = None

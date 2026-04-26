@@ -5,7 +5,7 @@ This repository handles CRUD operations and caching for instrument data
 including WKN, ISIN, name, asset class, and trading venue notations.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from pymongo.asynchronous.collection import AsyncCollection
 
@@ -91,7 +91,7 @@ class InstrumentRepository:
         doc = instrument.model_dump()
 
         # Add caching metadata
-        doc["cached_at"] = datetime.utcnow()
+        doc["cached_at"] = datetime.now(UTC)
 
         # Upsert based on WKN (unique identifier)
         await self.collection.update_one({"wkn": instrument.wkn}, {"$set": doc}, upsert=True)
@@ -115,7 +115,7 @@ class InstrumentRepository:
             return False
 
         cached_at = doc["cached_at"]
-        age = datetime.utcnow() - cached_at
+        age = datetime.now(UTC) - cached_at
 
         is_valid = age < timedelta(days=max_age_days)
         logger.debug("Cache validity for %s: %s (age: %s days)", wkn, is_valid, age.days)

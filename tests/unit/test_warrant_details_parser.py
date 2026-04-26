@@ -7,7 +7,7 @@ Covers:
     - warrant_type reconstructed from span title: "Call (Amerikanisch)"
     - underlying_name from <span title> (not truncated display text)
     - underlying_link built from <a href> (absolute comdirect URL)
-    - issuer full name from <a title> attribute
+    - issuer from visible anchor/plain text of the td (title attribute ignored)
     - Strike split into value + currency
     - Maturity / last-trading-day date parsing (DD.MM.YY and DD.MM.YYYY)
     - Missing / "--" / "k. A." fields become None
@@ -150,24 +150,31 @@ class TestUnderlyingLink:
 
 
 # ---------------------------------------------------------------------------
-# issuer — from <a title>
+# issuer — from td display text
 # ---------------------------------------------------------------------------
 
 
 class TestIssuer:
-    def test_full_name_from_a_title(self):
+    def test_anchor_text_used(self):
         soup = _warrant_page(
             emittent='<a href="/inf/optionsscheine/emittenten/hsbc.html" title="HSBC, Deutschland, Düsseldorf">HSBC</a>'
         )
-        assert _parser.parse_details(soup).issuer == "HSBC, Deutschland, Düsseldorf"
+        assert _parser.parse_details(soup).issuer == "HSBC"
 
-    def test_falls_back_to_anchor_text_when_no_title(self):
+    def test_title_attribute_is_ignored(self):
+        """The long title attribute must NOT appear — only the visible text is used."""
+        soup = _warrant_page(
+            emittent='<a href="/inf/optionsscheine/emittenten/hsbc.html" title="HSBC, Deutschland, Düsseldorf">HSBC</a>'
+        )
+        assert _parser.parse_details(soup).issuer != "HSBC, Deutschland, Düsseldorf"
+
+    def test_anchor_text_without_title(self):
         soup = _warrant_page(
             emittent='<a href="/inf/optionsscheine/emittenten/gsb.html">Goldman Sachs</a>'
         )
         assert _parser.parse_details(soup).issuer == "Goldman Sachs"
 
-    def test_falls_back_to_plain_text_when_no_anchor(self):
+    def test_plain_text_without_anchor(self):
         soup = _warrant_page(emittent="Goldman Sachs")
         assert _parser.parse_details(soup).issuer == "Goldman Sachs"
 
@@ -175,7 +182,7 @@ class TestIssuer:
         soup = _warrant_page(emittent="--")
         assert _parser.parse_details(soup).issuer is None
 
-    def test_ka_a_title_returns_none(self):
+    def test_ka_returns_none(self):
         soup = _warrant_page(emittent='<a href="/x" title="k. A.">k. A.</a>')
         assert _parser.parse_details(soup).issuer is None
 

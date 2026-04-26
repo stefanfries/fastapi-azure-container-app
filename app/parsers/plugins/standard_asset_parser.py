@@ -5,14 +5,25 @@ This parser handles the standard HTML structure used by stocks, bonds, ETFs,
 funds, and certificates on comdirect.
 """
 
+import re
+from datetime import date, datetime
+
 from bs4 import BeautifulSoup
 
-from app.models.instrument_details import InstrumentDetails, StockDetails
+from app.models.instrument_details import (
+    BondDetails,
+    CertificateDetails,
+    ETFDetails,
+    FondsDetails,
+    InstrumentDetails,
+    StockDetails,
+)
 from app.models.instruments import AssetClass, VenueInfo
 from app.parsers.plugins.base_parser import InstrumentParser
 from app.parsers.plugins.parsing_utils import (
     categorize_lt_ex_venues,
     clean_float_value,
+    clean_numeric_value,
     extract_after_label,
     extract_name_from_h1,
     extract_preferred_ex_notation,
@@ -104,20 +115,47 @@ class StandardAssetParser(InstrumentParser):
         return lt_venue_dict, ex_venue_dict, preferred_lt_id_notation, preferred_ex_id_notation
 
     def parse_details(self, soup: BeautifulSoup) -> InstrumentDetails | None:
-        """
-        Extract asset-class-specific Stammdaten from the HTML.
-
-        Currently implemented for STOCK only.  All other standard asset classes
-        (BOND, ETF, FONDS, CERTIFICATE) return ``None`` until their parsers are
-        extended.
-        """
+        """Extract asset-class-specific Stammdaten from the HTML."""
         if self._asset_class == AssetClass.STOCK:
             return self._parse_stock_details(soup)
+        if self._asset_class == AssetClass.BOND:
+            return self._parse_bond_details(soup)
+        if self._asset_class == AssetClass.ETF:
+            return self._parse_etf_details(soup)
+        if self._asset_class == AssetClass.FONDS:
+            return self._parse_fonds_details(soup)
+        if self._asset_class == AssetClass.CERTIFICATE:
+            return self._parse_certificate_details(soup)
         return None
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_date(text: str | None) -> date | None:
+        """Parse a German date string (DD.MM.YYYY or DD.MM.YY) into a date object."""
+        if not text or text.strip() in ("--", "k. A.", ""):
+            return None
+        for fmt in ("%d.%m.%Y", "%d.%m.%y"):
+            try:
+                return datetime.strptime(text.strip(), fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _split_value_currency(raw: str | None) -> tuple[float | None, str | None]:
+        """Split a string like '100,00 EUR' into (100.0, 'EUR')."""
+        if not raw or raw.strip() in ("--", ""):
+            return None, None
+        parts = raw.split()
+        currency: str | None = None
+        if parts and len(parts[-1]) == 3 and parts[-1].isupper():
+            currency = parts[-1]
+            raw = " ".join(parts[:-1])
+        value = clean_float_value(raw)
+        return value, currency
 
     def _parse_stock_details(self, soup: BeautifulSoup) -> StockDetails:
         """
@@ -129,8 +167,6 @@ class StandardAssetParser(InstrumentParser):
 
         All fields are treated as optional — any missing or "--" value becomes None.
         """
-        from app.parsers.plugins.parsing_utils import clean_numeric_value
-
         section = "Aktieninformationen"
 
         security_type = extract_table_cell_by_label(soup, section, "Wertpapiertyp")
@@ -154,9 +190,7 @@ class StandardAssetParser(InstrumentParser):
                         raw = td.get_text(strip=True)
                         sector = raw if raw and raw != "--" else None
 
-        # Fiscal year end "DD.MM." → "MM-DD"
-        import re
-
+        # Fiscal year end "DD.MM." → "DD-MM"
         fye_raw = extract_table_cell_by_label(soup, section, "Geschäftsjahr")
         fiscal_year_end: str | None = None
         if fye_raw and fye_raw.strip() not in ("--", ""):
@@ -182,14 +216,7 @@ class StandardAssetParser(InstrumentParser):
 
         # Nominal value "0,00 USD" — split value from currency
         nennwert_raw = extract_table_cell_by_label(soup, section, "Nennwert")
-        nominal_value: float | None = None
-        nominal_value_currency: str | None = None
-        if nennwert_raw and nennwert_raw.strip() not in ("--", ""):
-            parts = nennwert_raw.split()
-            if parts and len(parts[-1]) == 3 and parts[-1].isupper():
-                nominal_value_currency = parts[-1]
-                nennwert_raw = " ".join(parts[:-1])
-            nominal_value = clean_float_value(nennwert_raw)
+        nominal_value, nominal_value_currency = self._split_value_currency(nennwert_raw)
 
         # Shares outstanding "24,30 Mrd."
         stuecke_raw = extract_table_cell_by_label(soup, section, "Stücke")
@@ -209,4 +236,182 @@ class StandardAssetParser(InstrumentParser):
             nominal_value=nominal_value,
             nominal_value_currency=nominal_value_currency,
             shares_outstanding=shares_outstanding,
+        )
+
+    def _parse_bond_details(self, soup: BeautifulSoup) -> BondDetails:
+        """
+        Parse the "Anleiheinformationen" table on the comdirect bond page.
+
+        German label → field mapping:
+            Emittent          → issuer
+            Zinssatz          → coupon_rate  (e.g. "4,50 %")
+            Zinsart           → coupon_type  (e.g. "Fest")
+            Ausgabedatum      → issue_date   (DD.MM.YYYY)
+            Fälligkeit        → maturity_date
+            Nennwert          → nominal_value + currency
+            Anleihetyp        → bond_type
+            Moody's           → credit_rating_moodys
+            S&P               → credit_rating_sp
+            Währung           → currency
+        """
+        section = "Anleiheinformationen"
+
+        def _get(label: str) -> str | None:
+            v = extract_table_cell_by_label(soup, section, label)
+            return v if v and v.strip() not in ("--", "k. A.") else None
+
+        issuer = _get("Emittent")
+        coupon_rate = clean_float_value(_get("Zinssatz"))
+        coupon_type = _get("Zinsart")
+        issue_date = self._parse_date(_get("Ausgabedatum"))
+        maturity_date = self._parse_date(_get("Fälligkeit"))
+        nominal_value, currency_nw = self._split_value_currency(_get("Nennwert"))
+        bond_type = _get("Anleihetyp")
+        credit_rating_moodys = _get("Moody's")
+        credit_rating_sp = _get("S&P")
+        currency = _get("Währung") or currency_nw
+
+        return BondDetails(
+            issuer=issuer,
+            coupon_rate=coupon_rate,
+            coupon_type=coupon_type,
+            issue_date=issue_date,
+            maturity_date=maturity_date,
+            nominal_value=nominal_value,
+            bond_type=bond_type,
+            credit_rating_moodys=credit_rating_moodys,
+            credit_rating_sp=credit_rating_sp,
+            currency=currency,
+        )
+
+    def _parse_etf_details(self, soup: BeautifulSoup) -> ETFDetails:
+        """
+        Parse the "ETF-Informationen" table on the comdirect ETF page.
+
+        German label → field mapping:
+            Abgebildeter Index    → tracked_index
+            TER                  → expense_ratio  (e.g. "0,20 %")
+            Replikationsmethode  → replication_method
+            Ausschüttungsart     → distribution_policy
+            Fondsdomizil         → fund_domicile
+            Auflagedatum         → inception_date  (DD.MM.YYYY)
+            Fondswährung         → fund_currency
+            Fondsvermögen        → fund_size  (e.g. "1,23 Mrd.")
+        """
+        section = "ETF-Informationen"
+
+        def _get(label: str) -> str | None:
+            v = extract_table_cell_by_label(soup, section, label)
+            return v if v and v.strip() not in ("--", "k. A.") else None
+
+        tracked_index = _get("Abgebildeter Index")
+        expense_ratio = clean_float_value(_get("TER"))
+        replication_method = _get("Replikationsmethode")
+        distribution_policy = _get("Ausschüttungsart")
+        fund_domicile = _get("Fondsdomizil")
+        inception_date = self._parse_date(_get("Auflagedatum"))
+        fund_currency = _get("Fondswährung")
+
+        fund_size_raw = _get("Fondsvermögen")
+        fund_size: float | None = None
+        if fund_size_raw:
+            numeric = clean_numeric_value(fund_size_raw)
+            fund_size = float(numeric) if numeric is not None else None
+
+        return ETFDetails(
+            tracked_index=tracked_index,
+            expense_ratio=expense_ratio,
+            replication_method=replication_method,
+            distribution_policy=distribution_policy,
+            fund_domicile=fund_domicile,
+            inception_date=inception_date,
+            fund_currency=fund_currency,
+            fund_size=fund_size,
+        )
+
+    def _parse_fonds_details(self, soup: BeautifulSoup) -> FondsDetails:
+        """
+        Parse the "Fondsinformationen" table on the comdirect mutual-fund page.
+
+        German label → field mapping:
+            Fondstyp          → fund_type
+            Fondsmanager      → fund_manager
+            Auflagedatum      → inception_date  (DD.MM.YYYY)
+            Fondsdomizil      → fund_domicile
+            Ausschüttungsart  → distribution_policy
+            TER               → expense_ratio  (e.g. "1,50 %")
+            Fondswährung      → fund_currency
+            Fondsvermögen     → fund_size  (e.g. "512,00 Mio.")
+        """
+        section = "Fondsinformationen"
+
+        def _get(label: str) -> str | None:
+            v = extract_table_cell_by_label(soup, section, label)
+            return v if v and v.strip() not in ("--", "k. A.") else None
+
+        fund_type = _get("Fondstyp")
+        fund_manager = _get("Fondsmanager")
+        inception_date = self._parse_date(_get("Auflagedatum"))
+        fund_domicile = _get("Fondsdomizil")
+        distribution_policy = _get("Ausschüttungsart")
+        expense_ratio = clean_float_value(_get("TER"))
+        fund_currency = _get("Fondswährung")
+
+        fund_size_raw = _get("Fondsvermögen")
+        fund_size: float | None = None
+        if fund_size_raw:
+            numeric = clean_numeric_value(fund_size_raw)
+            fund_size = float(numeric) if numeric is not None else None
+
+        return FondsDetails(
+            fund_type=fund_type,
+            fund_manager=fund_manager,
+            inception_date=inception_date,
+            fund_domicile=fund_domicile,
+            distribution_policy=distribution_policy,
+            expense_ratio=expense_ratio,
+            fund_currency=fund_currency,
+            fund_size=fund_size,
+        )
+
+    def _parse_certificate_details(self, soup: BeautifulSoup) -> CertificateDetails:
+        """
+        Parse the "Zertifikatinformationen" table on the comdirect certificate page.
+
+        German label → field mapping:
+            Zertifikattyp       → certificate_type
+            Basiswert           → underlying_name
+            Cap-Niveau          → cap + cap_currency  (e.g. "100,00 EUR")
+            Barriere            → barrier + barrier_currency
+            Partizipationsrate  → participation_rate  (e.g. "100,00 %")
+            Fälligkeit          → maturity_date  (DD.MM.YYYY or "Open End")
+            Emittent            → issuer
+            Währung             → currency
+        """
+        section = "Zertifikatinformationen"
+
+        def _get(label: str) -> str | None:
+            v = extract_table_cell_by_label(soup, section, label)
+            return v if v and v.strip() not in ("--", "k. A.") else None
+
+        certificate_type = _get("Zertifikattyp")
+        underlying_name = _get("Basiswert")
+        cap, cap_currency = self._split_value_currency(_get("Cap-Niveau"))
+        barrier, barrier_currency = self._split_value_currency(_get("Barriere"))
+        participation_rate = clean_float_value(_get("Partizipationsrate"))
+        maturity_date = self._parse_date(_get("Fälligkeit"))
+        issuer = _get("Emittent")
+        currency = _get("Währung")
+
+        return CertificateDetails(
+            certificate_type=certificate_type,
+            underlying_name=underlying_name,
+            cap=cap,
+            cap_currency=cap_currency,
+            barrier=barrier,
+            barrier_currency=barrier_currency,
+            participation_rate=participation_rate,
+            maturity_date=maturity_date,
+            issuer=issuer,
+            currency=currency,
         )

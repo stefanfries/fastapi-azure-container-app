@@ -211,20 +211,12 @@ class WarrantParser(InstrumentParser):
                 strike_raw = " ".join(parts[:-1])
             strike = clean_float_value(strike_raw)
 
-        # Emittent: full name from <a title>
+        # Emittent: display text of the <td> (anchor text or plain text)
         issuer: str | None = None
         emittent_td = _find_td(table, "Emittent")
         if emittent_td:
-            a_tag = emittent_td.find("a")
-            if a_tag and a_tag.get("title"):
-                title = a_tag["title"].strip()
-                issuer = title if title and title not in ("--", "k. A.") else None
-            elif a_tag:
-                text = a_tag.get_text(strip=True)
-                issuer = text if text and text not in ("--", "k. A.") else None
-            else:
-                text = emittent_td.get_text(" ", strip=True)
-                issuer = text if text and text not in ("--", "k. A.") else None
+            text = emittent_td.get_text(" ", strip=True).replace("\xa0", " ")
+            issuer = text if text and text not in ("--", "k. A.") else None
 
         return WarrantDetails(
             warrant_type=warrant_type,

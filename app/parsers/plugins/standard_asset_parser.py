@@ -405,7 +405,9 @@ class StandardAssetParser(InstrumentParser):
                 if re.search(label, th.get_text(" ", strip=True)):
                     td = th.find_next_sibling("td")
                     if td:
-                        v = td.get_text(" ", strip=True)
+                        # Prefer <span title="Full Name"> over truncated display text.
+                        span = td.find("span", attrs={"title": True})
+                        v = span["title"].strip() if span and span["title"].strip() else td.get_text(" ", strip=True)
                         return v if v and v.strip() not in ("--", "k. A.") else None
             return None
 

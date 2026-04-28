@@ -80,6 +80,7 @@ def _parse_members_from_table(soup: BeautifulSoup) -> list[IndexMember]:
                 isin=isin,
                 link=f"{BASE_URL}{href}",
                 asset_class=_extract_asset_class_label(href),
+                instrument_url=f"/v1/instruments/{isin}",
             )
         )
     return members
@@ -152,68 +153,100 @@ async def fetch_index_list() -> list[IndexInfo]:
     return result
 
 
-async def fetch_index_members(index_name: str) -> list[IndexMember]:
-    """Fetch all members of a named index from comdirect, handling pagination."""
-    indices = await fetch_index_list()
-
-    match = next(
-        (idx for idx in indices if _normalize_name(idx.name) == _normalize_name(index_name)),
-        None,
-    )
-    if match is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Index '{index_name}' not found. "
-            f"Supported indices: {[i.name for i in indices]}",
-        )
-
-    isin = _extract_isin_from_path(match.link)
-    if not isin:
-        raise HTTPException(status_code=502, detail="Could not determine ISIN for pagination")
-
-    logger.info(
-        "Fetching members for index '%s' (expected: %d) from %s",
-        match.name,
-        match.member_count,
-        match.link,
+def _members_page_url(isin: str, offset: int = 0) -> str:
+    """Build the comdirect paginated index-members URL for a given ISIN and offset."""
+    return (
+        f"{BASE_URL}/inf/indizes/detail/werte/standard.html"
+        f"?OFFSET={offset}&ISIN={isin}"
+        f"&SORT=SHORT_NAME_INSTRUMENT&SORTDIR=ASCENDING"
     )
 
+
+async def _fetch_all_members(isin: str, label: str, expected_count: int | None = None) -> list[IndexMember]:
+    """Fetch all paginated member rows for an index identified by ISIN."""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-        # Fetch first page
-        first_response = await client.get(match.link)
+        first_response = await client.get(_members_page_url(isin))
         first_response.raise_for_status()
         first_soup = BeautifulSoup(first_response.content, "html.parser")
 
         total_pages = _get_total_pages(first_soup)
-        logger.info("Index '%s' has %d page(s)", match.name, total_pages)
+        logger.info("Index '%s' has %d page(s)", label, total_pages)
 
         members = _parse_members_from_table(first_soup)
 
         if total_pages > 1:
-
-            def page_url(offset: int) -> str:
-                return (
-                    f"{BASE_URL}/inf/indizes/detail/werte/standard.html"
-                    f"?OFFSET={offset}&ISIN={isin}"
-                    f"&SORT=SHORT_NAME_INSTRUMENT&SORTDIR=ASCENDING"
-                )
-
             pages = await asyncio.gather(
-                *[client.get(page_url(offset)) for offset in range(1, total_pages)]
+                *[client.get(_members_page_url(isin, offset)) for offset in range(1, total_pages)]
             )
             for page_response in pages:
                 page_response.raise_for_status()
                 page_soup = BeautifulSoup(page_response.content, "html.parser")
                 members.extend(_parse_members_from_table(page_soup))
 
-    if len(members) != match.member_count:
+    if expected_count is not None and len(members) != expected_count:
         logger.warning(
             "Member count mismatch for '%s': expected %d from overview, fetched %d",
-            match.name,
-            match.member_count,
+            label,
+            expected_count,
             len(members),
         )
     else:
-        logger.info("Member count OK for '%s': %d members", match.name, len(members))
+        logger.info("Fetched %d members for '%s'", len(members), label)
 
     return members
+
+
+async def fetch_index_members(index_name: str) -> list[IndexMember]:
+    """Fetch all members of a named index from comdirect, handling pagination.
+
+    ``index_name`` may be a human-readable name (e.g. ``"DAX"``), a WKN
+    (e.g. ``"846900"``), or an ISIN (e.g. ``"DE0008469008"``).  Name matching
+    is case-insensitive and ignores punctuation (see ``_normalize_name``).
+
+    When an ISIN is provided that does not appear in the comdirect index
+    catalogue URL (e.g. a German tracking ISIN for the S&P 500), members are
+    fetched directly from comdirect using that ISIN as the pagination key,
+    bypassing the catalogue entirely.
+    """
+    indices = await fetch_index_list()
+
+    # Primary lookup: normalised name match
+    match = next(
+        (idx for idx in indices if _normalize_name(idx.name) == _normalize_name(index_name)),
+        None,
+    )
+
+    # Secondary lookup: match the ISIN embedded in the catalogue link URL
+    if match is None and re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
+        isin_upper = index_name.upper()
+        match = next(
+            (idx for idx in indices if _extract_isin_from_path(idx.link) == isin_upper),
+            None,
+        )
+
+    # Catalogue match found — use its link and expected member count
+    if match is not None:
+        isin = _extract_isin_from_path(match.link)
+        if not isin:
+            raise HTTPException(status_code=502, detail="Could not determine ISIN for pagination")
+        logger.info(
+            "Fetching members for index '%s' (expected: %d) via catalogue",
+            match.name,
+            match.member_count,
+        )
+        return await _fetch_all_members(isin, label=match.name, expected_count=match.member_count)
+
+    # Final fallback: ISIN supplied directly (e.g. from constituents_url) but not
+    # present in the catalogue link — fetch members directly using that ISIN.
+    if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
+        logger.info(
+            "ISIN '%s' not found in catalogue; fetching members directly from comdirect",
+            index_name,
+        )
+        return await _fetch_all_members(index_name.upper(), label=index_name)
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Index '{index_name}' not found. "
+        f"Supported indices: {[i.name for i in indices]}",
+    )

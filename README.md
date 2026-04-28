@@ -9,8 +9,12 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
 - **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
-- **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn}` returns a typed `details` block per asset class — `StockDetails`, `BondDetails`, `ETFDetails`, `FondsDetails`, `CertificateDetails` (sector, market cap, coupon, TER, …) and `WarrantDetails` (exercise style, underlying link, issuer) all fully implemented
-- **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with `parse_details()` support
+- **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn|isin}` returns a typed `details` block per asset class — all 9 classes fully implemented including `IndexDetails` (country, currency, num_constituents, constituents_url), `CommodityDetails` (currency, symbol, country), `CurrencyDetails` (base_currency, quote_currency, country)
+- **ISIN & WKN from Stammdaten**: `SpecialAssetParser` now reads ISIN, WKN, and Symbol directly from the Stammdaten table (e.g. DAX → ISIN `DE0008469008`, symbol `DAX`)
+- **Index Constituent Link**: `IndexDetails.constituents_url` carries a ready-to-use API path (e.g. `/v1/indices/DE0008469008`) linking directly to the constituent list
+- **Index Members API**: `GET /v1/indices/{name|isin|wkn}` accepts a human-readable name, WKN, or ISIN — including tracking ISINs not in the comdirect index catalogue (e.g. `DE0009653386` for S&P 500)
+- **Constituent Instrument Links**: Each `IndexMember` now includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`) alongside the comdirect page link
+- **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with full `parse_details()` support
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
 - **CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions

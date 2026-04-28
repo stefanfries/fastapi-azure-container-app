@@ -238,24 +238,18 @@ class IndexDetails(BaseModel):
     """
     Asset-class-specific reference data for a market index (Index).
 
-    Fields reflect the "Indexinformationen" / "Stammdaten" section on
-    the comdirect instrument detail page.
+    Fields reflect the "Stammdaten" section on the comdirect instrument detail page.
     """
 
     asset_class: Literal["Index"] = "Index"
 
-    index_type: str | None = Field(
-        None,
-        description="Index type, e.g. 'Kursindex' (price) or 'Performanceindex' (total return)",
-    )
-    index_provider: str | None = Field(
-        None, description="Index calculation provider (e.g. 'Deutsche Börse')"
-    )
-    country: str | None = Field(None, description="Country or region covered by the index")
-    base_value: float | None = Field(None, description="Base / starting value (Basiswert)")
-    base_date: date | None = Field(None, description="Base date for the index (Basisdatum)")
+    country: str | None = Field(None, description="Country or region covered by the index (Land)")
+    currency: str | None = Field(None, description="Home currency of the index, e.g. 'EUR' (Landeswährung)")
     num_constituents: int | None = Field(
-        None, description="Number of index constituents (Anzahl Bestandteile)"
+        None, description="Number of index constituents (Enthaltene Werte)"
+    )
+    constituents_url: str | None = Field(
+        None, description="API path to fetch the constituent list, e.g. '/v1/indices/DE0008469008'"
     )
 
 
@@ -263,21 +257,19 @@ class CommodityDetails(BaseModel):
     """
     Asset-class-specific reference data for a commodity (Rohstoff).
 
-    Fields reflect the "Rohstoffinformationen" / "Stammdaten" section on
-    the comdirect instrument detail page.
+    Fields reflect the "Stammdaten" section on the comdirect commodity detail page.
     """
 
     asset_class: Literal["Commodity"] = "Commodity"
 
-    commodity_type: str | None = Field(
-        None,
-        description="Commodity category, e.g. 'Edelmetall', 'Energie', 'Agrar' (Rohstofftyp)",
+    currency: str | None = Field(
+        None, description="Pricing currency, e.g. 'USD' (Landeswährung)"
     )
-    unit: str | None = Field(
-        None, description="Pricing unit, e.g. 'USD per troy ounce' (Einheit)"
+    symbol: str | None = Field(
+        None, description="Commodity symbol, e.g. 'XAU' (Symbol)"
     )
-    source_exchange: str | None = Field(
-        None, description="Primary exchange or price source (Herkunftsbörse)"
+    country: str | None = Field(
+        None, description="Country associated with the commodity (Land)"
     )
 
 
@@ -285,17 +277,20 @@ class CurrencyDetails(BaseModel):
     """
     Asset-class-specific reference data for a currency pair (Währung).
 
-    Fields reflect the "Währungsinformationen" / "Stammdaten" section on
-    the comdirect instrument detail page.
+    Fields reflect the "Stammdaten" section on the comdirect currency detail page.
+    The exchange rate string (e.g. "EUR/USD") is split into base and quote currency.
     """
 
     asset_class: Literal["Currency"] = "Currency"
 
     base_currency: str | None = Field(
-        None, description="Base currency of the pair (Basiswährung), e.g. 'EUR'"
+        None, description="Base currency of the pair, e.g. 'EUR' (from Wechselkurs 'EUR/USD')"
     )
     quote_currency: str | None = Field(
-        None, description="Quote / price currency (Quotierungswährung), e.g. 'USD'"
+        None, description="Quote / price currency, e.g. 'USD' (from Wechselkurs 'EUR/USD')"
+    )
+    country: str | None = Field(
+        None, description="Country associated with the currency pair (Land)"
     )
 
 

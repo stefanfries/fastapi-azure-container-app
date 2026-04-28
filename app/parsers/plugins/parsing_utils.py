@@ -6,10 +6,27 @@ different asset class parsers, promoting DRY principles and consistency.
 """
 
 import re
+from datetime import date, datetime
 
 from bs4 import BeautifulSoup
 
 from app.models.instruments import VenueInfo
+
+
+def parse_date(text: str | None) -> date | None:
+    """
+    Parse a German date string (DD.MM.YYYY or DD.MM.YY) into a ``date`` object.
+
+    Returns ``None`` for empty values, ``"--"``, or unparseable strings.
+    """
+    if not text or text.strip() in ("--", "k. A.", ""):
+        return None
+    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
+        try:
+            return datetime.strptime(text.strip(), fmt).date()
+        except ValueError:
+            continue
+    return None
 
 # Known home currencies for comdirect trading venues.
 # Venues that carry an explicit currency suffix in their name (e.g. "SIX SWISS (USD)")

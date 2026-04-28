@@ -142,11 +142,37 @@ class InstrumentRepository:
 
         return deleted
 
-    async def count(self) -> int:
+    async def find_all(self, asset_class: str | None = None) -> list[Instrument]:
         """
-        Get the total number of cached instruments.
+        List all instruments, optionally filtered by asset class.
+
+        Args:
+            asset_class: Optional asset class value to filter on (e.g. "Stock", "ETF").
 
         Returns:
-            int: Number of instruments in cache
+            list[Instrument]: Matching instruments, sorted by name.
         """
-        return await self.collection.count_documents({})
+        query: dict = {}
+        if asset_class is not None:
+            query["asset_class"] = asset_class
+
+        logger.debug("Listing instruments with filter: %s", query or "none")
+        cursor = self.collection.find(query, {"_id": 0, "cached_at": 0}).sort("name", 1)
+        docs = await cursor.to_list()
+
+        return [Instrument(**doc) for doc in docs]
+
+    async def count(self, asset_class: str | None = None) -> int:
+        """
+        Get the total number of cached instruments, optionally filtered by asset class.
+
+        Args:
+            asset_class: Optional asset class value to filter on.
+
+        Returns:
+            int: Number of matching instruments in cache.
+        """
+        query: dict = {}
+        if asset_class is not None:
+            query["asset_class"] = asset_class
+        return await self.collection.count_documents(query)

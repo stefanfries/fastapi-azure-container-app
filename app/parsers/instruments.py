@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from app.core.constants import asset_class_identifier_to_asset_class_map
 from app.core.logging import logger
 from app.models.instruments import AssetClass, Instrument
+from app.parsers.plugins.parsing_utils import extract_table_cell_by_label
 from app.scrapers.scrape_url import fetch_one
 from app.services.identifier_enrichment import build_global_identifiers
 
@@ -84,14 +85,17 @@ def parse_default_id_notation(response: httpx.Response) -> str | None:
 
 def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
     """
-    Extracts the symbol from the given BeautifulSoup object based on the asset class.
+    Extracts the ticker symbol from the given BeautifulSoup object.
+
+    For stocks, the symbol is read from the "Aktieninformationen" section.
+    For all other asset classes, the "Stammdaten" section is checked.
+
     Args:
-        asset_class (AssetClass): The class of the asset, which determines how the symbol is extracted.
-        soup (BeautifulSoup): The BeautifulSoup object containing the HTML from which the symbol extracted.
+        asset_class: The asset class determines which HTML section to search.
+        soup: Parsed HTML of the comdirect instrument detail page.
+
     Returns:
-        str: The extracted symbol.
-    Raises:
-        ValueError: If the asset class is not supported.
+        The ticker symbol string, or None when not found.
     """
     if asset_class == AssetClass.STOCK:
         row = soup.find(string=re.compile("Aktieninformationen")).parent.parent.find(
@@ -104,6 +108,11 @@ def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         if symbol_cell:
             symbol = symbol_cell.text.strip()
         return symbol
+    else:
+        value = extract_table_cell_by_label(soup, "Stammdaten", "Symbol")
+        if value and value.strip() not in ("--", "k. A.", ""):
+            return value.strip()
+        return None
 
 
 async def parse_instrument_data(instrument: str) -> Instrument:

@@ -14,6 +14,7 @@ def _index_member() -> IndexMember:
         name="NVIDIA",
         isin="US67066G1040",
         link="/inf/aktien/nvidia",
+        instrument_url="/v1/instruments/US67066G1040",
     )
 
 

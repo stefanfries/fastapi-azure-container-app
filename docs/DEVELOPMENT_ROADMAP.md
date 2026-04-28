@@ -37,18 +37,17 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ⚠️ Partially Completed
 
-- **Asset-Class-Specific Parsers**: `StockDetails` and `WarrantDetails` parsers implemented; Bond, ETF, Fonds, Certificate, Index, Commodity, Currency parsers return `None` (models exist)
-- **Testing**: 104 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 383 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
 ### ❌ Missing Components
 
-- **Remaining Detail Parsers**: Bond, ETF, Fonds, Certificate, Index, Commodity, Currency `parse_details()` not yet implemented
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
 - **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
 - **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
+- **`GET /v1/instruments?asset_class={asset_class}`**: list endpoint not yet wired (CRUD layer done: `find_all()` / `count()`)
 
 ---
 
@@ -163,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 26 unit tests passing; coverage reporting active (~45%)
+- ✅ 383 unit tests passing; coverage reporting active
 - ✅ Toolchain: `ruff` for linting and formatting
 - [ ] DB initialization script (WKN/ISIN indexes on instruments collection)
 - [ ] Docker image version tagging in CD pipeline
@@ -221,8 +220,15 @@ Priority: HIGH - Core business requirement
   - `tests/unit/parsers/test_standard_asset_parser.py` — shared helpers (`_parse_date`, `_split_value_currency`)
   - `tests/unit/parsers/test_special_asset_parser.py` — `SpecialAssetParser` interface
   - `tests/unit/parsers/plugins/` — one test file per concrete parser
-- [ ] Remaining `parse_details()` implementations (models exist, return `None`):
-  - `SpecialAssetParser`: IndexDetails, CommodityDetails, CurrencyDetails
+- [ ] Remaining `parse_details()` implementations (models exist, return `None`): ~~SpecialAssetParser: IndexDetails, CommodityDetails, CurrencyDetails~~ ✅ COMPLETED
+- [x] `SpecialAssetParser._parse_index_details()` — `country`, `currency`, `num_constituents`, `constituents_url` (ISIN/WKN → `/v1/indices/{id}`) ✅
+- [x] `SpecialAssetParser._parse_commodity_details()` — `currency`, `symbol`, `country` ✅
+- [x] `SpecialAssetParser._parse_currency_details()` — `base_currency`, `quote_currency` (split from `Wechselkurs`), `country` ✅
+- [x] `SpecialAssetParser.parse_isin()` reads from Stammdaten table (no longer hardcoded `None`) ✅
+- [x] `SpecialAssetParser.parse_wkn()` returns `None` gracefully instead of raising for missing WKN ✅
+- [x] `parse_symbol()` in `instruments.py` handles all asset classes via Stammdaten `"Symbol"` row ✅
+- [x] `IndexMember.instrument_url` added (e.g. `/v1/instruments/DE0007164600`) ✅
+- [x] `GET /v1/indices/{isin}` cross-ISIN fallback — works for tracking ISINs not in comdirect catalogue ✅
 
 #### 2.3 Update API Endpoints ✅ COMPLETED
 
@@ -235,13 +241,15 @@ Priority: HIGH - Core business requirement
 - [x] `quotes.py` uses shared `parsing_utils` functions ✅
 - [x] No legacy fallback path in plugin system ✅
 
-**Deliverables:**
-
 - ✅ All 9 asset classes supported by plugin system
 - ✅ Asset-class-specific data models defined and integrated into `Instrument`
-- ✅ `GET /v1/instruments/{wkn}` returns enriched `details` for STOCK, BOND, ETF, FONDS, CERTIFICATE, and WARRANT
-- ✅ 188 unit tests; test layout mirrors `app/` directory structure
-- [ ] Remaining `parse_details()` for Index, Commodity, Currency
+- ✅ `GET /v1/instruments/{wkn|isin}` returns enriched `details` for ALL 9 asset classes (STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY)
+- ✅ `IndexDetails`: `country`, `currency`, `num_constituents`, `constituents_url`
+- ✅ `CommodityDetails`: `currency`, `symbol`, `country`
+- ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
+- ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
+- ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
+- ✅ 383 unit tests; test layout mirrors `app/` directory structure
 
 ---
 

@@ -15,3 +15,4 @@ class IndexMember(BaseModel):
     isin: ISIN = Field(..., description="ISIN of the index member")
     link: str = Field(..., description="URL to the instrument page on comdirect")
     asset_class: str | None = Field(None, description="Asset class of the index member")
+    instrument_url: str = Field(..., description="API path to fetch instrument master data, e.g. '/v1/instruments/DE0007164600'")

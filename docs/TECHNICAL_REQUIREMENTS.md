@@ -39,20 +39,32 @@ All original technical requirements are met. The following has been implemented:
   - `Basiswert` full name from `<span title>` + `underlying_link` from `<a href>`
   - `Basispreis` (split into value + currency), `Bezugsverhältnis`, `Fälligkeit`, `letzter Handelstag`
   - `Emittent` from visible `<td>` display text (`get_text()`)
+- ✅ Index details parser — `SpecialAssetParser._parse_index_details()` extracts:
+  - `Land` → `country`, `Landeswährung` → `currency`, `Enthaltene Werte` → `num_constituents`
+  - `ISIN` / `WKN` from Stammdaten table → `constituents_url` (e.g. `/v1/indices/DE0008469008`)
+- ✅ Commodity details parser — `SpecialAssetParser._parse_commodity_details()` extracts:
+  - `Landeswährung` → `currency`, `Symbol` → `symbol`, `Land` → `country`
+- ✅ Currency details parser — `SpecialAssetParser._parse_currency_details()` extracts:
+  - `Wechselkurs` (e.g. `EUR/USD`) split into `base_currency` / `quote_currency`, `Land` → `country`
+- ✅ `SpecialAssetParser.parse_isin()` reads ISIN from Stammdaten table (previously hardcoded `None`)
+- ✅ `SpecialAssetParser.parse_wkn()` returns `None` gracefully for instruments without WKN (e.g. L&S Brent Oil)
+- ✅ `parse_symbol()` in `instruments.py` reads Symbol from Stammdaten for non-STOCK asset classes
+- ✅ `IndexMember` model includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`)
+- ✅ `GET /v1/indices/{name|isin|wkn}` accepts name, WKN, or ISIN — including tracking ISINs not in comdirect catalogue (cross-ISIN fallback)
 - ✅ `clean_float_value()` and `Bil.` (10^12) support added to `parsing_utils.py`
 - ✅ Shared parsing utilities in `parsing_utils.py` (used by all parsers and `quotes.py`)
 - ✅ All legacy parsing code removed from `instruments.py`; no fallback path exists
 - ✅ MongoDB Atlas integration using PyMongo `AsyncMongoClient`
-- ✅ FastAPI routers: welcome, instruments, quotes, history, depots, warrants, indices
+- ✅ FastAPI routers: welcome, instruments, quotes, history, depots, warrants, indices, health
 - ✅ Custom `JSONResponse` with UTF-8 charset for German umlauts
 - ✅ CI/CD via GitHub Actions (lint + tests on PR; build + push + deploy to Azure on main)
 - ✅ CORS middleware added (`allow_origins=["*"]`, `allow_methods=["GET"]`)
 - ✅ API key protection on all data endpoints (`X-API-Key` header)
   - Open mode when `API_KEY` env var is unset; startup error when `API_KEY` is an empty string
-- ✅ 188 unit tests passing
+- ✅ 383 unit tests passing
 
 ## Open / Future Work
 
-- Index, Commodity, Currency details parsers not yet implemented (models exist, parsers return `None`)
+- `GET /v1/instruments?asset_class={asset_class}` list endpoint not yet wired (CRUD layer done: `find_all()` / `count()`)
 - Integration tests for parsers / scrapers not yet added
 - DB initialization script (WKN/ISIN indexes on instruments collection) not yet created

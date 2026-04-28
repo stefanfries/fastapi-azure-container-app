@@ -136,7 +136,37 @@ class TestParseSymbol:
         soup = BeautifulSoup("<html><body><p>Aktieninformationen</p><table></table></body></html>", "html.parser")
         assert parse_symbol(AssetClass.STOCK, soup) is None
 
-    def test_non_stock_returns_none(self):
-        """parse_symbol only handles STOCK; other classes return None."""
+    def test_non_stock_returns_none_when_no_stammdaten(self):
+        """Non-STOCK assets check the Stammdaten section; no section → None."""
         soup = self._stock_page_with_symbol("NVD")
         assert parse_symbol(AssetClass.ETF, soup) is None
+
+    def test_non_stock_extracts_symbol_from_stammdaten(self):
+        """Non-STOCK assets extract the Symbol from the Stammdaten section."""
+        html = """
+        <html><body>
+          <div>
+            <p>Stammdaten</p>
+            <table>
+              <tr><th>Symbol</th><td>XAU</td></tr>
+            </table>
+          </div>
+        </body></html>
+        """
+        soup = BeautifulSoup(textwrap.dedent(html), "html.parser")
+        assert parse_symbol(AssetClass.COMMODITY, soup) == "XAU"
+
+    def test_non_stock_returns_none_for_placeholder_symbol(self):
+        """Non-STOCK assets return None when the Symbol cell is '--'."""
+        html = """
+        <html><body>
+          <div>
+            <p>Stammdaten</p>
+            <table>
+              <tr><th>Symbol</th><td>--</td></tr>
+            </table>
+          </div>
+        </body></html>
+        """
+        soup = BeautifulSoup(textwrap.dedent(html), "html.parser")
+        assert parse_symbol(AssetClass.INDEX, soup) is None

@@ -42,9 +42,9 @@ app/parsers/
 | FONDS | `FondsParser` | ✅ `FondsDetails` | Full venue + id_notation support |
 | CERTIFICATE | `CertificateParser` | ✅ `CertificateDetails` | Full venue + id_notation support |
 | WARRANT | `WarrantParser` | ✅ `WarrantDetails` | Requires id_notation in URL for full venue data |
-| INDEX | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
-| COMMODITY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
-| CURRENCY | `SpecialAssetParser` | ⏳ pending | No venues (non-tradeable) |
+| INDEX | `SpecialAssetParser` | ✅ `IndexDetails` | No venues (non-tradeable); `constituents_url` links to `/v1/indices/{isin}` |
+| COMMODITY | `SpecialAssetParser` | ✅ `CommodityDetails` | No venues (non-tradeable) |
+| CURRENCY | `SpecialAssetParser` | ✅ `CurrencyDetails` | No venues (non-tradeable) |
 
 ## Key Components
 
@@ -114,9 +114,14 @@ Handles WARRANT (Optionsscheine):
 Handles INDEX, COMMODITY, and CURRENCY — instruments that are **not directly tradeable**:
 
 - WKN at position 2 in H2 token list (different layout from standard assets)
-- `parse_isin()` always returns `None`
+- `parse_wkn()` returns `None` (not raises) for instruments where WKN is `"--"` (e.g. L&S Brent Oil)
+- `parse_isin()` reads ISIN from the Stammdaten table `"ISIN"` row; returns `None` if absent or `"--"`
 - `parse_id_notations()` always returns `(None, None, None, None)`
 - Instrument name is returned **including** the asset-class suffix (e.g. `"DAX Index"`, `"Gold Rohstoff"`)
+- **`parse_details()`** dispatches by `asset_class`:
+  - `_parse_index_details()` — reads Stammdaten: `Land` → `country`, `Landeswährung` → `currency`, `Enthaltene Werte` → `num_constituents` (int); `ISIN` or `WKN` row → `constituents_url` (e.g. `/v1/indices/DE0008469008`)
+  - `_parse_commodity_details()` — reads `Landeswährung` → `currency`, `Symbol` → `symbol`, `Land` → `country`
+  - `_parse_currency_details()` — reads `Wechselkurs` (e.g. `"EUR/USD"`) split on `"/"` → `base_currency` / `quote_currency`; `Land` → `country`
 
 ### 5. ParserFactory
 
@@ -174,9 +179,9 @@ Common HTML extraction helpers shared across all parsers:
 
 1. Fetch instrument page
 2. Parse asset class → `SpecialAssetParser(asset_class)`
-3. Parse name (full H1 text including suffix) and WKN (H2 position 2)
+3. Parse name (full H1 text including suffix), WKN (H2 position 2, or `None` if `"--"`), ISIN (Stammdaten table)
 4. All venue/notation fields are `None` — these instruments are not tradeable directly
-5. `parse_details()` returns `None` (pending implementation)
+5. `parse_details()` returns `IndexDetails`, `CommodityDetails`, or `CurrencyDetails` as appropriate
 
 ## Asset-Class-Specific Detail Models
 
@@ -199,6 +204,31 @@ class Instrument(BaseModel):
 ```
 
 FastAPI serialises the correct concrete model based on the `asset_class` literal — no manual type-switching needed.
+
+### IndexDetails fields
+
+| Field | Source label | Type | Notes |
+| ----- | ------------ | ---- | ----- |
+| `country` | `Land` | `str \| None` | Country of the index |
+| `currency` | `Landeswährung` | `str \| None` | e.g. `"EUR"` |
+| `num_constituents` | `Enthaltene Werte` | `int \| None` | Number of index members |
+| `constituents_url` | `ISIN` / `WKN` | `str \| None` | e.g. `/v1/indices/DE0008469008` |
+
+### CommodityDetails fields
+
+| Field | Source label | Type |
+| ----- | ------------ | ---- |
+| `currency` | `Landeswährung` | `str \| None` |
+| `symbol` | `Symbol` | `str \| None` |
+| `country` | `Land` | `str \| None` |
+
+### CurrencyDetails fields
+
+| Field | Source label | Type |
+| ----- | ------------ | ---- |
+| `base_currency` | `Wechselkurs` (before `/`) | `str \| None` |
+| `quote_currency` | `Wechselkurs` (after `/`) | `str \| None` |
+| `country` | `Land` | `str \| None` |
 
 ## Adding a New Asset Class
 

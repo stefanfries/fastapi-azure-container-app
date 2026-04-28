@@ -37,7 +37,7 @@ Based on a comprehensive review of the codebase against business and technical r
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 383 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 388 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -47,7 +47,6 @@ Based on a comprehensive review of the codebase against business and technical r
 - **Load Testing**: No performance or scalability verification
 - **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
 - **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
-- **`GET /v1/instruments?asset_class={asset_class}`**: list endpoint not yet wired (CRUD layer done: `find_all()` / `count()`)
 
 ---
 
@@ -162,7 +161,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 383 unit tests passing; coverage reporting active
+- ✅ 388 unit tests passing; coverage reporting active
 - ✅ Toolchain: `ruff` for linting and formatting
 - [ ] DB initialization script (WKN/ISIN indexes on instruments collection)
 - [ ] Docker image version tagging in CD pipeline
@@ -233,7 +232,7 @@ Priority: HIGH - Core business requirement
 #### 2.3 Update API Endpoints ✅ COMPLETED
 
 - [x] `GET /v1/instruments/{wkn}` response includes `details` field with asset-class-specific data ✅
-- [ ] Add asset class filtering: `GET /v1/instruments?asset_class={asset_class}`
+- [x] `GET /v1/instruments/` list endpoint wired ✅ — optional `?asset_class=` query param, validated via `AssetClass` enum, delegated to `InstrumentRepository.find_all()`
 
 #### 2.4 Remove Legacy Parsing Code ✅ COMPLETED
 
@@ -249,7 +248,7 @@ Priority: HIGH - Core business requirement
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 383 unit tests; test layout mirrors `app/` directory structure
+- ✅ 388 unit tests; test layout mirrors `app/` directory structure
 
 ---
 

@@ -1,8 +1,11 @@
 """
 This module defines the API routes for instrument-related operations.
 Routes:
+    /v1/instruments (GET): List cached instruments, optionally filtered by asset class.
     /v1/instruments/{instrument_id} (GET): Fetch instrument master data by WKN, ISIN, or search term.
 Functions:
+    list_instruments(asset_class: AssetClass | None) -> list[Instrument]:
+        Return all cached instruments, optionally filtered by asset class.
     get_instrument(instrument_id: str) -> dict:
         Fetch instrument data by identifier.
 Dependencies:
@@ -14,12 +17,30 @@ from fastapi import APIRouter, Depends
 
 from app.core.logging import logger
 from app.core.security import require_api_key
-from app.models.instruments import Instrument
+from app.models.instruments import AssetClass, Instrument
 from app.parsers.instruments import parse_instrument_data
+from app.repositories.instruments import InstrumentRepository
 
 router = APIRouter(
     prefix="/v1/instruments", tags=["instruments"], dependencies=[Depends(require_api_key)]
 )
+
+_repo = InstrumentRepository()
+
+
+@router.get("/", response_model=list[Instrument])
+async def list_instruments(asset_class: AssetClass | None = None) -> list[Instrument]:
+    """
+    List all cached instruments, optionally filtered by asset class.
+
+    Args:
+        asset_class: Optional filter (e.g. Stock, Bond, ETF, Fund, Warrant,
+                     Certificate, Commodity, Index, Currency).
+    Returns:
+        list[Instrument]: Matching instruments sorted by name.
+    """
+    logger.info("Listing instruments (asset_class=%s)", asset_class)
+    return await _repo.find_all(asset_class=asset_class.value if asset_class else None)
 
 
 @router.get("/{instrument_id}", response_model=Instrument)

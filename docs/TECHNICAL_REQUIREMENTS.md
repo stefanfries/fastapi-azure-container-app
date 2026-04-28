@@ -61,10 +61,10 @@ All original technical requirements are met. The following has been implemented:
 - ✅ CORS middleware added (`allow_origins=["*"]`, `allow_methods=["GET"]`)
 - ✅ API key protection on all data endpoints (`X-API-Key` header)
   - Open mode when `API_KEY` env var is unset; startup error when `API_KEY` is an empty string
-- ✅ 383 unit tests passing
+- ✅ `GET /v1/instruments/` list endpoint — optional `?asset_class=` query param, validated via `AssetClass` enum
+- ✅ 388 unit tests passing
 
 ## Open / Future Work
 
-- `GET /v1/instruments?asset_class={asset_class}` list endpoint not yet wired (CRUD layer done: `find_all()` / `count()`)
 - Integration tests for parsers / scrapers not yet added
 - DB initialization script (WKN/ISIN indexes on instruments collection) not yet created

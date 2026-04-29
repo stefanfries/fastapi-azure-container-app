@@ -62,11 +62,13 @@ All original technical requirements are met. The following has been implemented:
 - ✅ API key protection on all data endpoints (`X-API-Key` header)
   - Open mode when `API_KEY` env var is unset; startup error when `API_KEY` is an empty string
 - ✅ `GET /v1/instruments/` list endpoint — optional `?asset_class=` query param, validated via `AssetClass` enum
+- ✅ Sparse unique indexes on `wkn` and `isin` created in `connect_to_database()` at startup (idempotent)
+- ✅ `InstrumentRepository.save()` falls back to ISIN key for foreign instruments where `wkn=None`
+- ✅ `Instrument` model validator: every instrument must have at least a WKN or an ISIN (`model_validator`)
 - ✅ 388 unit tests passing; 82% code coverage (exceeds 80% target)
 
 ## Open / Future Work
 
 - Integration tests for parsers / scrapers not yet added
 - E2E tests not yet added
-- DB initialization script (WKN/ISIN indexes on instruments collection) not yet created
 - Coverage threshold enforcement (`--cov-fail-under`) not yet configured in CI

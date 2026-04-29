@@ -14,7 +14,7 @@ Functions:
 
 from enum import Enum, StrEnum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.logging import logger
 from app.models.instrument_details import InstrumentDetails
@@ -196,6 +196,13 @@ class Instrument(BaseModel):
         None,
         description="Asset-class-specific reference data (Stammdaten); None until parsed",
     )
+
+    @model_validator(mode="after")
+    def require_wkn_or_isin(self) -> "Instrument":
+        """Ensure every instrument has at least a WKN or an ISIN."""
+        if self.wkn is None and self.isin is None:
+            raise ValueError("Instrument must have at least a WKN or an ISIN")
+        return self
 
     @field_validator("isin")
     @classmethod

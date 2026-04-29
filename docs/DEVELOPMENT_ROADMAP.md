@@ -163,8 +163,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
 - ✅ 388 unit tests passing; coverage reporting active
 - ✅ Toolchain: `ruff` for linting and formatting
-- [ ] DB initialization script (WKN/ISIN indexes on instruments collection)
-- [ ] Docker image version tagging in CD pipeline
+- [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
 ---
 

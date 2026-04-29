@@ -70,6 +70,12 @@ async def connect_to_database() -> None:
             "Successfully connected to MongoDB Atlas (database: %s)", settings.database.db_name
         )
 
+        # Ensure indexes on instruments collection (idempotent — safe on every startup)
+        instruments_col = _database[Collections.INSTRUMENTS]
+        await instruments_col.create_index("wkn", unique=True, sparse=True)
+        await instruments_col.create_index("isin", unique=True, sparse=True)
+        logger.info("MongoDB indexes ensured on instruments collection")
+
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
         logger.error("Failed to connect to MongoDB: %s", e)
         raise

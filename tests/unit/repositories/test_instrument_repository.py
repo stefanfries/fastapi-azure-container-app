@@ -116,6 +116,26 @@ async def test_save_adds_cached_at(repo, collection):
     assert "cached_at" in doc_set
 
 
+async def test_save_uses_isin_when_wkn_is_none(repo, collection):
+    """Foreign instruments without a WKN must be upserted by ISIN."""
+    instrument = _make_instrument(wkn=None, isin="CH0012221716")
+    await repo.save(instrument)
+
+    call_args = collection.update_one.call_args
+    assert call_args[0][0] == {"isin": "CH0012221716"}
+    assert call_args[1]["upsert"] is True
+
+
+async def test_save_skips_when_both_wkn_and_isin_are_none(repo, collection):
+    """The model validator rejects instruments with neither WKN nor ISIN before save() is reached."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="at least a WKN or an ISIN"):
+        _make_instrument(wkn=None, isin=None)
+
+    collection.update_one.assert_not_awaited()
+
+
 # --- is_cache_valid ---
 
 async def test_cache_valid_when_recent(repo, collection):

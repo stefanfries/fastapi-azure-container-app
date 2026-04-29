@@ -85,18 +85,28 @@ class InstrumentRepository:
         Args:
             instrument (Instrument): The instrument to save
         """
-        logger.info("Saving instrument to cache: %s (%s)", instrument.name, instrument.wkn)
-
         # Convert Pydantic model to dict
         doc = instrument.model_dump()
 
         # Add caching metadata
         doc["cached_at"] = datetime.now(UTC)
 
-        # Upsert based on WKN (unique identifier)
-        await self.collection.update_one({"wkn": instrument.wkn}, {"$set": doc}, upsert=True)
+        # Use WKN as upsert key; fall back to ISIN for foreign instruments without a WKN
+        if instrument.wkn is not None:
+            filter_key = {"wkn": instrument.wkn}
+            log_key = instrument.wkn
+        elif instrument.isin is not None:
+            filter_key = {"isin": instrument.isin}
+            log_key = instrument.isin
+        else:
+            logger.warning(
+                "Cannot save instrument '%s': both WKN and ISIN are None", instrument.name
+            )
+            return
 
-        logger.debug("Instrument cached successfully: %s", instrument.wkn)
+        logger.info("Saving instrument to cache: %s (%s)", instrument.name, log_key)
+        await self.collection.update_one(filter_key, {"$set": doc}, upsert=True)
+        logger.debug("Instrument cached successfully: %s", log_key)
 
     async def is_cache_valid(self, wkn: str, max_age_days: int = 7) -> bool:
         """

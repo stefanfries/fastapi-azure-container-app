@@ -61,5 +61,5 @@ All database operations in routers and CRUD modules must be `await`ed.
 ## Testing
 
 ```bash
-uv run pytest tests/ --cov    # 4 test files
+uv run pytest tests/ --cov    # 388 unit tests, ~82% coverage
 ```

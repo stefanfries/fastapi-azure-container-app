@@ -117,15 +117,17 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🧪 Testing
 
+388 unit tests passing with 82% code coverage.
+
 ```bash
 # Run all tests
-pytest
+uv run pytest tests/
 
 # Run with coverage
-pytest --cov=app
+uv run pytest tests/ --cov
 
 # Run specific test file
-pytest tests/unit/parsers/test_standard_asset_parser.py
+uv run pytest tests/unit/parsers/plugins/test_stock_parser.py
 ```
 
 ## 📁 Project Structure

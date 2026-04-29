@@ -11,12 +11,14 @@ The parser system now extracts **preferred ID_NOTATIONs** based on liquidity met
 Comdirect provides different liquidity indicators for different venue types:
 
 #### Life Trading (LiveTrading) Venues
+
 - **Metric**: "Gestellte Kurse" (Quoted Prices)
 - **Meaning**: Total number of price quotes provided by the market maker
 - **Higher is better**: More quotes = higher liquidity
 - **Typical values**: 3,000 - 7,000 for active stocks
 
 #### Exchange Trading (Börse) Venues
+
 - **Metric**: "Anzahl Kurse" (Number of Quotes)
 - **Meaning**: Total number of price updates during the trading day
 - **Higher is better**: More updates = higher liquidity
@@ -27,6 +29,7 @@ Comdirect provides different liquidity indicators for different venue types:
 The liquidity data is stored in tables:
 
 #### Life Trading Table
+
 ```html
 <table>
   <thead>
@@ -60,6 +63,7 @@ The liquidity data is stored in tables:
 ```
 
 #### Exchange Trading Table
+
 ```html
 <table>
   <thead>
@@ -109,6 +113,7 @@ for header in table.find_all("th"):
 ```
 
 **Example Result:**
+
 ```python
 {
     "LT Lang & Schwarz": "3240541",
@@ -147,6 +152,7 @@ for row in tbody.find_all("tr"):
 ```
 
 **Example Result:**
+
 ```python
 [
     {"venue": "LT Lang & Schwarz", "id_notation": "3240541", "liquidity": 6860},
@@ -279,7 +285,8 @@ print(f"All EX venues: {basedata.id_notations_exchange_trading}")
 ## Real-World Example: Siemens (WKN: 723610)
 
 ### Life Trading Analysis
-```
+
+```text
 Venue                       ID_NOTATION    Gestellte Kurse
 ────────────────────────────────────────────────────────────
 LT Lang & Schwarz           3240541        6,860  ⭐ PREFERRED
@@ -290,7 +297,8 @@ LT Societe Generale         10336985       3,603
 **Result**: `preferred_id_notation_life_trading = "3240541"`
 
 ### Exchange Trading Analysis
-```
+
+```text
 Venue                       ID_NOTATION    Anzahl Kurse
 ────────────────────────────────────────────────────────────
 Xetra                       1929749        18,110  ⭐ PREFERRED
@@ -360,7 +368,7 @@ asyncio.run(test())
 
 ### Expected Output
 
-```
+```text
 ✓ Name: Siemens
 ✓ WKN: 723610
 ✓ Default ID_NOTATION: 9385813
@@ -375,21 +383,25 @@ asyncio.run(test())
 ## Benefits
 
 ### 1. Automatic Best Venue Selection
+
 - System automatically selects most liquid venue
 - No manual configuration needed
 - Adapts to changing market conditions
 
 ### 2. Trading Efficiency
+
 - Higher liquidity = better execution
 - Lower spreads on liquid venues
 - Faster order execution
 
 ### 3. Data Quality
+
 - Ensures data comes from most active venues
 - More reliable price information
 - Better historical data for analysis
 
 ### 4. Flexibility
+
 - All venues still available if needed
 - Can override with specific venue if required
 - Fallback logic ensures robustness
@@ -399,11 +411,13 @@ asyncio.run(test())
 ### Problem: preferred_id_notation is None
 
 **Possible Causes:**
+
 1. No liquidity table found in HTML
 2. Table structure changed
 3. Asset class doesn't have liquidity data
 
 **Solution:**
+
 - Check if table exists with `"Gestellte Kurse"` or `"Anzahl Kurse"` headers
 - Verify HTML structure hasn't changed
 - Use fallback to first venue in dictionary
@@ -413,6 +427,7 @@ asyncio.run(test())
 **Cause:** ID_NOTATION extraction mismatch between header and row
 
 **Solution:**
+
 - Verify venue name matching between headers and rows
 - Check for whitespace differences
 - Ensure data-label attribute matches exactly
@@ -422,6 +437,7 @@ asyncio.run(test())
 **Cause:** Parsing error in liquidity value extraction
 
 **Solution:**
+
 - Check number format (periods vs commas)
 - Verify cell data-label attribute
 - Add more robust error handling
@@ -429,6 +445,7 @@ asyncio.run(test())
 ## Future Enhancements
 
 ### 1. Liquidity Thresholds
+
 ```python
 MIN_LIQUIDITY_LT = 1000  # Minimum Gestellte Kurse
 MIN_LIQUIDITY_EX = 100   # Minimum Anzahl Kurse
@@ -438,16 +455,19 @@ if liquidity_value < MIN_LIQUIDITY_LT:
 ```
 
 ### 2. Historical Liquidity Tracking
+
 - Store liquidity metrics over time
 - Detect liquidity trends
 - Alert on significant changes
 
 ### 3. Multiple Preferred Venues
+
 - Return top 3 venues instead of just one
 - Provide fallback options
 - Enable load balancing across venues
 
 ### 4. Venue-Specific Configuration
+
 ```python
 # User preferences
 PREFERRED_VENUES = {
@@ -459,6 +479,7 @@ PREFERRED_VENUES = {
 ## Conclusion
 
 The preferred ID_NOTATION implementation provides:
+
 - ✅ Automatic selection of most liquid venues
 - ✅ Data-driven trading decisions
 - ✅ Robust fallback logic

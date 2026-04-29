@@ -31,7 +31,7 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 26 unit tests passing; coverage reporting enabled (~45%)
+- 388 unit tests passing; coverage reporting enabled (82%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
@@ -104,8 +104,8 @@ Priority: HIGH - Required for reliable development
   - [ ] `pytest-env` for environment management (not yet needed)
   
 - [ ] Establish test coverage targets
-  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently ~38%)
-  - [ ] Reach minimum 80% coverage for new code
+  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently 82%)
+  - [x] Reach minimum 80% coverage for new code ✅
 
 #### 1.4 API & Software Versioning
 
@@ -274,30 +274,30 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 #### 4.1 Unit Tests
 
-- [ ] Test all parser plugins
+- [x] Test all parser plugins ✅
   - Mock HTTP responses
   - Test each asset class parser independently
   - Edge cases: missing fields, malformed HTML
   
-- [ ] Test all CRUD operations
+- [x] Test all CRUD operations ✅
   - Repository layer tests
   - Mock database interactions
   
-- [ ] Test data models
+- [x] Test data models ✅
   - Pydantic validation
   - Field constraints
 
 #### 4.2 Integration Tests
 
 - [ ] Test complete API flows
-  - User registration → login → fetch instrument data
+  - Fetch instrument data end-to-end with real comdirect responses
   - Test with real comdirect scraping (sandboxed)
   
 - [ ] Test database interactions
   - Repository layer with test database
   - Data persistence and retrieval
   
-- [ ] Test parser factory
+- [x] Test parser factory ✅
   - Dynamic parser selection based on asset class
 
 #### 4.3 End-to-End Tests
@@ -314,15 +314,15 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 #### 4.4 Coverage Targets
 
-- [ ] Achieve minimum 80% code coverage
-- [ ] Generate coverage reports in CI
-- [ ] Enforce coverage thresholds
+- [x] Achieve minimum 80% code coverage ✅ (82%)
+- [x] Generate coverage reports in CI ✅
+- [ ] Enforce coverage thresholds (`--cov-fail-under` not yet configured)
 
 **Deliverables:**
 
-- Comprehensive test suite (100+ tests)
-- 80%+ code coverage
-- Automated test execution in CI
+- ✅ Comprehensive test suite (388 unit tests)
+- ✅ 82% code coverage
+- ✅ Automated test execution in CI
 
 ---
 
@@ -581,12 +581,12 @@ Priority: MEDIUM - Improve developer experience
 
 - ✅ Zero print() statements — all modules use structured logger
 - ✅ MongoDB connection established and all repositories implemented
-- ✅ Repository pattern for all entities (Instrument, User, Depot)
+- ✅ Repository pattern for all entities (Instrument, Depot)
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `conftest.py`, pytest-asyncio
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 28 unit tests passing; coverage reporting active
+- ✅ 388 unit tests passing; 82% coverage
 - [ ] DB initialization script (WKN/ISIN indexes)
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
@@ -599,15 +599,16 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 3 (Security)
 
-- All routes protected with authentication
-- JWT-based login/registration working
-- Role-based access control implemented
+- ✅ All data routes protected with API key authentication (`X-API-Key` header)
+- ✅ Public endpoints unprotected: `/`, `/docs`, `/health`, `/health/ready`
+- ✅ User management removed (belongs in consuming application)
 
 ### Phase 4 (Testing)
 
-- 80%+ code coverage
-- 100+ tests passing
-- CI pipeline includes all tests
+- ✅ 388 unit tests passing
+- ✅ 82% code coverage
+- ✅ CI pipeline includes all tests
+- Integration and E2E tests still needed
 
 ### Phase 5 (Performance)
 
@@ -744,12 +745,12 @@ scripts/
 
 - ✅ `app/core/database.py` (PyMongo `AsyncMongoClient`, lifespan hooks)
 - ✅ `app/repositories/instruments.py` (InstrumentRepository)
-- ✅ `app/repositories/users.py` (UserRepository)
+- ~~`app/repositories/users.py` (UserRepository)~~ (removed — user management belongs in consuming app)
 - ✅ `app/repositories/depots.py` (DepotRepository)
 - ✅ `app/routers/health.py` (liveness + readiness endpoints)
 - ✅ `app/routers/root.py` (renamed from welcome.py, returns structured metadata)
 - ✅ `tests/conftest.py` (mock_database and client fixtures)
-- ✅ `tests/unit/test_user_repository.py`
+- ~~`tests/unit/test_user_repository.py`~~ (removed along with UserRepository)
 - ✅ `tests/unit/test_depot_repository.py`
 - [ ] `app/version.py` (dedicated version module — deferred)
 - [ ] DB initialization script (indexes — still open)

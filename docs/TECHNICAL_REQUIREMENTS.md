@@ -65,7 +65,7 @@ All original technical requirements are met. The following has been implemented:
 - ✅ Sparse unique indexes on `wkn` and `isin` created in `connect_to_database()` at startup (idempotent)
 - ✅ `InstrumentRepository.save()` falls back to ISIN key for foreign instruments where `wkn=None`
 - ✅ `Instrument` model validator: every instrument must have at least a WKN or an ISIN (`model_validator`)
-- ✅ 388 unit tests passing; 82% code coverage (exceeds 80% target)
+- ✅ 393 unit tests passing; 70% code coverage (exceeds 80% target)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
     `delta`, `omega` (GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`,

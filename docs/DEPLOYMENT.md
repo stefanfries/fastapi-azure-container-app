@@ -242,6 +242,81 @@ az containerapp update \
 
 ---
 
+## � Secrets Management (Azure Key Vault)
+
+MongoDB credentials are stored in Azure Key Vault and injected into the Container App via a managed identity reference — no plain text secrets in the portal or environment.
+
+### Architecture
+
+```text
+App reads MONGODB_CONNECTION_STRING env var
+    → Container App secret (secretref:mongodb-connection-string)
+    → Key Vault reference (keyvaultref:https://kv-depot-butler-prod.vault.azure.net/...)
+    → System-assigned Managed Identity (RBAC: Key Vault Secrets User)
+    → Azure Key Vault secret (encrypted at rest)
+```
+
+### Initial Setup (one-time)
+
+1. Store the secret in Key Vault**
+
+```bash
+az keyvault secret set \
+  --vault-name kv-depot-butler-prod \
+  --name mongodb-connection-string \
+  --value "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority"
+```
+
+1. Enable system-assigned managed identity on the Container App**
+
+```bash
+az containerapp identity assign \
+  --name ca-fastapi \
+  --resource-group rg-FastAPI-AzureContainerApp-dev \
+  --system-assigned
+# Note the Principal ID returned — needed for the RBAC step below
+```
+
+1. Grant Key Vault access to the managed identity**
+
+```bash
+az role assignment create \
+  --role "Key Vault Secrets User" \
+  --assignee "<principal-id-from-step-2>" \
+  --scope "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/kv-depot-butler-prod"
+```
+
+1. Add the Key Vault reference as a Container App secret**
+
+```bash
+az containerapp secret set \
+  --name ca-fastapi \
+  --resource-group rg-FastAPI-AzureContainerApp-dev \
+  --secrets "mongodb-connection-string=keyvaultref:https://kv-depot-butler-prod.vault.azure.net/secrets/mongodb-connection-string,identityref:system"
+```
+
+1. Wire the secret to the environment variable**
+
+```bash
+az containerapp update \
+  --name ca-fastapi \
+  --resource-group rg-FastAPI-AzureContainerApp-dev \
+  --set-env-vars "MONGODB_CONNECTION_STRING=secretref:mongodb-connection-string"
+```
+
+### Rotating the Secret
+
+Update the secret value in Key Vault — the Container App picks it up automatically on next restart/revision.
+
+```bash
+az keyvault secret set \
+  --vault-name kv-depot-butler-prod \
+  --name mongodb-connection-string \
+  --value "mongodb+srv://<new-credentials>@<cluster>.mongodb.net/..."
+```
+
+---
+
 ## 📚 Related Documentation
 
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
@@ -250,4 +325,4 @@ az containerapp update \
 
 ---
 
-**Last Updated:** February 8, 2026
+**Last Updated:** May 1, 2026

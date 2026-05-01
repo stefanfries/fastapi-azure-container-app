@@ -87,9 +87,9 @@ Priority: HIGH - Required for reliable development
   - ~~UserRepository~~ — removed; user management belongs in the consuming application
   - [ ] **QuoteRepository** (optional - for quote caching if needed)
   
-- [ ] Add database initialization script
-  - Index creation for performance (WKN, ISIN indexes on instruments collection)
-  - Schema validation setup
+- [x] Add database initialization script ✅
+  - Sparse unique indexes on `wkn` and `isin` created in `connect_to_database()` at startup (`app/core/database.py`)
+  - Idempotent — safe to run on every startup
 
 #### 1.3 Testing Foundation
 

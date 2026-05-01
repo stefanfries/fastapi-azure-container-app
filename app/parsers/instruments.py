@@ -24,8 +24,13 @@ from app.core.constants import asset_class_identifier_to_asset_class_map
 from app.core.logging import logger
 from app.models.instruments import AssetClass, Instrument
 from app.parsers.plugins.parsing_utils import extract_table_cell_by_label
+from app.repositories.instruments import InstrumentRepository
 from app.scrapers.scrape_url import fetch_one
 from app.services.identifier_enrichment import build_global_identifiers
+
+_repo = InstrumentRepository()
+_WKN_RE = re.compile(r"^[A-Z0-9]{6}$", re.IGNORECASE)
+_ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{10}$", re.IGNORECASE)
 
 
 def valid_id_notation(instrument_data: Instrument, id_notation: str) -> bool:
@@ -119,6 +124,8 @@ async def parse_instrument_data(instrument: str) -> Instrument:
     """
     Fetches and parses the instrument master data for a given instrument using the plugin system.
 
+    Checks the MongoDB cache first. On a cache miss, scrapes comdirect and saves the result.
+
     Args:
         instrument: The ID of the instrument to fetch data for (WKN, ISIN, etc.)
 
@@ -129,6 +136,16 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         HTTPException: If the request to fetch the instrument data fails.
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
+    # Check cache before scraping
+    cached: Instrument | None = None
+    if _WKN_RE.fullmatch(instrument):
+        cached = await _repo.find_by_wkn(instrument.upper())
+    elif _ISIN_RE.fullmatch(instrument):
+        cached = await _repo.find_by_isin(instrument.upper())
+    if cached is not None:
+        logger.debug("Instrument cache hit: %s", instrument)
+        return cached
+
     from app.parsers.plugins.factory import ParserFactory
 
     response = await fetch_one(instrument)
@@ -173,4 +190,5 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         global_identifiers=global_identifiers,
         details=details,
     )
+    await _repo.save(instrument_data)
     return instrument_data

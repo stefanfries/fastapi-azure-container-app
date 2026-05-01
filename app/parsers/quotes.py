@@ -36,10 +36,6 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         ValueError: If the response does not contain the expected data.
     """
 
-    # as instrument data are not known, parse them first
-    # TODO: implement instrument data fetch from database
-    # TODO: implement instrument data caching
-
     instrument_data = await parse_instrument_data(instrument_id)
 
     if instrument_data.asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):

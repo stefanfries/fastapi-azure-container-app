@@ -5,7 +5,8 @@ This repository handles CRUD operations and caching for instrument data
 including WKN, ISIN, name, asset class, and trading venue notations.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from pymongo.asynchronous.collection import AsyncCollection
 
@@ -15,7 +16,25 @@ from app.core.settings import get_settings
 from app.models.instruments import Instrument
 
 
+def _dates_to_datetime(obj: Any) -> Any:
+    """Recursively convert ``datetime.date`` → ``datetime.datetime`` (midnight UTC).
+
+    BSON can encode ``datetime.datetime`` but not bare ``datetime.date``.
+    ``datetime`` is a subclass of ``date``, so the isinstance check is ordered.
+    """
+    if isinstance(obj, datetime):
+        return obj
+    if isinstance(obj, date):
+        return datetime(obj.year, obj.month, obj.day, tzinfo=UTC)
+    if isinstance(obj, dict):
+        return {k: _dates_to_datetime(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_dates_to_datetime(v) for v in obj]
+    return obj
+
+
 class InstrumentRepository:
+    """Repository for instrument master data operations."""
     """Repository for instrument master data operations."""
 
     def __init__(self):
@@ -86,8 +105,8 @@ class InstrumentRepository:
         Args:
             instrument (Instrument): The instrument to save
         """
-        # Convert Pydantic model to dict
-        doc = instrument.model_dump()
+        # Convert Pydantic model to dict; convert date → datetime for BSON compatibility
+        doc = _dates_to_datetime(instrument.model_dump())
 
         # Add caching metadata
         doc["cached_at"] = datetime.now(UTC)

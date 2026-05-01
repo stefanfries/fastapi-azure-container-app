@@ -6,14 +6,12 @@ Covers:
 - parse_asset_class — extracts AssetClass from a redirected response URL
 - parse_default_id_notation — extracts ID_NOTATION query param
 - parse_symbol — extracts stock ticker from Aktieninformationen table
-
-parse_instrument_data is an orchestrator that calls fetch_one, factory, scraper,
-and enrichment services; it is covered by integration tests, not unit tests.
+- parse_instrument_data — cache hit/miss paths via mocked repository
 """
 
 import re
 import textwrap
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from bs4 import BeautifulSoup
@@ -170,3 +168,98 @@ class TestParseSymbol:
         """
         soup = BeautifulSoup(textwrap.dedent(html), "html.parser")
         assert parse_symbol(AssetClass.INDEX, soup) is None
+
+
+# ---------------------------------------------------------------------------
+# parse_instrument_data — cache hit / cache miss
+# ---------------------------------------------------------------------------
+
+def _make_cached_instrument(wkn: str = "716460", isin: str = "US5949181045") -> Instrument:
+    return Instrument(
+        name="Microsoft Corp.",
+        wkn=wkn,
+        isin=isin,
+        asset_class=AssetClass.STOCK,
+    )
+
+
+class TestParseInstrumentDataCaching:
+    """
+    Verifies the MongoDB cache lookup in parse_instrument_data without hitting
+    the network or the database.  Both the module-level _repo instance and the
+    downstream helpers (fetch_one, build_global_identifiers, …) are patched.
+    """
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_by_wkn_skips_scraping(self):
+        """When the repo returns a cached instrument by WKN, fetch_one is never called."""
+        cached = _make_cached_instrument()
+
+        with (
+            patch("app.parsers.instruments._repo") as mock_repo,
+            patch("app.parsers.instruments.fetch_one") as mock_fetch,
+        ):
+            mock_repo.find_by_wkn = AsyncMock(return_value=cached)
+            mock_repo.find_by_isin = AsyncMock(return_value=None)
+
+            from app.parsers.instruments import parse_instrument_data
+
+            result = await parse_instrument_data("716460")
+
+        assert result is cached
+        mock_fetch.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_by_isin_skips_scraping(self):
+        """When the repo returns a cached instrument by ISIN, fetch_one is never called."""
+        cached = _make_cached_instrument()
+
+        with (
+            patch("app.parsers.instruments._repo") as mock_repo,
+            patch("app.parsers.instruments.fetch_one") as mock_fetch,
+        ):
+            mock_repo.find_by_wkn = AsyncMock(return_value=None)
+            mock_repo.find_by_isin = AsyncMock(return_value=cached)
+
+            from app.parsers.instruments import parse_instrument_data
+
+            result = await parse_instrument_data("US5949181045")
+
+        assert result is cached
+        mock_fetch.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cache_miss_calls_save(self):
+        """On a cache miss the scraped instrument is persisted via _repo.save."""
+        cached = _make_cached_instrument()
+
+        with (
+            patch("app.parsers.instruments._repo") as mock_repo,
+            patch("app.parsers.instruments.fetch_one") as mock_fetch,
+            patch("app.parsers.instruments.BeautifulSoup"),
+            patch("app.parsers.instruments.parse_asset_class", return_value=AssetClass.STOCK),
+            patch("app.parsers.instruments.parse_default_id_notation", return_value="12345678"),
+            patch("app.parsers.instruments.parse_symbol", return_value=None),
+            patch("app.parsers.instruments.build_global_identifiers", new_callable=AsyncMock, return_value=None),
+            patch("app.parsers.plugins.factory.ParserFactory.get_parser") as mock_factory,
+        ):
+            mock_repo.find_by_wkn = AsyncMock(return_value=None)
+            mock_repo.save = AsyncMock()
+            mock_fetch.return_value = MagicMock()
+
+            mock_parser = MagicMock()
+            mock_parser.parse_name.return_value = cached.name
+            mock_parser.parse_wkn.return_value = cached.wkn
+            mock_parser.parse_isin.return_value = cached.isin
+            mock_parser.parse_id_notations.return_value = ({}, {}, None, None)
+            mock_parser.parse_details.return_value = None
+            mock_factory.return_value = mock_parser
+
+            from app.parsers.instruments import parse_instrument_data
+
+            result = await parse_instrument_data("716460")
+
+        mock_repo.save.assert_awaited_once()
+        saved_instrument = mock_repo.save.call_args[0][0]
+        assert saved_instrument.wkn == "716460"
+        assert result.wkn == "716460"

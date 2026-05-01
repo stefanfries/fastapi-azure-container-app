@@ -10,8 +10,10 @@ Classes:
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_extra_types.currency_code import Currency
+
+from app.models.types import ISIN, WKN
 
 type Interval = Literal["5min", "15min", "30min", "hour", "day", "week", "month"]
 
@@ -53,8 +55,8 @@ class HistoryData(BaseModel):
     """
 
     name: str
-    wkn: str
-    isin: str | None = None
+    wkn: WKN = Field(..., description="WKN")
+    isin: ISIN | None = None
     id_notation: str
     trading_venue: str
     currency: Currency

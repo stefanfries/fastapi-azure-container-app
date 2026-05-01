@@ -239,6 +239,33 @@ Priority: HIGH - Core business requirement
 - [x] `quotes.py` uses shared `parsing_utils` functions ✅
 - [x] No legacy fallback path in plugin system ✅
 
+#### 2.5 Warrant Finder Greek / Analytics Filters ✅ COMPLETED
+
+All 14 comdirect Greek/analytics filter dimensions are fully exposed on `GET /v1/warrants/`
+with independent `_min` / `_max` query parameters:
+
+| API params | Comdirect prefix | Notes |
+| ---------- | ---------------- | ----- |
+| `delta_min`, `delta_max` | `DELTA` | Core blueprint criterion |
+| `omega_min`, `omega_max` | `GEARING` | Effective leverage |
+| `moneyness_min`, `moneyness_max` | `MONEYNESS` | In % |
+| `premium_per_annum_min`, `premium_per_annum_max` | `PREMIUM_PER_ANNUM` | Time value cost p.a. |
+| `implied_volatility_min`, `implied_volatility_max` | `IMPLIED_VOLATILITY` | IV in % |
+| `leverage_min`, `leverage_max` | `LEVERAGE` | Price leverage ratio |
+| `spread_ask_pct_min`, `spread_ask_pct_max` | `SPREAD_ASK_PCT` | Bid-ask spread as % of ask |
+| `theta_day_min`, `theta_day_max` | `THETA_DAY` | Daily time decay |
+| `present_value_min`, `present_value_max` | `PRESENT_VALUE` | Present value |
+| `theoretical_value_min`, `theoretical_value_max` | `THEORETICAL_VALUE` | Fair theoretical value |
+| `intrinsic_value_min`, `intrinsic_value_max` | `INTRINSIC_VALUE` | Intrinsic value |
+| `break_even_min`, `break_even_max` | `BREAK_EVEN` | Break-even underlying price |
+| `vega_min`, `vega_max` | `VEGA` | Sensitivity to IV change |
+| `gamma_min`, `gamma_max` | `GAMMA` | Rate of delta change |
+
+- [x] Dual bounds encoded as repeated query parameters (Strategy C): `DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt` ✅
+- [x] `_greek_filter_pairs(prefix, min_val, max_val)` helper — builds `(VALUE, COMPARATOR)` pairs; emits empty/`gt` placeholder when both bounds are `None` ✅
+- [x] `eq` comparator evaluated via `scripts/test_eq_comparator.py` — rejected (returns 0 results for all continuous analytics values) ✅
+- [x] Sentinel value issue documented in `issuer_action` / `issuer_no_fee_action` Query param descriptions ✅
+
 - ✅ All 9 asset classes supported by plugin system
 - ✅ Asset-class-specific data models defined and integrated into `Instrument`
 - ✅ `GET /v1/instruments/{wkn|isin}` returns enriched `details` for ALL 9 asset classes (STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY)

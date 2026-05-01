@@ -15,6 +15,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 - **Index Members API**: `GET /v1/indices/{name|isin|wkn}` accepts a human-readable name, WKN, or ISIN — including tracking ISINs not in the comdirect index catalogue (e.g. `DE0009653386` for S&P 500)
 - **Constituent Instrument Links**: Each `IndexMember` now includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`) alongside the comdirect page link
 - **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with full `parse_details()` support
+- **Warrant Finder with Full Greek Filter Support**: `GET /v1/warrants/` searches the comdirect Optionsschein Finder with all 14 analytics filter dimensions — each with independent `_min` / `_max` bounds: `delta`, `omega` (effective leverage / GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`, `leverage`, `spread_ask_pct`, `theta_day`, `present_value`, `theoretical_value`, `intrinsic_value`, `break_even`, `vega`, `gamma`. Dual bounds are encoded as repeated query parameters (`DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt`).
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
 - **CI/CD Pipeline**: Automated testing, building, and deployment via GitHub Actions

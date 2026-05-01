@@ -233,3 +233,65 @@ FastAPI serialises the correct concrete model based on the `asset_class` literal
 ## Adding a New Asset Class
 
 See [QUICK_START_NEW_PARSER.md](QUICK_START_NEW_PARSER.md).
+
+---
+
+## Warrant Finder (`app/parsers/warrants.py`)
+
+This module is **separate from the `WarrantParser` plugin** above.  `WarrantParser` parses a
+single warrant's instrument detail page; `app/parsers/warrants.py` drives the comdirect
+Optionsschein Finder (screener) and returns a list of matching warrants.
+
+### Key functions
+
+| Function | Description |
+| --- | --- |
+| `build_warrant_finder_url(...)` | Assembles the comdirect `trefferliste.html` URL from all filter params |
+| `fetch_warrants(...)` | Resolves underlying WKN/ISIN → id_notation, builds URL, fetches all pages concurrently, deduplicates results |
+| `_greek_filter_pairs(prefix, min_val, max_val)` | Builds `(VALUE, COMPARATOR)` pairs for one Greek dimension |
+| `_parse_warrant_rows(soup)` | Extracts `Warrant` objects from one results page |
+| `_parse_maturity_param(value)` | Converts Range_* codes or date strings to comdirect maturity params |
+
+### Greek / analytics filter encoding
+
+Comdirect encodes dual bounds as **repeated query parameters** (Strategy C):
+
+```text
+DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt
+```
+
+`_greek_filter_pairs()` builds this list.  When both bounds are `None` the filter is emitted
+disabled (empty value + `gt`) to satisfy comdirect's required parameter structure.
+
+Supported comparators: `gt` (greater than), `lt` (less than).
+The `eq` (equal) comparator was tested and rejected — it returns 0 results for every tested
+continuous analytics value because comdirect applies exact float matching server-side.
+
+### All 14 exposed filter dimensions
+
+| API params | Comdirect prefix |
+| --- | --- |
+| `delta_min`, `delta_max` | `DELTA` |
+| `omega_min`, `omega_max` | `GEARING` |
+| `moneyness_min`, `moneyness_max` | `MONEYNESS` |
+| `premium_per_annum_min`, `premium_per_annum_max` | `PREMIUM_PER_ANNUM` |
+| `implied_volatility_min`, `implied_volatility_max` | `IMPLIED_VOLATILITY` |
+| `leverage_min`, `leverage_max` | `LEVERAGE` |
+| `spread_ask_pct_min`, `spread_ask_pct_max` | `SPREAD_ASK_PCT` |
+| `theta_day_min`, `theta_day_max` | `THETA_DAY` |
+| `present_value_min`, `present_value_max` | `PRESENT_VALUE` |
+| `theoretical_value_min`, `theoretical_value_max` | `THEORETICAL_VALUE` |
+| `intrinsic_value_min`, `intrinsic_value_max` | `INTRINSIC_VALUE` |
+| `break_even_min`, `break_even_max` | `BREAK_EVEN` |
+| `vega_min`, `vega_max` | `VEGA` |
+| `gamma_min`, `gamma_max` | `GAMMA` |
+
+### Sentinel value caveat
+
+Comdirect assigns a sentinel value ≥ 1.0 to warrants that have no published analytics data
+(certain issuers do not submit real-time Greeks to comdirect).  A `gt 0.5` filter passes these
+warrants (1.0 > 0.5), but a subsequent `lt 0.9` upper bound blocks them (1.0 ≥ 0.9).  This can
+make Greek range filters appear to return fewer results than a single lower-bound filter.
+
+Combining `issuer_action=true` or `issuer_no_fee_action=true` with upper-bound Greek filters is
+therefore discouraged — both query param descriptions carry an explicit warning about this.

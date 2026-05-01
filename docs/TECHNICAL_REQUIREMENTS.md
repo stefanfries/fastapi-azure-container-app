@@ -66,6 +66,21 @@ All original technical requirements are met. The following has been implemented:
 - ✅ `InstrumentRepository.save()` falls back to ISIN key for foreign instruments where `wkn=None`
 - ✅ `Instrument` model validator: every instrument must have at least a WKN or an ISIN (`model_validator`)
 - ✅ 388 unit tests passing; 82% code coverage (exceeds 80% target)
+- ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
+  - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
+    `delta`, `omega` (GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`,
+    `leverage`, `spread_ask_pct`, `theta_day`, `present_value`, `theoretical_value`,
+    `intrinsic_value`, `break_even`, `vega`, `gamma`
+  - Dual bounds encoded as repeated query parameters (Strategy C, confirmed via probe script):
+    `DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt`
+  - `_greek_filter_pairs(prefix, min_val, max_val)` helper builds the pair list; disabled filter emitted
+    as empty value + `gt` comparator to satisfy comdirect's required parameter structure
+  - Comparators supported: `gt` (greater than) and `lt` (less than).
+    `eq` (equal) was evaluated and rejected — returns 0 results for all continuous analytics values
+    because comdirect applies exact float matching server-side
+  - **Sentinel value caveat**: warrants without published analytics are assigned a sentinel ≥ 1.0 by
+    comdirect; combining `issuer_action=true` with upper-bound Greek filters may exclude them
+    unexpectedly — documented in the `issuer_action` / `issuer_no_fee_action` Query param descriptions
 
 ## Open / Future Work
 

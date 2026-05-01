@@ -185,6 +185,23 @@ class OpenFIGISettings(BaseSettings):
     )
 
 
+class CacheSettings(BaseSettings):
+    """Cache configuration settings."""
+
+    instrument_cache_ttl_days: int = Field(
+        default=7,
+        description="Number of days before a cached instrument record is considered stale and re-fetched",
+        validation_alias="INSTRUMENT_CACHE_TTL_DAYS",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+
 class AuthSettings(BaseSettings):
     """API key authentication settings."""
 
@@ -239,6 +256,9 @@ class Settings(BaseSettings):
 
     # Authentication configuration (for future use)
     auth: AuthSettings = Field(default_factory=AuthSettings)
+
+    # Cache configuration
+    cache: CacheSettings = Field(default_factory=CacheSettings)
 
     # OpenFIGI configuration
     openfigi: OpenFIGISettings = Field(default_factory=OpenFIGISettings)

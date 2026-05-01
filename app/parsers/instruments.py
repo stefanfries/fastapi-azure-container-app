@@ -136,15 +136,22 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         HTTPException: If the request to fetch the instrument data fails.
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
-    # Check cache before scraping
+    # Check cache before scraping; bypass if stale
     cached: Instrument | None = None
-    if _WKN_RE.fullmatch(instrument):
+    is_wkn = bool(_WKN_RE.fullmatch(instrument))
+    is_isin = bool(_ISIN_RE.fullmatch(instrument))
+    if is_wkn:
         cached = await _repo.find_by_wkn(instrument.upper())
-    elif _ISIN_RE.fullmatch(instrument):
+    elif is_isin:
         cached = await _repo.find_by_isin(instrument.upper())
     if cached is not None:
-        logger.debug("Instrument cache hit: %s", instrument)
-        return cached
+        # Check TTL: re-scrape when stale (WKN available), or always return if ISIN-only
+        cache_key = cached.wkn or instrument.upper()
+        cache_fresh = await _repo.is_cache_valid(cache_key) if cached.wkn else True
+        if cache_fresh:
+            logger.debug("Instrument cache hit: %s", instrument)
+            return cached
+        logger.debug("Instrument cache stale, re-fetching: %s", instrument)
 
     from app.parsers.plugins.factory import ParserFactory
 

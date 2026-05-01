@@ -11,6 +11,7 @@ from pymongo.asynchronous.collection import AsyncCollection
 
 from app.core.database import Collections, get_collection
 from app.core.logging import logger
+from app.core.settings import get_settings
 from app.models.instruments import Instrument
 
 
@@ -108,13 +109,14 @@ class InstrumentRepository:
         await self.collection.update_one(filter_key, {"$set": doc}, upsert=True)
         logger.debug("Instrument cached successfully: %s", log_key)
 
-    async def is_cache_valid(self, wkn: str, max_age_days: int = 7) -> bool:
+    async def is_cache_valid(self, wkn: str) -> bool:
         """
         Check if cached instrument data is still valid.
 
+        TTL is read from settings (``INSTRUMENT_CACHE_TTL_DAYS``, default 7).
+
         Args:
             wkn (str): The WKN to check
-            max_age_days (int): Maximum age in days for cache validity (default: 7)
 
         Returns:
             bool: True if cache is valid, False otherwise
@@ -124,11 +126,12 @@ class InstrumentRepository:
         if not doc or "cached_at" not in doc:
             return False
 
+        max_age_days = get_settings().cache.instrument_cache_ttl_days
         cached_at = doc["cached_at"]
         age = datetime.now(UTC) - cached_at
 
         is_valid = age < timedelta(days=max_age_days)
-        logger.debug("Cache validity for %s: %s (age: %s days)", wkn, is_valid, age.days)
+        logger.debug("Cache validity for %s: %s (age: %s days, ttl: %s days)", wkn, is_valid, age.days, max_age_days)
 
         return is_valid
 

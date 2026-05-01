@@ -140,18 +140,24 @@ async def test_save_skips_when_both_wkn_and_isin_are_none(repo, collection):
 
 async def test_cache_valid_when_recent(repo, collection):
     collection.find_one.return_value = {"cached_at": datetime.now(UTC)}
-    assert await repo.is_cache_valid("918422", max_age_days=7) is True
+    with patch("app.repositories.instruments.get_settings") as mock_settings:
+        mock_settings.return_value.cache.instrument_cache_ttl_days = 7
+        assert await repo.is_cache_valid("918422") is True
 
 
 async def test_cache_invalid_when_old(repo, collection):
     old_time = datetime.now(UTC) - timedelta(days=10)
     collection.find_one.return_value = {"cached_at": old_time}
-    assert await repo.is_cache_valid("918422", max_age_days=7) is False
+    with patch("app.repositories.instruments.get_settings") as mock_settings:
+        mock_settings.return_value.cache.instrument_cache_ttl_days = 7
+        assert await repo.is_cache_valid("918422") is False
 
 
 async def test_cache_invalid_when_no_doc(repo, collection):
     collection.find_one.return_value = None
-    assert await repo.is_cache_valid("missing", max_age_days=7) is False
+    with patch("app.repositories.instruments.get_settings") as mock_settings:
+        mock_settings.return_value.cache.instrument_cache_ttl_days = 7
+        assert await repo.is_cache_valid("missing") is False
 
 
 async def test_cache_invalid_when_no_cached_at(repo, collection):

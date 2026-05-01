@@ -66,37 +66,56 @@ from app.parsers.instruments import parse_instrument_data
 
 WARRANT_FINDER_RESULTS_URL = f"{BASE_URL}/inf/optionsscheine/selector/trefferliste.html"
 
-# Greek/indicator filter parameters — all disabled in v1 (values empty, comparators set to "gt")
-_GREEK_FILTER_PARAMS: dict[str, str] = {
-    "IMPLIED_VOLATILITY_VALUE": "",
-    "IMPLIED_VOLATILITY_COMPARATOR": "gt",
-    "DELTA_VALUE": "",
-    "DELTA_COMPARATOR": "gt",
-    "LEVERAGE_VALUE": "",
-    "LEVERAGE_COMPARATOR": "gt",
-    "PREMIUM_PER_ANNUM_VALUE": "",
-    "PREMIUM_PER_ANNUM_COMPARATOR": "gt",
-    "GEARING_VALUE": "",
-    "GEARING_COMPARATOR": "gt",
-    "PRESENT_VALUE_VALUE": "",
-    "PRESENT_VALUE_COMPARATOR": "gt",
-    "SPREAD_ASK_PCT_VALUE": "",
-    "SPREAD_ASK_PCT_COMPARATOR": "gt",
-    "THETA_DAY_VALUE": "",
-    "THETA_DAY_COMPARATOR": "gt",
-    "THEORETICAL_VALUE_VALUE": "",
-    "THEORETICAL_VALUE_COMPARATOR": "gt",
-    "INTRINSIC_VALUE_VALUE": "",
-    "INTRINSIC_VALUE_COMPARATOR": "gt",
-    "BREAK_EVEN_VALUE": "",
-    "BREAK_EVEN_COMPARATOR": "gt",
-    "MONEYNESS_VALUE": "",
-    "MONEYNESS_COMPARATOR": "gt",
-    "VEGA_VALUE": "",
-    "VEGA_COMPARATOR": "gt",
-    "GAMMA_VALUE": "",
-    "GAMMA_COMPARATOR": "gt",
-}
+# Greek/indicator filter parameter prefixes in the order comdirect expects them.
+_GREEK_PREFIXES: tuple[str, ...] = (
+    "IMPLIED_VOLATILITY",
+    "DELTA",
+    "LEVERAGE",
+    "PREMIUM_PER_ANNUM",
+    "GEARING",
+    "PRESENT_VALUE",
+    "SPREAD_ASK_PCT",
+    "THETA_DAY",
+    "THEORETICAL_VALUE",
+    "INTRINSIC_VALUE",
+    "BREAK_EVEN",
+    "MONEYNESS",
+    "VEGA",
+    "GAMMA",
+)
+
+
+def _greek_filter_pairs(
+    prefix: str,
+    min_val: float | None,
+    max_val: float | None,
+) -> list[tuple[str, str]]:
+    """Build ``(VALUE, COMPARATOR)`` tuple pairs for one Greek filter.
+
+    Comdirect supports a lower bound, an upper bound, or both for the same
+    Greek by repeating the parameter name in the query string::
+
+        DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt
+
+    When neither bound is provided the filter is emitted as disabled
+    (empty value, comparator ``gt``).
+
+    Args:
+        prefix:  Comdirect parameter prefix, e.g. ``"DELTA"``.
+        min_val: Lower bound (``> min_val``), or ``None`` to skip.
+        max_val: Upper bound (``< max_val``), or ``None`` to skip.
+
+    Returns:
+        List of ``(key, value)`` tuples ready for :func:`urllib.parse.urlencode`.
+    """
+    pairs: list[tuple[str, str]] = []
+    if min_val is not None:
+        pairs += [(f"{prefix}_VALUE", str(min_val)), (f"{prefix}_COMPARATOR", "gt")]
+    if max_val is not None:
+        pairs += [(f"{prefix}_VALUE", str(max_val)), (f"{prefix}_COMPARATOR", "lt")]
+    if not pairs:
+        pairs = [(f"{prefix}_VALUE", ""), (f"{prefix}_COMPARATOR", "gt")]
+    return pairs
 
 
 def _parse_maturity_param(value: str | None) -> tuple[str, str, bool]:
@@ -161,29 +180,87 @@ def build_warrant_finder_url(
     maturity_from: str | None = None,
     maturity_to: str | None = None,
     issuer_group_id: str | None = None,
+    # Greek / indicator filters — each supports an optional lower and upper bound.
+    # Comdirect encodes dual bounds as repeated query parameters (Strategy C).
+    delta_min: float | None = None,
+    delta_max: float | None = None,
+    omega_min: float | None = None,
+    omega_max: float | None = None,
+    moneyness_min: float | None = None,
+    moneyness_max: float | None = None,
+    premium_per_annum_max: float | None = None,
+    implied_volatility_min: float | None = None,
+    implied_volatility_max: float | None = None,
+    leverage_min: float | None = None,
+    leverage_max: float | None = None,
+    premium_per_annum_min: float | None = None,
+    spread_ask_pct_min: float | None = None,
+    spread_ask_pct_max: float | None = None,
+    theta_day_min: float | None = None,
+    theta_day_max: float | None = None,
+    present_value_min: float | None = None,
+    present_value_max: float | None = None,
+    theoretical_value_min: float | None = None,
+    theoretical_value_max: float | None = None,
+    intrinsic_value_min: float | None = None,
+    intrinsic_value_max: float | None = None,
+    break_even_min: float | None = None,
+    break_even_max: float | None = None,
+    vega_min: float | None = None,
+    vega_max: float | None = None,
+    gamma_min: float | None = None,
+    gamma_max: float | None = None,
 ) -> str:
     """Build the comdirect warrant finder results URL from resolved parameters.
 
-    All 14 Greek/indicator filter parameter pairs are always included with empty
-    values so the URL matches the comdirect bookmark format exactly.
+    All 14 Greek/indicator filter parameter pairs are always included.  When
+    bounds are provided they are encoded as repeated query parameters so that
+    comdirect applies both a lower and an upper bound for the same Greek.
 
     Args:
-        id_notation_underlying: comdirect ``id_notation`` of the underlying instrument,
-                                obtained via :func:`parse_instrument_data`.
-        underlying_name:        Human-readable name of the underlying
-                                (e.g. ``"NVIDIA CORPORATION"``).
-        preselection:           Warrant type filter: CALL, PUT, OTHER, or ALL.
-                                Defaults to ``ALL``.
-        issuer_action:          Include off-market flat-fee (Aktion) warrants.
-                                Maps to ``ISSUER_ACTION``.  Defaults to ``False``.
-        issuer_no_fee_action:   Include market no-fee warrants.
-                                Maps to ``ISSUER_NO_FEE_ACTION``.  Defaults to ``False``.
-        strike_min:             Minimum strike price (``STRIKE_ABS_FROM``).
-        strike_max:             Maximum strike price (``STRIKE_ABS_TO``).
-        maturity_from:          Start of maturity range — Range_* code or date string.
-                                Defaults to ``Range_NOW`` when not provided.
-        maturity_to:            End of maturity range  — Range_* code or date string.
-        issuer_group_id:        Comdirect issuer group ID (``ID_GROUP_ISSUER``).
+        id_notation_underlying:  comdirect ``id_notation`` of the underlying instrument,
+                                 obtained via :func:`parse_instrument_data`.
+        underlying_name:         Human-readable name of the underlying
+                                 (e.g. ``"NVIDIA CORPORATION"``).
+        preselection:            Warrant type filter: CALL, PUT, OTHER, or ALL.
+                                 Defaults to ``ALL``.
+        issuer_action:           Include off-market flat-fee (Aktion) warrants.
+                                 Maps to ``ISSUER_ACTION``.  Defaults to ``False``.
+        issuer_no_fee_action:    Include market no-fee warrants.
+                                 Maps to ``ISSUER_NO_FEE_ACTION``.  Defaults to ``False``.
+        strike_min:              Minimum strike price (``STRIKE_ABS_FROM``).
+        strike_max:              Maximum strike price (``STRIKE_ABS_TO``).
+        maturity_from:           Start of maturity range — Range_* code or date string.
+        maturity_to:             End of maturity range  — Range_* code or date string.
+        issuer_group_id:         Comdirect issuer group ID (``ID_GROUP_ISSUER``).
+        delta_min:               Lower bound for Delta (``DELTA > delta_min``).
+        delta_max:               Upper bound for Delta (``DELTA < delta_max``).
+        omega_min:               Lower bound for Omega/effective leverage (``GEARING > omega_min``).
+        omega_max:               Upper bound for Omega/effective leverage (``GEARING < omega_max``).
+        moneyness_min:           Lower bound for Moneyness in % (``MONEYNESS > moneyness_min``).
+        moneyness_max:           Upper bound for Moneyness in % (``MONEYNESS < moneyness_max``).
+        premium_per_annum_max:   Upper bound for Premium p.a. in % (``PREMIUM_PER_ANNUM < premium_per_annum_max``).
+        implied_volatility_min:  Lower bound for implied volatility in % (``IMPLIED_VOLATILITY > implied_volatility_min``).
+        implied_volatility_max:  Upper bound for implied volatility in % (``IMPLIED_VOLATILITY < implied_volatility_max``).
+        leverage_min:            Lower bound for Leverage (``LEVERAGE > leverage_min``).
+        leverage_max:            Upper bound for Leverage (``LEVERAGE < leverage_max``).
+        premium_per_annum_min:   Lower bound for Premium p.a. in % (``PREMIUM_PER_ANNUM > premium_per_annum_min``).
+        spread_ask_pct_min:      Lower bound for Spread/Ask % (``SPREAD_ASK_PCT > spread_ask_pct_min``).
+        spread_ask_pct_max:      Upper bound for Spread/Ask % (``SPREAD_ASK_PCT < spread_ask_pct_max``).
+        theta_day_min:           Lower bound for Theta/day (``THETA_DAY > theta_day_min``).
+        theta_day_max:           Upper bound for Theta/day (``THETA_DAY < theta_day_max``).
+        present_value_min:       Lower bound for Present Value (``PRESENT_VALUE > present_value_min``).
+        present_value_max:       Upper bound for Present Value (``PRESENT_VALUE < present_value_max``).
+        theoretical_value_min:   Lower bound for Theoretical Value (``THEORETICAL_VALUE > theoretical_value_min``).
+        theoretical_value_max:   Upper bound for Theoretical Value (``THEORETICAL_VALUE < theoretical_value_max``).
+        intrinsic_value_min:     Lower bound for Intrinsic Value (``INTRINSIC_VALUE > intrinsic_value_min``).
+        intrinsic_value_max:     Upper bound for Intrinsic Value (``INTRINSIC_VALUE < intrinsic_value_max``).
+        break_even_min:          Lower bound for Break Even (``BREAK_EVEN > break_even_min``).
+        break_even_max:          Upper bound for Break Even (``BREAK_EVEN < break_even_max``).
+        vega_min:                Lower bound for Vega (``VEGA > vega_min``).
+        vega_max:                Upper bound for Vega (``VEGA < vega_max``).
+        gamma_min:               Lower bound for Gamma (``GAMMA > gamma_min``).
+        gamma_max:               Upper bound for Gamma (``GAMMA < gamma_max``).
 
     Returns:
         Fully qualified URL for the comdirect warrant finder results page.
@@ -191,42 +268,59 @@ def build_warrant_finder_url(
     maturity_from_range, maturity_from_cal, from_is_date = _parse_maturity_param(maturity_from)
     maturity_to_range, maturity_to_cal, to_is_date = _parse_maturity_param(maturity_to)
 
-    params: dict[str, str] = {
-        "FORM_NAME": "DerivativesSelectorOptionsscheineForm",
-        "PRESELECTION": preselection.value,
-        "ISSUER_ACTION": str(issuer_action).lower(),
-        "ISSUER_NO_FEE_ACTION": str(issuer_no_fee_action).lower(),
-        "ID_NOTATION_UNDERLYING": id_notation_underlying,
-        "UNDERLYING_TYPE": "FREI",
-        "UNDERLYING_NAME_SEARCH": underlying_name,
-        "PREDEFINED_UNDERLYING": "",
-        "STRIKE_ABS_FROM": (
-            str(int(strike_min)) if strike_min == int(strike_min) else str(strike_min)
-        )
-        if strike_min is not None
-        else "",
-        "STRIKE_ABS_TO": (
-            str(int(strike_max)) if strike_max == int(strike_max) else str(strike_max)
-        )
-        if strike_max is not None
-        else "",
-        "DATE_TIME_MATURITY_FROM": maturity_from_range,
-        "DATE_TIME_MATURITY_FROM_CAL": maturity_from_cal,
-    }
-    # Checkbox param required by comdirect when an explicit date is chosen
+    # Use a list of tuples (not a dict) so that repeated Greek filter keys are
+    # preserved when both a lower and upper bound are set for the same Greek.
+    params: list[tuple[str, str]] = [
+        ("FORM_NAME", "DerivativesSelectorOptionsscheineForm"),
+        ("PRESELECTION", preselection.value),
+        ("ISSUER_ACTION", str(issuer_action).lower()),
+        ("ISSUER_NO_FEE_ACTION", str(issuer_no_fee_action).lower()),
+        ("ID_NOTATION_UNDERLYING", id_notation_underlying),
+        ("UNDERLYING_TYPE", "FREI"),
+        ("UNDERLYING_NAME_SEARCH", underlying_name),
+        ("PREDEFINED_UNDERLYING", ""),
+        (
+            "STRIKE_ABS_FROM",
+            (str(int(strike_min)) if strike_min == int(strike_min) else str(strike_min))
+            if strike_min is not None
+            else "",
+        ),
+        (
+            "STRIKE_ABS_TO",
+            (str(int(strike_max)) if strike_max == int(strike_max) else str(strike_max))
+            if strike_max is not None
+            else "",
+        ),
+        ("DATE_TIME_MATURITY_FROM", maturity_from_range),
+        ("DATE_TIME_MATURITY_FROM_CAL", maturity_from_cal),
+    ]
     if from_is_date:
-        params["date-DATE_TIME_MATURITY_FROM_CAL"] = "on"
-    params.update(
-        {
-            "DATE_TIME_MATURITY_TO": maturity_to_range,
-            "DATE_TIME_MATURITY_TO_CAL": maturity_to_cal,
-        }
-    )
+        params.append(("date-DATE_TIME_MATURITY_FROM_CAL", "on"))
+    params += [
+        ("DATE_TIME_MATURITY_TO", maturity_to_range),
+        ("DATE_TIME_MATURITY_TO_CAL", maturity_to_cal),
+    ]
     if to_is_date:
-        params["date-DATE_TIME_MATURITY_TO_CAL"] = "on"
-    params["ID_GROUP_ISSUER"] = issuer_group_id or ""
-    params.update(_GREEK_FILTER_PARAMS)
-    params["keepCookie"] = "true"
+        params.append(("date-DATE_TIME_MATURITY_TO_CAL", "on"))
+    params.append(("ID_GROUP_ISSUER", issuer_group_id or ""))
+
+    # Greek / indicator filters — in comdirect's expected order.
+    # Exposed filters use caller-supplied bounds; unexposed ones are emitted disabled.
+    params += _greek_filter_pairs("IMPLIED_VOLATILITY", implied_volatility_min, implied_volatility_max)
+    params += _greek_filter_pairs("DELTA", delta_min, delta_max)
+    params += _greek_filter_pairs("LEVERAGE", leverage_min, leverage_max)
+    params += _greek_filter_pairs("PREMIUM_PER_ANNUM", premium_per_annum_min, premium_per_annum_max)
+    params += _greek_filter_pairs("GEARING", omega_min, omega_max)
+    params += _greek_filter_pairs("PRESENT_VALUE", present_value_min, present_value_max)
+    params += _greek_filter_pairs("SPREAD_ASK_PCT", spread_ask_pct_min, spread_ask_pct_max)
+    params += _greek_filter_pairs("THETA_DAY", theta_day_min, theta_day_max)
+    params += _greek_filter_pairs("THEORETICAL_VALUE", theoretical_value_min, theoretical_value_max)
+    params += _greek_filter_pairs("INTRINSIC_VALUE", intrinsic_value_min, intrinsic_value_max)
+    params += _greek_filter_pairs("BREAK_EVEN", break_even_min, break_even_max)
+    params += _greek_filter_pairs("MONEYNESS", moneyness_min, moneyness_max)
+    params += _greek_filter_pairs("VEGA", vega_min, vega_max)
+    params += _greek_filter_pairs("GAMMA", gamma_min, gamma_max)
+    params.append(("keepCookie", "true"))
 
     return f"{WARRANT_FINDER_RESULTS_URL}?{urlencode(params)}"
 
@@ -407,21 +501,75 @@ async def fetch_warrants(
     maturity_from: str | None = None,
     maturity_to: str | None = None,
     issuer_group_id: str | None = None,
+    delta_min: float | None = None,
+    delta_max: float | None = None,
+    omega_min: float | None = None,
+    omega_max: float | None = None,
+    moneyness_min: float | None = None,
+    moneyness_max: float | None = None,
+    premium_per_annum_max: float | None = None,
+    implied_volatility_min: float | None = None,
+    implied_volatility_max: float | None = None,
+    leverage_min: float | None = None,
+    leverage_max: float | None = None,
+    premium_per_annum_min: float | None = None,
+    spread_ask_pct_min: float | None = None,
+    spread_ask_pct_max: float | None = None,
+    theta_day_min: float | None = None,
+    theta_day_max: float | None = None,
+    present_value_min: float | None = None,
+    present_value_max: float | None = None,
+    theoretical_value_min: float | None = None,
+    theoretical_value_max: float | None = None,
+    intrinsic_value_min: float | None = None,
+    intrinsic_value_max: float | None = None,
+    break_even_min: float | None = None,
+    break_even_max: float | None = None,
+    vega_min: float | None = None,
+    vega_max: float | None = None,
+    gamma_min: float | None = None,
+    gamma_max: float | None = None,
 ) -> WarrantFinderResponse:
     """Resolve the underlying, build the finder URL, fetch results, and parse.
 
     Args:
-        underlying:           WKN or ISIN of the underlying instrument.
-        preselection:         Warrant type filter.  Defaults to ``ALL``.
-        issuer_action:        Include off-market flat-fee (Aktion) warrants.
-        issuer_no_fee_action: Include market no-fee warrants.
-        strike_min:           Minimum strike price.
-        strike_max:           Maximum strike price.
-        maturity_from:        Start of maturity range (Range_* code or date string).
-                              Defaults to ``Range_NOW``.
-        maturity_to:          End of maturity range (Range_* code or date string).
-        issuer_group_id:      Comdirect issuer group ID (``ID_GROUP_ISSUER``).
-
+        underlying:              WKN or ISIN of the underlying instrument.
+        preselection:            Warrant type filter.  Defaults to ``ALL``.
+        issuer_action:           Include off-market flat-fee (Aktion) warrants.
+        issuer_no_fee_action:    Include market no-fee warrants.
+        strike_min:              Minimum strike price.
+        strike_max:              Maximum strike price.
+        maturity_from:           Start of maturity range (Range_* code or date string).
+                                 Defaults to ``Range_NOW``.
+        maturity_to:             End of maturity range (Range_* code or date string).
+        issuer_group_id:         Comdirect issuer group ID (``ID_GROUP_ISSUER``).
+        delta_min:               Lower bound for Delta.
+        delta_max:               Upper bound for Delta.
+        omega_min:               Lower bound for Omega (effective leverage / GEARING).
+        omega_max:               Upper bound for Omega (effective leverage / GEARING).
+        moneyness_min:           Lower bound for Moneyness in %.
+        moneyness_max:           Upper bound for Moneyness in %.
+        premium_per_annum_max:   Upper bound for Premium p.a. in %.
+        implied_volatility_min:  Lower bound for implied volatility in %.
+        implied_volatility_max:  Upper bound for implied volatility in %.        leverage_min:             Lower bound for Leverage.
+        leverage_max:             Upper bound for Leverage.
+        premium_per_annum_min:    Lower bound for Premium p.a. in %.
+        spread_ask_pct_min:       Lower bound for Spread/Ask %.
+        spread_ask_pct_max:       Upper bound for Spread/Ask %.
+        theta_day_min:            Lower bound for Theta/day.
+        theta_day_max:            Upper bound for Theta/day.
+        present_value_min:        Lower bound for Present Value.
+        present_value_max:        Upper bound for Present Value.
+        theoretical_value_min:    Lower bound for Theoretical Value.
+        theoretical_value_max:    Upper bound for Theoretical Value.
+        intrinsic_value_min:      Lower bound for Intrinsic Value.
+        intrinsic_value_max:      Upper bound for Intrinsic Value.
+        break_even_min:           Lower bound for Break Even.
+        break_even_max:           Upper bound for Break Even.
+        vega_min:                 Lower bound for Vega.
+        vega_max:                 Upper bound for Vega.
+        gamma_min:                Lower bound for Gamma.
+        gamma_max:                Upper bound for Gamma.
     Returns:
         :class:`WarrantFinderResponse` with the constructed URL, result count,
         and the list of parsed :class:`Warrant` objects.
@@ -471,6 +619,34 @@ async def fetch_warrants(
         maturity_from=maturity_from or WarrantMaturityRange.NOW.value,
         maturity_to=maturity_to,
         issuer_group_id=issuer_group_id,
+        delta_min=delta_min,
+        delta_max=delta_max,
+        omega_min=omega_min,
+        omega_max=omega_max,
+        moneyness_min=moneyness_min,
+        moneyness_max=moneyness_max,
+        premium_per_annum_max=premium_per_annum_max,
+        implied_volatility_min=implied_volatility_min,
+        implied_volatility_max=implied_volatility_max,
+        leverage_min=leverage_min,
+        leverage_max=leverage_max,
+        premium_per_annum_min=premium_per_annum_min,
+        spread_ask_pct_min=spread_ask_pct_min,
+        spread_ask_pct_max=spread_ask_pct_max,
+        theta_day_min=theta_day_min,
+        theta_day_max=theta_day_max,
+        present_value_min=present_value_min,
+        present_value_max=present_value_max,
+        theoretical_value_min=theoretical_value_min,
+        theoretical_value_max=theoretical_value_max,
+        intrinsic_value_min=intrinsic_value_min,
+        intrinsic_value_max=intrinsic_value_max,
+        break_even_min=break_even_min,
+        break_even_max=break_even_max,
+        vega_min=vega_min,
+        vega_max=vega_max,
+        gamma_min=gamma_min,
+        gamma_max=gamma_max,
     )
     logger.info("Warrant finder URL: %s", url)
 

@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 393 unit tests passing; coverage reporting enabled (70%)
+- 394 unit tests passing; coverage reporting enabled (70%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 393 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 394 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -161,7 +161,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 393 unit tests passing; coverage reporting active
+- ✅ 394 unit tests passing; coverage reporting active
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -274,7 +274,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 393 unit tests; test layout mirrors `app/` directory structure
+- ✅ 394 unit tests; test layout mirrors `app/` directory structure
 
 ---
 
@@ -346,7 +346,7 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (393 unit tests)
+- ✅ Comprehensive test suite (394 unit tests)
 - ✅ 82% code coverage
 - ✅ Automated test execution in CI
 
@@ -613,7 +613,7 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 393 unit tests passing; 70% coverage
+- ✅ 394 unit tests passing; 70% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
@@ -631,7 +631,7 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 393 unit tests passing
+- ✅ 394 unit tests passing
 - ✅ 70% code coverage
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed

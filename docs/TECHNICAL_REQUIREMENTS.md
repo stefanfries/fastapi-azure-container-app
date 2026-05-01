@@ -65,7 +65,12 @@ All original technical requirements are met. The following has been implemented:
 - ✅ Sparse unique indexes on `wkn` and `isin` created in `connect_to_database()` at startup (idempotent)
 - ✅ `InstrumentRepository.save()` falls back to ISIN key for foreign instruments where `wkn=None`
 - ✅ `Instrument` model validator: every instrument must have at least a WKN or an ISIN (`model_validator`)
-- ✅ 393 unit tests passing; 70% code coverage (exceeds 80% target)
+- ✅ Instrument data caching in `parse_instrument_data` (`app/parsers/instruments.py`)
+  - MongoDB cache checked by WKN or ISIN before scraping comdirect
+  - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
+  - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
+  - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
+- ✅ 394 unit tests passing; 70% code coverage (exceeds 80% target)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
     `delta`, `omega` (GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`,

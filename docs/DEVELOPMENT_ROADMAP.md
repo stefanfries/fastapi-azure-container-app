@@ -190,8 +190,8 @@ Priority: HIGH - Core business requirement
   - Optional `details: InstrumentDetails | None` field added
   - Fully backward-compatible (field is `None` when parser not yet implemented)
 
-- [ ] Update database schema
-  - MongoDB stores `details` as embedded subdocument; verify `InstrumentRepository` handles it
+- [x] Update database schema ✅
+  - MongoDB stores `details` as embedded subdocument; `InstrumentRepository.save()` uses `model_dump()` which serialises the full discriminated union, and `Instrument(**doc)` on read deserialises it correctly via Pydantic — no special handling needed
 
 #### 2.2 Implement Asset-Class-Specific Parsers
 

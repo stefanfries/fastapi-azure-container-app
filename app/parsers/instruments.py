@@ -136,6 +136,7 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         HTTPException: If the request to fetch the instrument data fails.
         ValueError: If the instrument type or ID cannot be extracted from the response.
     """
+    logger.debug("parse_instrument_data(%s)", instrument)
     # Check cache before scraping; bypass if stale
     cached: Instrument | None = None
     is_wkn = bool(_WKN_RE.fullmatch(instrument))
@@ -198,4 +199,5 @@ async def parse_instrument_data(instrument: str) -> Instrument:
         details=details,
     )
     await _repo.save(instrument_data)
+    logger.debug("parse_instrument_data(%s) done -> %s", instrument, asset_class)
     return instrument_data

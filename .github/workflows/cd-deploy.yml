@@ -22,6 +22,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract app version
+        id: version
+        run: |
+          APP_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected app version: $APP_VERSION"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -41,6 +48,7 @@ jobs:
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.APP_VERSION }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -61,12 +69,13 @@ jobs:
 
       - name: Deploy to Azure Container Apps
         run: |
-          IMAGE_TAG="${{ env.DOCKER_REGISTRY }}/${{ github.repository }}:latest"
+          IMAGE_TAG="${{ env.DOCKER_REGISTRY }}/${{ github.repository }}:${{ steps.version.outputs.APP_VERSION }}"
           echo "Deploying image: $IMAGE_TAG"
           az containerapp update \
             --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image $IMAGE_TAG
+            --image $IMAGE_TAG \
+            --set-env-vars APP_VERSION=${{ steps.version.outputs.APP_VERSION }}
 
       - name: Get application URL
         id: get-url
@@ -79,6 +88,8 @@ jobs:
           echo "APP_URL=https://$FQDN" >> $GITHUB_OUTPUT
           echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}:${{ steps.version.outputs.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Application URL:** https://$FQDN" >> $GITHUB_STEP_SUMMARY
           echo "**API Documentation:** https://$FQDN/docs" >> $GITHUB_STEP_SUMMARY
           echo "**Health Check:** https://$FQDN/" >> $GITHUB_STEP_SUMMARY

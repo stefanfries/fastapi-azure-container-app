@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 394 unit tests passing; coverage reporting enabled (70%)
+- 395 unit tests passing; coverage reporting enabled (82%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 394 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 395 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -69,7 +69,7 @@ Priority: HIGH - Required for reliable development
   - All modules use `logger` from `app.core.logging`
   
 - [x] Logging module implemented ✅ (`app/core/logging.py`, `api_logger`)
-  - [ ] Add comprehensive entry/exit logging to parsers and scrapers (still partial)
+  - [x] Add comprehensive entry/exit logging to parsers and scrapers ✅ — `debug`-level entry/exit logs added to `parse_instrument_data`, `parse_quote`, `parse_history_data`, `parse_warrant_detail`, `fetch_warrants` (already logged), and `fetch_one`
 
 #### 1.2 Database Integration
 
@@ -141,14 +141,15 @@ Priority: HIGH - Required for reliable development
   - Returns 200 with check results when all pass, 503 if any fail
   - Used as Azure Container Apps **readiness probe**
   
-- [ ] Update deployment pipeline
-  - Auto-increment version on releases
-  - Tag Docker images with version numbers
-  - Add version to CI/CD workflow outputs
+- [x] Update deployment pipeline ✅
+  - [x] Tag Docker images with version number read from `pyproject.toml` (`APP_VERSION` tag added to `docker/metadata-action`) ✅
+  - [x] `APP_VERSION` env var injected into Azure Container App on each deploy ✅
+  - [x] Version shown in GitHub Actions step summary ✅
+  - Auto-increment on releases: still manual (bump `version` in `pyproject.toml`)
   
-- [ ] Add version to logs and error responses
-  - Include version in structured logs
-  - Add `X-API-Version` header to all responses
+- [x] Add version to logs and error responses ✅
+  - `X-API-Version: v1` header added to every response via `log_client_ip_middleware` ✅
+  - Header exposed via CORS `expose_headers` ✅
 
 **Deliverables:**
 
@@ -161,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 394 unit tests passing; coverage reporting active
+- ✅ 395 unit tests passing; coverage reporting active (82%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -274,7 +275,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 394 unit tests; test layout mirrors `app/` directory structure
+- ✅ 395 unit tests; test layout mirrors `app/` directory structure
 
 ---
 
@@ -346,7 +347,7 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (394 unit tests)
+- ✅ Comprehensive test suite (395 unit tests)
 - ✅ 82% code coverage
 - ✅ Automated test execution in CI
 
@@ -363,6 +364,9 @@ Priority: MEDIUM - Optimize for production
   - Scraped result saved via `InstrumentRepository.save()` on cache miss
   - Cache hit/miss logged at DEBUG level
   - Unit tests added for cache-hit (WKN), cache-hit (ISIN), and cache-miss paths
+  - [x] Fix offset-naive vs offset-aware datetime comparison in `is_cache_valid` ✅
+    - MongoDB returns naive UTC datetimes; `cached_at` coerced to UTC-aware before computing cache age
+    - Regression test added: `test_cache_valid_when_recent_naive_datetime`
   
 - [ ] Implement quote caching
   - Short-lived cache (5-15 minutes for real-time quotes)
@@ -613,15 +617,15 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 394 unit tests passing; 70% coverage
+- ✅ 395 unit tests passing; 82% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
 
-- All 9 asset classes parseable
-- Asset-class-specific data models defined and integrated into `Instrument`
-- Parsers extended to extract asset-class-specific fields
-- `GET /v1/instruments/{wkn}` returns full enriched data per asset class
+- ✅ All 9 asset classes parseable
+- ✅ Asset-class-specific data models defined and integrated into `Instrument`
+- ✅ Parsers extended to extract asset-class-specific fields
+- ✅ `GET /v1/instruments/{wkn}` returns full enriched data per asset class
 
 ### Phase 3 (Security)
 
@@ -631,8 +635,8 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 394 unit tests passing
-- ✅ 70% code coverage
+- ✅ 395 unit tests passing
+- ✅ 82% code coverage
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed
 

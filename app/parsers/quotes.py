@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 
 from app.core.constants import special_asset_classes
+from app.core.logging import logger
 from app.models.instruments import AssetClass
 from app.models.quotes import Quote
 from app.parsers.instruments import parse_instrument_data
@@ -36,6 +37,7 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         ValueError: If the response does not contain the expected data.
     """
 
+    logger.debug("parse_quote(%s, id_notation=%s)", instrument_id, id_notation)
     instrument_data = await parse_instrument_data(instrument_id)
 
     if instrument_data.asset_class not in (AssetClass.STOCK, AssetClass.WARRANT):
@@ -116,4 +118,5 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         trading_venue=trading_venue,
         id_notation=id_notation,
     )
+    logger.debug("parse_quote(%s) done", instrument_id)
     return quote

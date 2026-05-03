@@ -119,7 +119,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🧪 Testing
 
-394 unit tests passing with 70% code coverage.
+395 unit tests passing with 82% code coverage.
 
 ```bash
 # Run all tests

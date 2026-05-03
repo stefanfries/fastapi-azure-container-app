@@ -267,7 +267,7 @@ az keyvault secret set \
   --value "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority"
 ```
 
-1. Enable system-assigned managed identity on the Container App**
+2. Enable system-assigned managed identity on the Container App**
 
 ```bash
 az containerapp identity assign \
@@ -277,7 +277,7 @@ az containerapp identity assign \
 # Note the Principal ID returned — needed for the RBAC step below
 ```
 
-1. Grant Key Vault access to the managed identity**
+3. Grant Key Vault access to the managed identity**
 
 ```bash
 az role assignment create \
@@ -286,7 +286,7 @@ az role assignment create \
   --scope "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/kv-depot-butler-prod"
 ```
 
-1. Add the Key Vault reference as a Container App secret**
+4. Add the Key Vault reference as a Container App secret**
 
 ```bash
 az containerapp secret set \
@@ -295,7 +295,7 @@ az containerapp secret set \
   --secrets "mongodb-connection-string=keyvaultref:https://kv-depot-butler-prod.vault.azure.net/secrets/mongodb-connection-string,identityref:system"
 ```
 
-1. Wire the secret to the environment variable**
+5. Wire the secret to the environment variable**
 
 ```bash
 az containerapp update \

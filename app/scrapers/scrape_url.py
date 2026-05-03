@@ -63,8 +63,10 @@ async def fetch_one(
         httpx.HTTPStatusError: If the HTTP request returned an unsuccessful status code.
     """
 
+    logger.debug("fetch_one(%s, asset_class=%s, id_notation=%s)", instrument_id, asset_class, id_notation)
     async with httpx.AsyncClient(follow_redirects=True) as client:
         url = compose_url(instrument_id, asset_class, id_notation)
         response = await client.get(url)
         response.raise_for_status()
-        return response
+    logger.debug("fetch_one(%s) done -> HTTP %s", instrument_id, response.status_code)
+    return response

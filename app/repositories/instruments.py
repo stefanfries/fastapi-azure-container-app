@@ -147,6 +147,9 @@ class InstrumentRepository:
 
         max_age_days = get_settings().cache.instrument_cache_ttl_days
         cached_at = doc["cached_at"]
+        # MongoDB returns naive UTC datetimes; make explicit before subtracting.
+        if cached_at.tzinfo is None:
+            cached_at = cached_at.replace(tzinfo=UTC)
         age = datetime.now(UTC) - cached_at
 
         is_valid = age < timedelta(days=max_age_days)

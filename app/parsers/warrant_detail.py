@@ -17,6 +17,7 @@ from datetime import date, datetime
 from bs4 import BeautifulSoup, Tag
 from fastapi import HTTPException
 
+from app.core.logging import logger
 from app.models.instruments import AssetClass
 from app.models.warrants import (
     WarrantAnalytics,
@@ -264,6 +265,7 @@ async def parse_warrant_detail(identifier: str) -> WarrantDetailResponse:
         HTTPException 404: If the identifier cannot be resolved.
         HTTPException 400: If the resolved instrument is not a warrant.
     """
+    logger.debug("parse_warrant_detail(%s)", identifier)
     instrument_data = await parse_instrument_data(identifier)
 
     if instrument_data.asset_class != AssetClass.WARRANT:
@@ -279,10 +281,12 @@ async def parse_warrant_detail(identifier: str) -> WarrantDetailResponse:
     isin = instrument_data.isin or ""
     wkn = str(instrument_data.wkn)
 
-    return WarrantDetailResponse(
+    result = WarrantDetailResponse(
         isin=isin,
         wkn=wkn,
         market_data=_parse_market_data(soup),
         analytics=_parse_analytics(soup),
         reference_data=_parse_reference_data(soup),
     )
+    logger.debug("parse_warrant_detail(%s) done", identifier)
+    return result

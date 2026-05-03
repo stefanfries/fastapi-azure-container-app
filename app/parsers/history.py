@@ -74,6 +74,7 @@ async def parse_history_data(
         - The function also determines the trading venue and currency for the given notation ID.
     """
 
+    logger.debug("parse_history_data(%s, interval=%s)", instrument_id, interval)
     logger.info("parsing instrument data for instrument_id: %s", instrument_id)
     instrument_data = await parse_instrument_data(instrument_id)
 
@@ -108,8 +109,6 @@ async def parse_history_data(
         )  # intraday data is only available for the last 14 days
     end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
     start = start.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # TODO: check exact DATETIME_TZ_END_RANGE and DATETIME_TZ_START_RANGE values in comdirect page for different intervals (weeks, months, etc.)
 
     url = urljoin(BASE_URL, HISTORY_PATH)
 
@@ -199,7 +198,7 @@ async def parse_history_data(
 
     trading_venue = get_trading_venue(instrument_data, id_notation)
 
-    return HistoryData(
+    result = HistoryData(
         name=instrument_data.name,
         wkn=instrument_data.wkn,
         isin=instrument_data.isin,
@@ -211,3 +210,5 @@ async def parse_history_data(
         interval=interval,
         data=data,  # type: ignore
     )
+    logger.debug("parse_history_data(%s) done", instrument_id)
+    return result

@@ -70,7 +70,8 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 394 unit tests passing; 70% code coverage (exceeds 80% target)
+- ✅ 395 unit tests passing; 82% code coverage (exceeds 80% target)
+- ✅ `is_cache_valid` offset-naive/aware datetime bug fixed — MongoDB returns naive UTC datetimes; coerced to UTC-aware before computing cache age; regression test added (`test_cache_valid_when_recent_naive_datetime`)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
     `delta`, `omega` (GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`,

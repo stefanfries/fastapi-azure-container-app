@@ -75,6 +75,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["GET"],
     allow_headers=["X-API-Key"],
+    expose_headers=["X-API-Version"],
 )
 app.middleware("http")(log_client_ip_middleware)
 

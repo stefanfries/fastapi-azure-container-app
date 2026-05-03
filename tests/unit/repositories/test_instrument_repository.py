@@ -145,6 +145,14 @@ async def test_cache_valid_when_recent(repo, collection):
         assert await repo.is_cache_valid("918422") is True
 
 
+async def test_cache_valid_when_recent_naive_datetime(repo, collection):
+    # MongoDB returns naive UTC datetimes; ensure no TypeError is raised.
+    collection.find_one.return_value = {"cached_at": datetime.now()}
+    with patch("app.repositories.instruments.get_settings") as mock_settings:
+        mock_settings.return_value.cache.instrument_cache_ttl_days = 7
+        assert await repo.is_cache_valid("918422") is True
+
+
 async def test_cache_invalid_when_old(repo, collection):
     old_time = datetime.now(UTC) - timedelta(days=10)
     collection.find_one.return_value = {"cached_at": old_time}

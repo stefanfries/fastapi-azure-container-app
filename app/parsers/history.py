@@ -55,27 +55,23 @@ async def parse_history_data(
     interval: Interval,
     id_notation: str | None,
 ) -> HistoryData:
-    """
-    Parses historical data for a given financial instrument.
+    """Fetch and parse OHLCV history for an instrument.
+
     Args:
-        instrument_id (str): The ID of the financial instrument.
-        start (datetime | None): The start date for the historical data. If None, defaults to 14 days before the end date.
-        end (datetime | None): The end date for the historical data. If None or in the future, defaults to the current date.
-        interval (Interval): The interval for the historical data (e.g., daily, weekly).
-        id_notation (str | None): The notation ID. If None, defaults to the instrument's default notation ID.
+        instrument_id: Instrument identifier (WKN, ISIN, or search term).
+        start: Start date; defaults to 14 days before end when ``None`` or for intraday intervals.
+        end: End date; defaults to today when ``None`` or in the future.
+        interval: Aggregation interval (e.g. ``day``, ``week``, ``month``).
+        id_notation: Trading venue notation; defaults to the instrument's default when ``None``.
+
     Returns:
-        HistoryData: An object containing the parsed historical data, including metadata such as WKN, name, trading venue, currency, and the data itself.
+        HistoryData with WKN, name, trading venue, currency, and OHLCV records.
+
     Raises:
         httpx.HTTPStatusError: If the HTTP request for historical data fails.
-    Notes:
-        - If the start date is None, greater than the end date, or if the interval is intraday, the start date defaults to 14 days before the end date.
-        - The function fetches data in chunks with an offset, concatenates the results, and processes the data into a DataFrame.
-        - The DataFrame is then converted to a list of dictionaries for the final output.
-        - The function also determines the trading venue and currency for the given notation ID.
     """
 
     logger.debug("parse_history_data(%s, interval=%s)", instrument_id, interval)
-    logger.info("parsing instrument data for instrument_id: %s", instrument_id)
     instrument_data = await parse_instrument_data(instrument_id)
 
     match id_notation:

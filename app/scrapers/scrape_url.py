@@ -14,23 +14,13 @@ from app.core.constants import ASSET_CLASS_DETAILS_PATH, BASE_URL, SEARCH_PATH
 from app.core.logging import logger
 from app.models.instruments import AssetClass
 
-# from typing import AsyncGenerator, AsyncIterator, Dict, List
-
 
 def compose_url(
     instrument_id: str,
     asset_class: AssetClass | None = None,
     id_notation: str | None = None,
 ) -> str:
-    """
-    Composes a URL for a given instrument ID.
-    Args:
-        instrument_id (str): The ID of the instrument to search for.
-        asset_class (AssetClass, optional): The asset class of the instrument. Defaults to None.
-        id_notation (str, optional): The ID notation of the instrument. Defaults to None.
-    Returns:
-        str: The composed URL.
-    """
+    """Build a comdirect URL for the given instrument identifier, asset class, and id_notation."""
 
     if asset_class is None:
         return f"{BASE_URL}{SEARCH_PATH}?SEARCH_VALUE={instrument_id}"
@@ -51,14 +41,8 @@ async def fetch_one(
     asset_class: AssetClass | None = None,
     id_notation: str | None = None,
 ) -> httpx.Response:
-    """
-    Fetch data from a URL composed of the given parameters.
-    Args:
-        instrument_id (str): The ID of the instrument to fetch data for.
-        asset_class (AssetClass | None, optional): The asset class of the instrument. Defaults to None.
-        id_notation (str | None, optional): The notation ID of the instrument. Defaults to None.
-    Returns:
-        httpx.Response: The HTTP response from the GET request.
+    """Perform a single GET request to a composed comdirect URL and return the response.
+
     Raises:
         httpx.HTTPStatusError: If the HTTP request returned an unsuccessful status code.
     """

@@ -1,16 +1,7 @@
-"""
-Router for historical price data endpoints.
+"""Router for historical price data endpoints.
 
-Provides one endpoint:
-    GET /v1/history/{instrument_id} — fetch OHLCV price history for an instrument
-                                      over a configurable date range and interval.
-
-Functions:
-    get_history_data: Return historical price data for the given instrument.
-
-Dependencies:
-    fastapi.APIRouter: Used to create the router for the history routes.
-    app.core.logging.logger: Logger instance for logging information.
+GET /v1/history/{instrument_id} — fetch OHLCV price history for an instrument
+over a configurable date range and interval.
 """
 
 from datetime import datetime
@@ -60,5 +51,5 @@ async def get_history_data(
         interval=interval,
         id_notation=id_notation,
     )
-    logger.info("successfully retrieved history data for instrument_id %s", instrument_id)
+    logger.info("Successfully retrieved history data for instrument_id %s", instrument_id)
     return history_data

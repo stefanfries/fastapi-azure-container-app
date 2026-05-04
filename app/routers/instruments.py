@@ -1,16 +1,7 @@
-"""
-This module defines the API routes for instrument-related operations.
-Routes:
-    /v1/instruments (GET): List cached instruments, optionally filtered by asset class.
-    /v1/instruments/{instrument_id} (GET): Fetch instrument master data by WKN, ISIN, or search term.
-Functions:
-    list_instruments(asset_class: AssetClass | None) -> list[Instrument]:
-        Return all cached instruments, optionally filtered by asset class.
-    get_instrument(instrument_id: str) -> dict:
-        Fetch instrument data by identifier.
-Dependencies:
-    fastapi.APIRouter: Used to create the router for the instrument routes.
-    app.logging_config.logger: Logger instance for logging information.
+"""Router for instrument master data endpoints.
+
+GET /v1/instruments/               — list cached instruments, optionally filtered by asset class.
+GET /v1/instruments/{instrument_id} — fetch instrument master data by WKN, ISIN, or search term.
 """
 
 from fastapi import APIRouter, Depends
@@ -45,17 +36,7 @@ async def list_instruments(asset_class: AssetClass | None = None) -> list[Instru
 
 @router.get("/{instrument_id}", response_model=Instrument)
 async def get_instrument(instrument_id: str) -> Instrument:
-    """
-    Fetch instrument master data by an instrument_id.
-    This could be:
-        ISIN (International Securities Identification Number), or
-        WKN (German Wertpapierkennnummer) or
-        a general search phrase.
-    Args:
-        instrument_id (str): The identifier of the instrument to fetch.
-    Returns:
-        Instrument: An object containing the instrument master data.
-    """
+    """Fetch instrument master data by WKN, ISIN, or search term."""
     logger.info("Fetching instrument data for instrument_id %s", instrument_id)
     instrument_data = await parse_instrument_data(instrument_id)
     logger.info(

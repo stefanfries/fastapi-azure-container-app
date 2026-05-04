@@ -42,27 +42,20 @@ def check_valid_id_notation(instrument_data, id_notation) -> None:
     if any(v.id_notation == id_notation for v in lt.values()) or any(
         v.id_notation == id_notation for v in ex.values()
     ):
-        return None
-    else:
-        logger.error(
-            "Invalid id_notation: %s for instrument %s",
-            id_notation,
-            instrument_data.wkn,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid id_notation {id_notation} for instrument {instrument_data.name}",
-        )
+        return
+    logger.error(
+        "Invalid id_notation: %s for instrument %s",
+        id_notation,
+        instrument_data.wkn,
+    )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Invalid id_notation {id_notation} for instrument {instrument_data.name}",
+    )
 
 
 def get_id_notations_dict(instrument_data: Instrument) -> dict:
-    """
-    Get the id_notations dictionary for the given instrument_data instance.
-    Args:
-        instrument_data (Instrument): An instance of Instrument containing id notations.
-    Returns:
-        dict: A dictionary containing all id_notations for the given instrument_data.
-    """
+    """Return merged id_notations from both life-trading and exchange-trading venues."""
     return {
         **(instrument_data.id_notations_life_trading or {}),
         **(instrument_data.id_notations_exchange_trading or {}),
@@ -70,26 +63,17 @@ def get_id_notations_dict(instrument_data: Instrument) -> dict:
 
 
 def get_trading_venues_dict(instrument_data: Instrument) -> dict:
-    """
-    Get the trading venues dictionary for the given instrument_data instance.
-    Args:
-        instrument_data (Instrument): An instance of Instrument containing trading venues.
-    Returns:
-        dict: A dictionary containing all trading venues for the given instrument_data.
-    """
+    """Return a reverse mapping of id_notation → venue name across all trading venues."""
     id_notatations_dict = get_id_notations_dict(instrument_data)
     trading_venues_dict = {v.id_notation: k for k, v in id_notatations_dict.items()}
     return trading_venues_dict
 
 
 def get_id_notation(instrument_data: Instrument, trading_venue: str) -> str:
-    """
-    Get the id_notation for the given trading_venue in the provided Instrument instance.
-    Args:
-        instrument_data (Instrument): An instance of Instrument containing id notations.
-        trading_venue (str): The trading venue to get the id_notation for.
-    Returns:
-        str: The id_notation of the given trading_venue in the instrument_data.
+    """Return the id_notation for a trading venue name.
+
+    Raises:
+        ValueError: If the trading venue is not found on the instrument.
     """
     id_notations_dict = get_id_notations_dict(instrument_data)
 
@@ -104,13 +88,10 @@ def get_id_notation(instrument_data: Instrument, trading_venue: str) -> str:
 
 
 def get_trading_venue(instrument_data: Instrument, id_notation: str) -> str:
-    """
-    Get the trading venue for the given id_notation in the provided Instrument instance.
-    Args:
-        instrument_data (Instrument): An instance of Instrument containing id notations.
-        id_notation (str): The id notation to get the trading venue for.
-    Returns:
-        str: The trading venue of the given id_notation in the instrument_data.
+    """Return the trading venue name for an id_notation.
+
+    Raises:
+        ValueError: If the id_notation is not found on the instrument.
     """
     trading_venues_dict = get_trading_venues_dict(instrument_data)
     if id_notation not in trading_venues_dict:

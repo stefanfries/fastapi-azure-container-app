@@ -25,7 +25,7 @@ class InstrumentParser(ABC):
     @abstractmethod
     def asset_class(self) -> AssetClass:
         """Return the asset class this parser handles."""
-        pass
+        ...
 
     @abstractmethod
     def parse_name(self, soup: BeautifulSoup) -> str:
@@ -38,7 +38,7 @@ class InstrumentParser(ABC):
         Returns:
             The instrument name
         """
-        pass
+        ...
 
     @abstractmethod
     def parse_wkn(self, soup: BeautifulSoup) -> str:
@@ -51,7 +51,7 @@ class InstrumentParser(ABC):
         Returns:
             The WKN
         """
-        pass
+        ...
 
     @abstractmethod
     def parse_isin(self, soup: BeautifulSoup) -> str | None:
@@ -64,7 +64,7 @@ class InstrumentParser(ABC):
         Returns:
             The ISIN if available, None otherwise
         """
-        pass
+        ...
 
     @abstractmethod
     def parse_id_notations(
@@ -85,7 +85,7 @@ class InstrumentParser(ABC):
             - preferred_lt_id_notation: ID_NOTATION with highest "Gestellte Kurse"
             - preferred_ex_id_notation: ID_NOTATION with highest "Anzahl Kurse"
         """
-        pass
+        ...
 
     def parse_details(self, soup: BeautifulSoup) -> InstrumentDetails | None:
         """

@@ -35,7 +35,6 @@ def _dates_to_datetime(obj: Any) -> Any:
 
 class InstrumentRepository:
     """Repository for instrument master data operations."""
-    """Repository for instrument master data operations."""
 
     def __init__(self):
         """Initialize the instrument repository."""
@@ -54,15 +53,7 @@ class InstrumentRepository:
         return self._collection
 
     async def find_by_wkn(self, wkn: str) -> Instrument | None:
-        """
-        Find instrument by WKN (German securities identification number).
-
-        Args:
-            wkn (str): The WKN to search for
-
-        Returns:
-            Optional[Instrument]: Instrument if found, None otherwise
-        """
+        """Find an instrument by WKN. Returns ``None`` if not in the cache."""
         logger.debug("Searching for instrument with WKN: %s", wkn)
         doc = await self.collection.find_one({"wkn": wkn})
 
@@ -77,15 +68,7 @@ class InstrumentRepository:
         return None
 
     async def find_by_isin(self, isin: str) -> Instrument | None:
-        """
-        Find instrument by ISIN (International Securities Identification Number).
-
-        Args:
-            isin (str): The ISIN to search for
-
-        Returns:
-            Optional[Instrument]: Instrument if found, None otherwise
-        """
+        """Find an instrument by ISIN. Returns ``None`` if not in the cache."""
         logger.debug("Searching for instrument with ISIN: %s", isin)
         doc = await self.collection.find_one({"isin": isin})
 
@@ -99,12 +82,7 @@ class InstrumentRepository:
         return None
 
     async def save(self, instrument: Instrument) -> None:
-        """
-        Save or update an instrument in the database.
-
-        Args:
-            instrument (Instrument): The instrument to save
-        """
+        """Upsert an instrument document into the cache collection."""
         # Convert Pydantic model to dict; convert date → datetime for BSON compatibility
         doc = _dates_to_datetime(instrument.model_dump())
 
@@ -129,16 +107,9 @@ class InstrumentRepository:
         logger.debug("Instrument cached successfully: %s", log_key)
 
     async def is_cache_valid(self, wkn: str) -> bool:
-        """
-        Check if cached instrument data is still valid.
+        """Return ``True`` if the cached document for *wkn* is within the TTL.
 
         TTL is read from settings (``INSTRUMENT_CACHE_TTL_DAYS``, default 7).
-
-        Args:
-            wkn (str): The WKN to check
-
-        Returns:
-            bool: True if cache is valid, False otherwise
         """
         doc = await self.collection.find_one({"wkn": wkn}, {"cached_at": 1})
 
@@ -158,15 +129,7 @@ class InstrumentRepository:
         return is_valid
 
     async def delete_by_wkn(self, wkn: str) -> bool:
-        """
-        Delete an instrument by WKN.
-
-        Args:
-            wkn (str): The WKN of the instrument to delete
-
-        Returns:
-            bool: True if deleted, False if not found
-        """
+        """Delete an instrument by WKN. Returns ``True`` if a document was removed."""
         result = await self.collection.delete_one({"wkn": wkn})
         deleted = result.deleted_count > 0
 

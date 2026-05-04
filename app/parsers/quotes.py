@@ -25,16 +25,17 @@ from app.scrapers.scrape_url import fetch_one
 
 
 async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
-    """
-    Parses quote data (current market prices) for a given financial instrument.
+    """Fetch and parse the current market quote for an instrument.
+
     Args:
-        instrument_id (str): The ID of the financial instrument to fetch and parse data for.
-        id_notation (str | None): Optional ID notation for specific trading venue.
+        instrument_id: Instrument identifier (WKN, ISIN, or search term).
+        id_notation: Optional specific trading venue notation.
+
     Returns:
-        Quote: An object containing parsed quote data including name, WKN, bid price, ask price,
-               spread percentage, currency, timestamp, trading venue, and ID notation.
+        Quote with bid/ask prices, spread, currency, timestamp, and venue.
+
     Raises:
-        ValueError: If the response does not contain the expected data.
+        HTTPException 501: For asset classes that don't support live quotes.
     """
 
     logger.debug("parse_quote(%s, id_notation=%s)", instrument_id, id_notation)

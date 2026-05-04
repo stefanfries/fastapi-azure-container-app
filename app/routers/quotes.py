@@ -1,13 +1,6 @@
-"""
-This module defines the API routes for quote-related operations (current market prices).
-Routes:
-    /v1/quotes/{instrument_id} (GET): Fetch current quote data by WKN, ISIN, or search term.
-Functions:
-    get_quote(instrument_id: str, id_notation: str = None) -> Quote:
-        Fetch current market quote data for an instrument.
-Dependencies:
-    fastapi.APIRouter: Used to create the router for the quote routes.
-    app.core.logging.logger: Logger instance for logging information.
+"""Router for current market quote endpoints.
+
+GET /v1/quotes/{instrument_id} — fetch the current bid/ask quote for an instrument.
 """
 
 from fastapi import APIRouter, Depends, Query

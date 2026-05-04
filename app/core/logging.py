@@ -1,17 +1,7 @@
-"""
-This module configures logging for the FastAPI-Azure-Container-App.
-It sets up logging to console, a file, and Papertrail using the SysLogHandler.
-The logging configuration includes a formatter that specifies the log message format and date format.
-Constants:
-    PAPERTRAILHOST (str): The hostname for the Papertrail logging service.
-    PAPERTRAILPORT (int): The port number for the Papertrail logging service.
-Configuration Dictionary:
-    config_dict (dict): A dictionary containing the logging configuration.
-Logger:
-    logger (logging.Logger): The logger instance configured for the application.
-Usage:
-    Import this module to configure logging for the application.
-    The logger instance can be used to log messages throughout the application.
+"""Logging configuration for the application.
+
+Configures a named logger (``api_logger``) writing to the console, a local file,
+and Papertrail via SysLogHandler.  Import ``logger`` from this module.
 """
 
 import logging

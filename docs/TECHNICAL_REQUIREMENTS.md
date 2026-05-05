@@ -56,6 +56,12 @@ All original technical requirements are met. The following has been implemented:
 - ✅ All legacy parsing code removed from `instruments.py`; no fallback path exists
 - ✅ MongoDB Atlas integration using PyMongo `AsyncMongoClient`
 - ✅ FastAPI routers: welcome, instruments, quotes, history, depots, warrants, indices, health
+- ✅ `/v1/quotes/{id}` supports STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT
+  - Returns HTTP 501 for non-tradeable classes (INDEX, COMMODITY, CURRENCY)
+  - Returns HTTP 503 when market is closed (prices show `--`) or data source unreachable
+  - Handles two distinct comdirect HTML table layouts: `realtime-indicator--value` span (STOCK, BOND, WARRANT) and plain `<td>` (ETF, FONDS); uses Rücknahmepreis/Ausgabepreis labels for Fonds
+  - Trading venue resolved from `Börse` table row (BOND, CERTIFICATE) or from instrument venue map (ETF, FONDS)
+- ✅ `fetch_one` (scrape_url.py) enforces a 15-second request timeout; callers receive `httpx.RequestError` on network failures
 - ✅ Custom `JSONResponse` with UTF-8 charset for German umlauts
 - ✅ CI/CD via GitHub Actions (lint + tests on PR; build + push + deploy to Azure on main)
 - ✅ CORS middleware added (`allow_origins=["*"]`, `allow_methods=["GET"]`)
@@ -70,7 +76,7 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 395 unit tests passing; 82% code coverage (exceeds 80% target)
+- ✅ 414 unit tests passing; 82% code coverage (exceeds 80% target)
 - ✅ `is_cache_valid` offset-naive/aware datetime bug fixed — MongoDB returns naive UTC datetimes; coerced to UTC-aware before computing cache age; regression test added (`test_cache_valid_when_recent_naive_datetime`)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:

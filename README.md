@@ -9,6 +9,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
 - **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
+- **Live Quotes for 6 Asset Classes**: `GET /v1/quotes/{id}` returns real-time bid/ask prices for STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT; returns 501 for non-tradeable classes (INDEX, COMMODITY, CURRENCY) and 503 when the market is closed or the data source is unreachable
 - **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn|isin}` returns a typed `details` block per asset class — all 9 classes fully implemented including `IndexDetails` (country, currency, num_constituents, constituents_url), `CommodityDetails` (currency, symbol, country), `CurrencyDetails` (base_currency, quote_currency, country)
 - **ISIN & WKN from Stammdaten**: `SpecialAssetParser` now reads ISIN, WKN, and Symbol directly from the Stammdaten table (e.g. DAX → ISIN `DE0008469008`, symbol `DAX`)
 - **Index Constituent Link**: `IndexDetails.constituents_url` carries a ready-to-use API path (e.g. `/v1/indices/DE0008469008`) linking directly to the constituent list
@@ -119,7 +120,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🧪 Testing
 
-395 unit tests passing with 82% code coverage.
+414 unit tests passing with ~82% code coverage.
 
 ```bash
 # Run all tests
@@ -226,4 +227,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: Production Ready ✅  
-**Last Updated**: May 1, 2026
+**Last Updated**: May 5, 2026

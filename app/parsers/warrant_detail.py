@@ -225,6 +225,8 @@ def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
     underlying_price, underlying_price_currency = _parse_amount_currency(
         _td_text(table, "Kurs Basiswert")
     )
+    cap_raw = _td_text(table, "Cap")
+    cap, cap_currency = _parse_amount_currency(cap_raw)
 
     issuer_action, issuer_no_fee_action = _parse_action_flags(soup)
 
@@ -243,6 +245,9 @@ def _parse_reference_data(soup: BeautifulSoup) -> WarrantReferenceData:
         issuer=_td_text(table, "Emittent"),
         currency=_td_text(table, "Währung"),
         symbol=_td_text(table, "Symbol"),
+        is_capped=cap is not None,
+        cap=cap,
+        cap_currency=cap_currency,
         issuer_action=issuer_action,
         issuer_no_fee_action=issuer_no_fee_action,
     )

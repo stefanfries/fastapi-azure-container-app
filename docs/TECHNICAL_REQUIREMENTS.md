@@ -76,7 +76,11 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 414 unit tests passing; 82% code coverage (exceeds 80% target)
+- ✅ 495 unit tests passing; ~83% code coverage (exceeds 80% target)
+  - 28 tests in `tests/unit/parsers/test_warrant_detail_parser.py` — `_parse_float`, `_parse_amount_currency`, `_parse_date`, `_parse_reference_data` (capped and uncapped warrants)
+  - 49 tests in `tests/unit/parsers/test_warrants_parser.py` — `_greek_filter_pairs`, `_parse_maturity_param`, `build_warrant_finder_url` (all 14 Greek filters), `_get_total_pages`, `_parse_warrant_rows`
+  - 13 tests in `tests/unit/core/test_database.py` — `get_database()` / `get_collection()` guard logic, `Collections` constants
+  - 25 tests in `tests/unit/models/test_models.py` — `Depot`/`DepotItem`, `HistoryData`/`HistoryRecord`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex validation
 - ✅ `is_cache_valid` offset-naive/aware datetime bug fixed — MongoDB returns naive UTC datetimes; coerced to UTC-aware before computing cache age; regression test added (`test_cache_valid_when_recent_naive_datetime`)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
@@ -93,6 +97,12 @@ All original technical requirements are met. The following has been implemented:
   - **Sentinel value caveat**: warrants without published analytics are assigned a sentinel ≥ 1.0 by
     comdirect; combining `issuer_action=true` with upper-bound Greek filters may exclude them
     unexpectedly — documented in the `issuer_action` / `issuer_no_fee_action` Query param descriptions
+- ✅ Warrant detail cap detection (`GET /v1/warrants/{wkn}` — `WarrantReferenceData`)
+  - `is_capped: bool` — `True` when a `Cap` row is present in the Stammdaten table
+  - `cap: float | None` — cap level (maximum payout price of the underlying)
+  - `cap_currency: str | None` — currency of the cap level (e.g. `"USD"`)
+  - `_parse_reference_data` in `app/parsers/warrant_detail.py` reads the `"Cap"` Stammdaten row via
+    `_td_text(table, "Cap")` and delegates to `_parse_amount_currency`
 
 ## Open / Future Work
 

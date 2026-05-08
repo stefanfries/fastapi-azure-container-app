@@ -17,6 +17,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 - **Constituent Instrument Links**: Each `IndexMember` now includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`) alongside the comdirect page link
 - **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with full `parse_details()` support
 - **Warrant Finder with Full Greek Filter Support**: `GET /v1/warrants/` searches the comdirect Optionsschein Finder with all 14 analytics filter dimensions — each with independent `_min` / `_max` bounds: `delta`, `omega` (effective leverage / GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`, `leverage`, `spread_ask_pct`, `theta_day`, `present_value`, `theoretical_value`, `intrinsic_value`, `break_even`, `vega`, `gamma`. Dual bounds are encoded as repeated query parameters (`DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt`).
+- **Warrant Cap Detection**: `GET /v1/warrants/{wkn}` returns `is_capped`, `cap`, and `cap_currency` in `reference_data` — automatically detected from the `Cap` row in the comdirect Stammdaten table (e.g. Bull/Bear certificates-style capped warrants with a maximum payout level)
 - **Instrument Data Caching**: `parse_instrument_data` checks MongoDB before scraping — cache hits skip the network call entirely; stale entries (configurable TTL via `INSTRUMENT_CACHE_TTL_DAYS`) are transparently re-fetched
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
 - **Azure Container Apps**: Serverless container deployment with auto-scaling
@@ -120,7 +121,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🧪 Testing
 
-414 unit tests passing with ~82% code coverage.
+495 unit tests passing with ~83% code coverage.
 
 ```bash
 # Run all tests

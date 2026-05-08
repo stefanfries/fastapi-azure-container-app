@@ -295,3 +295,42 @@ make Greek range filters appear to return fewer results than a single lower-boun
 
 Combining `issuer_action=true` or `issuer_no_fee_action=true` with upper-bound Greek filters is
 therefore discouraged — both query param descriptions carry an explicit warning about this.
+
+---
+
+## Warrant Detail Parser (`app/parsers/warrant_detail.py`)
+
+This module is also **separate from the `WarrantParser` plugin**.  It drives `GET /v1/warrants/{wkn}`
+and fetches the full warrant detail page, parsing three sections into typed Pydantic models:
+
+| Section | Source heading | Output model |
+| ------- | -------------- | ------------ |
+| `market_data` | Kursdaten | `WarrantMarketData` |
+| `analytics` | Kennzahlen | `WarrantAnalytics` |
+| `reference_data` | Stammdaten | `WarrantReferenceData` |
+
+### Cap detection
+
+Capped warrants (e.g. Bull/Bear certificates with a maximum payout level) carry a `Cap` row in the
+comdirect Stammdaten table.  `_parse_reference_data` reads this row and populates three fields on
+`WarrantReferenceData`:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `is_capped` | `bool` | `True` when a `Cap` row is present in Stammdaten |
+| `cap` | `float \| None` | Cap level — maximum payout price of the underlying |
+| `cap_currency` | `str \| None` | Currency of the cap level (e.g. `"USD"`) |
+
+For uncapped warrants the `Cap` row is absent; `_td_text(table, "Cap")` returns `None`, so
+`is_capped` is `False` and both `cap` / `cap_currency` are `None`.
+
+### Internal helpers
+
+| Helper | Description |
+| ------ | ----------- |
+| `_section_table(soup, heading)` | Returns the first `<table>` inside the section with the given `<h2>` heading |
+| `_td_text(table, label)` | Finds a `<th>` containing *label* and returns its sibling `<td>` text |
+| `_parse_float(text)` | Parses German-format numbers (`"1.234,56 EUR"` → `1234.56`); `"--"` / `None` → `None` |
+| `_parse_amount_currency(text)` | Splits `"240,00 USD"` → `(240.0, "USD")`; returns `(None, None)` for missing values |
+| `_parse_date(text)` | Parses `DD.MM.YY` or `DD.MM.YYYY`; returns `None` for `"--"` or absent values |
+| `_parse_action_flags(soup)` | Detects comdirect issuer-action promotion badges |

@@ -8,10 +8,12 @@ from fastapi import HTTPException
 from app.core.constants import BASE_URL, asset_class_identifier_to_asset_class_map
 from app.core.logging import logger
 from app.models.indices import IndexInfo, IndexMember
+from app.repositories.indices import IndicesRepository
 
 INDEX_LIST_URL = f"{BASE_URL}/inf/index.html"
 
 _ISIN_RE = re.compile(r"([A-Z]{2}[A-Z0-9]{10})$")
+_repo = IndicesRepository()
 
 
 def _normalize_name(name: str) -> str:
@@ -86,23 +88,46 @@ def _parse_members_from_table(soup: BeautifulSoup) -> list[IndexMember]:
     return members
 
 
-async def _fetch_wkn(isin: str) -> str | None:
-    """Fetch the WKN for an index from its comdirect detail page."""
+async def _fetch_index_detail(isin: str) -> tuple[str | None, str | None]:
+    """Fetch WKN and primary exchange for an index from its comdirect detail page.
+
+    Returns:
+        (wkn, exchange) — either value is None when not found.
+    """
     url = f"{BASE_URL}/inf/indizes/{isin}"
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
             response = await client.get(url)
             response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
+        wkn: str | None = None
+        exchange: str | None = None
         h2 = soup.find("h2")
         if h2 and "WKN:" in h2.text:
-            return h2.text.split("WKN:")[1].strip()
+            wkn = h2.text.split("WKN:")[1].strip()
+        for row in soup.find_all("tr"):
+            cells = row.find_all(["th", "td"])
+            if len(cells) == 2 and cells[0].get_text(strip=True) == "Börse":
+                exchange = cells[1].get_text(strip=True) or None
+                break
+        return wkn, exchange
     except Exception as e:
-        logger.warning("Could not fetch WKN for ISIN %s: %s", isin, e)
-    return None
+        logger.warning("Could not fetch detail page for ISIN %s: %s", isin, e)
+    return None, None
 
 
 async def fetch_index_list() -> list[IndexInfo]:
+    """Return all supported indices, serving from cache when fresh."""
+    cached = await _repo.get_catalogue()
+    if cached is not None:
+        return cached
+
+    indices = await _scrape_index_list()
+    await _repo.save_catalogue(indices)
+    return indices
+
+
+async def _scrape_index_list() -> list[IndexInfo]:
     """Scrape the comdirect index overview page and return supported indices."""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         response = await client.get(INDEX_LIST_URL)
@@ -142,15 +167,90 @@ async def fetch_index_list() -> list[IndexInfo]:
                 )
             )
 
-        # Fetch all WKNs in parallel (each with its own client to avoid pool exhaustion)
-        wkns = await asyncio.gather(*[_fetch_wkn(isin) for _, _, isin, _ in candidates])
+        # Fetch WKN + exchange in parallel (each with its own client to avoid pool exhaustion)
+        details = await asyncio.gather(*[_fetch_index_detail(isin) for _, _, isin, _ in candidates])
 
     result = [
-        IndexInfo(name=name, wkn=wkn, member_count=member_count, link=link)
-        for (name, link, _, member_count), wkn in zip(candidates, wkns)
+        IndexInfo(
+            name=name,
+            isin=isin,
+            wkn=wkn,
+            exchange=exchange,
+            member_count=member_count,
+            link=link,
+        )
+        for (name, link, isin, member_count), (wkn, exchange) in zip(candidates, details)
     ]
     logger.info("Fetched %d indices from comdirect", len(result))
     return result
+
+
+async def fetch_index_members(index_name: str) -> list[IndexMember]:
+    """Fetch all members of a named index from comdirect, handling pagination.
+
+    ``index_name`` may be a human-readable name (e.g. ``"DAX"``), a WKN
+    (e.g. ``"846900"``), or an ISIN (e.g. ``"DE0008469008"``).  Name matching
+    is case-insensitive and ignores punctuation (see ``_normalize_name``).
+
+    When an ISIN is provided that does not appear in the comdirect index
+    catalogue URL (e.g. a German tracking ISIN for the S&P 500), members are
+    fetched directly from comdirect using that ISIN as the pagination key,
+    bypassing the catalogue entirely.
+    """
+    indices = await fetch_index_list()
+
+    # Primary lookup: normalised name match
+    match = next(
+        (idx for idx in indices if _normalize_name(idx.name) == _normalize_name(index_name)),
+        None,
+    )
+
+    # Secondary lookup: match the ISIN embedded in the catalogue link URL
+    if match is None and re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
+        isin_upper = index_name.upper()
+        match = next(
+            (idx for idx in indices if _extract_isin_from_path(idx.link) == isin_upper),
+            None,
+        )
+
+    # Catalogue match found — use its link and expected member count
+    if match is not None:
+        isin = _extract_isin_from_path(match.link)
+        if not isin:
+            raise HTTPException(status_code=502, detail="Could not determine ISIN for pagination")
+        # Check members cache
+        cached_members = await _repo.get_members(isin)
+        if cached_members is not None:
+            return cached_members
+        logger.info(
+            "Fetching members for index '%s' (expected: %d) via catalogue",
+            match.name,
+            match.member_count,
+        )
+        members = await _fetch_all_members(isin, label=match.name, expected_count=match.member_count)
+        await _repo.save_members(isin, members)
+        return members
+
+    # Final fallback: ISIN supplied directly (e.g. from constituents_url) but not
+    # present in the catalogue link — fetch members directly using that ISIN.
+    if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
+        isin = index_name.upper()
+        cached_members = await _repo.get_members(isin)
+        if cached_members is not None:
+            return cached_members
+        logger.info(
+            "ISIN '%s' not found in catalogue; fetching members directly from comdirect",
+            isin,
+        )
+        members = await _fetch_all_members(isin, label=isin)
+        await _repo.save_members(isin, members)
+        return members
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Index '{index_name}' not found. "
+        f"Supported indices: {[i.name for i in indices]}",
+    )
 
 
 def _members_page_url(isin: str, offset: int = 0) -> str:
@@ -194,59 +294,3 @@ async def _fetch_all_members(isin: str, label: str, expected_count: int | None =
         logger.info("Fetched %d members for '%s'", len(members), label)
 
     return members
-
-
-async def fetch_index_members(index_name: str) -> list[IndexMember]:
-    """Fetch all members of a named index from comdirect, handling pagination.
-
-    ``index_name`` may be a human-readable name (e.g. ``"DAX"``), a WKN
-    (e.g. ``"846900"``), or an ISIN (e.g. ``"DE0008469008"``).  Name matching
-    is case-insensitive and ignores punctuation (see ``_normalize_name``).
-
-    When an ISIN is provided that does not appear in the comdirect index
-    catalogue URL (e.g. a German tracking ISIN for the S&P 500), members are
-    fetched directly from comdirect using that ISIN as the pagination key,
-    bypassing the catalogue entirely.
-    """
-    indices = await fetch_index_list()
-
-    # Primary lookup: normalised name match
-    match = next(
-        (idx for idx in indices if _normalize_name(idx.name) == _normalize_name(index_name)),
-        None,
-    )
-
-    # Secondary lookup: match the ISIN embedded in the catalogue link URL
-    if match is None and re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
-        isin_upper = index_name.upper()
-        match = next(
-            (idx for idx in indices if _extract_isin_from_path(idx.link) == isin_upper),
-            None,
-        )
-
-    # Catalogue match found — use its link and expected member count
-    if match is not None:
-        isin = _extract_isin_from_path(match.link)
-        if not isin:
-            raise HTTPException(status_code=502, detail="Could not determine ISIN for pagination")
-        logger.info(
-            "Fetching members for index '%s' (expected: %d) via catalogue",
-            match.name,
-            match.member_count,
-        )
-        return await _fetch_all_members(isin, label=match.name, expected_count=match.member_count)
-
-    # Final fallback: ISIN supplied directly (e.g. from constituents_url) but not
-    # present in the catalogue link — fetch members directly using that ISIN.
-    if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{10}", index_name.upper()):
-        logger.info(
-            "ISIN '%s' not found in catalogue; fetching members directly from comdirect",
-            index_name,
-        )
-        return await _fetch_all_members(index_name.upper(), label=index_name)
-
-    raise HTTPException(
-        status_code=404,
-        detail=f"Index '{index_name}' not found. "
-        f"Supported indices: {[i.name for i in indices]}",
-    )

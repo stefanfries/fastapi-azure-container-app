@@ -76,6 +76,13 @@ async def connect_to_database() -> None:
         await instruments_col.create_index("isin", unique=True, sparse=True)
         logger.info("MongoDB indexes ensured on instruments collection")
 
+        # Ensure indexes on index catalogue and members collections
+        catalogue_col = _database[Collections.INDEX_CATALOGUE]
+        await catalogue_col.create_index("isin", unique=True, sparse=True)
+        members_col = _database[Collections.INDEX_MEMBERS]
+        await members_col.create_index("isin", unique=True)
+        logger.info("MongoDB indexes ensured on index_catalogue and index_members collections")
+
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
         logger.error("Failed to connect to MongoDB: %s", e)
         raise
@@ -123,3 +130,5 @@ class Collections:
     INSTRUMENTS = "instruments"
     QUOTES = "quotes"
     HISTORY = "history"
+    INDEX_CATALOGUE = "index_catalogue"
+    INDEX_MEMBERS = "index_members"

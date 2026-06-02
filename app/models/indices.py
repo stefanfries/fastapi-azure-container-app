@@ -5,7 +5,9 @@ from app.models.types import ISIN, WKN
 
 class IndexInfo(BaseModel):
     name: str = Field(..., description="Index name")
+    isin: ISIN | None = Field(None, description="ISIN of the index")
     wkn: WKN | None = Field(None, description="WKN")
+    exchange: str | None = Field(None, description="Primary exchange (e.g. 'Xetra')")
     member_count: int = Field(..., description="Number of index members per comdirect overview")
     link: str = Field(..., description="URL to the index members page on comdirect")
 

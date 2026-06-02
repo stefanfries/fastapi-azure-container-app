@@ -194,6 +194,12 @@ class CacheSettings(BaseSettings):
         validation_alias="INSTRUMENT_CACHE_TTL_DAYS",
     )
 
+    index_cache_ttl_days: int = Field(
+        default=3,
+        description="Number of days before cached index catalogue and members are considered stale and re-fetched",
+        validation_alias="INDEX_CACHE_TTL_DAYS",
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -106,7 +106,9 @@ class GlobalIdentifiers(BaseModel):
               Identifies the instrument across all trading venues within one country.
         symbol_comdirect: Ticker symbol as displayed on comdirect.de.
         symbol_yfinance: Ticker symbol for use with the yfinance library, including the
-                         Yahoo Finance exchange suffix (e.g. "NVDA", "SIE.DE").
+                         Yahoo Finance exchange suffix (e.g. "NVDA", "SIE.DE", "BF-B").
+                         Share-class separators are normalised to "-" (Yahoo Finance
+                         convention); OpenFIGI returns them as "/" (e.g. "BF/B").
                          None for asset classes not supported by Yahoo Finance
                          (WARRANT, CERTIFICATE).
         name_openfigi: Instrument name as returned by the OpenFIGI API (e.g. "NVIDIA CORP").

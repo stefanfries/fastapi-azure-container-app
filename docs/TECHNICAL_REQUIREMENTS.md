@@ -51,6 +51,13 @@ All original technical requirements are met. The following has been implemented:
 - ✅ `parse_symbol()` in `instruments.py` reads Symbol from Stammdaten for non-STOCK asset classes
 - ✅ `IndexMember` model includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`)
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts name, WKN, or ISIN — including tracking ISINs not in comdirect catalogue (cross-ISIN fallback)
+- ✅ `IndexInfo` extended with `isin: ISIN | None` and `exchange: str | None` — scraped from the comdirect index detail page alongside `wkn`
+- ✅ Index caching: `GET /v1/indices/` and `GET /v1/indices/{name}` serve from MongoDB before scraping comdirect
+  - `index_catalogue` collection — one document per index, keyed by ISIN
+  - `index_members` collection — one document per index, stores full members list
+  - TTL configurable via `INDEX_CACHE_TTL_DAYS` env var (default: 3 days, via `CacheSettings` in `app/core/settings.py`)
+  - Sparse unique indexes on `isin` created at startup in `connect_to_database()`
+  - `IndicesRepository` in `app/repositories/indices.py` mirrors the `InstrumentRepository` cache pattern
 - ✅ `clean_float_value()` and `Bil.` (10^12) support added to `parsing_utils.py`
 - ✅ Shared parsing utilities in `parsing_utils.py` (used by all parsers and `quotes.py`)
 - ✅ All legacy parsing code removed from `instruments.py`; no fallback path exists
@@ -76,11 +83,13 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 495 unit tests passing; ~83% code coverage (exceeds 80% target)
-  - 28 tests in `tests/unit/parsers/test_warrant_detail_parser.py` — `_parse_float`, `_parse_amount_currency`, `_parse_date`, `_parse_reference_data` (capped and uncapped warrants)
-  - 49 tests in `tests/unit/parsers/test_warrants_parser.py` — `_greek_filter_pairs`, `_parse_maturity_param`, `build_warrant_finder_url` (all 14 Greek filters), `_get_total_pages`, `_parse_warrant_rows`
-  - 13 tests in `tests/unit/core/test_database.py` — `get_database()` / `get_collection()` guard logic, `Collections` constants
+- ✅ 553 unit tests passing; ~78% code coverage
+  - 28 tests in `tests/unit/parsers/test_warrant_detail_parser.py`
+  - 49 tests in `tests/unit/parsers/test_warrants_parser.py`
+  - 13 tests in `tests/unit/core/test_database.py`
   - 25 tests in `tests/unit/models/test_models.py` — `Depot`/`DepotItem`, `HistoryData`/`HistoryRecord`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex validation
+  - 20 tests in `tests/unit/repositories/test_indices_repository.py` — `IndicesRepository` cache hit/miss/stale logic
+  - 8 tests in `tests/unit/parsers/test_indices_parser.py` — `fetch_index_list` and `fetch_index_members` cache-wrapping paths
 - ✅ `is_cache_valid` offset-naive/aware datetime bug fixed — MongoDB returns naive UTC datetimes; coerced to UTC-aware before computing cache age; regression test added (`test_cache_valid_when_recent_naive_datetime`)
 - ✅ Warrant Finder endpoint (`GET /v1/warrants/`) with full Greek/analytics filter support
   - All 14 comdirect filter dimensions exposed with independent `_min` / `_max` bounds:
@@ -109,3 +118,5 @@ All original technical requirements are met. The following has been implemented:
 - Integration tests for parsers / scrapers not yet added
 - E2E tests not yet added
 - Coverage threshold enforcement (`--cov-fail-under`) not yet configured in CI
+- `yfinance` slash-to-hyphen normalisation: OpenFIGI returns share-class tickers like `BF/B`;
+  `_derive_yfinance_symbol()` normalises these to `BF-B` (Yahoo Finance format) on all return paths

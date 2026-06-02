@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 495 unit tests passing; coverage reporting enabled (~83%)
+- 553 unit tests passing; coverage reporting enabled (~78%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 495 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 553 unit tests passing; no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -162,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 495 unit tests passing; coverage reporting active (~83%)
+- ✅ 553 unit tests passing; coverage reporting active (~78%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -228,6 +228,14 @@ Priority: HIGH - Core business requirement
 - [x] `parse_symbol()` in `instruments.py` handles all asset classes via Stammdaten `"Symbol"` row ✅
 - [x] `IndexMember.instrument_url` added (e.g. `/v1/instruments/DE0007164600`) ✅
 - [x] `GET /v1/indices/{isin}` cross-ISIN fallback — works for tracking ISINs not in comdirect catalogue ✅
+- [x] `IndexInfo` extended with `isin: ISIN | None` and `exchange: str | None` fields ✅
+  - `_fetch_index_detail(isin)` fetches the index detail page and returns `(wkn, exchange)` in a single HTTP call
+- [x] Index caching — `IndicesRepository` in `app/repositories/indices.py` ✅
+  - `index_catalogue` collection: TTL-based cache for `GET /v1/indices/`
+  - `index_members` collection: per-ISIN TTL cache for `GET /v1/indices/{name}`
+  - TTL via `INDEX_CACHE_TTL_DAYS` (default: 3 days); startup indexes created in `connect_to_database()`
+  - 20 tests in `tests/unit/repositories/test_indices_repository.py`
+  - 8 tests in `tests/unit/parsers/test_indices_parser.py`
 
 #### 2.3 Update API Endpoints ✅ COMPLETED
 
@@ -293,7 +301,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 495 unit tests; test layout mirrors `app/` directory structure
+- ✅ 553 unit tests; test layout mirrors `app/` directory structure
   - `tests/unit/parsers/test_warrants_parser.py` — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
   - `tests/unit/core/test_database.py` — 13 tests for `get_database()` / `get_collection()` guard logic and `Collections` constants
   - `tests/unit/models/test_models.py` — 25 tests for `Depot`, `HistoryData`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex
@@ -368,7 +376,7 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (495 unit tests)
+- ✅ Comprehensive test suite (553 unit tests)
 - ✅ 82% code coverage
 - ✅ Automated test execution in CI
 
@@ -638,7 +646,7 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 495 unit tests passing; ~83% coverage
+- ✅ 553 unit tests passing; ~78% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
@@ -656,7 +664,7 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 495 unit tests passing
+- ✅ 553 unit tests passing
 - ✅ ~83% code coverage
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed

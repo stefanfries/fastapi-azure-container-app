@@ -219,7 +219,7 @@ Priority: HIGH - Core business requirement
   - `tests/unit/parsers/test_standard_asset_parser.py` — shared helpers (`_parse_date`, `_split_value_currency`)
   - `tests/unit/parsers/test_special_asset_parser.py` — `SpecialAssetParser` interface
   - `tests/unit/parsers/plugins/` — one test file per concrete parser
-- [ ] Remaining `parse_details()` implementations (models exist, return `None`): ~~SpecialAssetParser: IndexDetails, CommodityDetails, CurrencyDetails~~ ✅ COMPLETED
+- [x] Remaining `parse_details()` implementations ✅ — SpecialAssetParser: IndexDetails, CommodityDetails, CurrencyDetails all implemented
 - [x] `SpecialAssetParser._parse_index_details()` — `country`, `currency`, `num_constituents`, `constituents_url` (ISIN/WKN → `/v1/indices/{id}`) ✅
 - [x] `SpecialAssetParser._parse_commodity_details()` — `currency`, `symbol`, `country` ✅
 - [x] `SpecialAssetParser._parse_currency_details()` — `base_currency`, `quote_currency` (split from `Wechselkurs`), `country` ✅
@@ -721,9 +721,14 @@ Priority: MEDIUM - Improve developer experience
 
 ## Next Steps
 
-1. **Finish Phase 1** — DB initialization script (WKN/ISIN indexes on instruments collection) is the only remaining item
-2. **Start Phase 2** — Asset-class-specific data models and extended parsers
-3. **Raise test coverage** towards 80% as Phase 2 work lands
+_Updated 2026-06-02 — Phases 1–3 complete; Phases 4–5 in progress._
+
+1. **Enforce coverage threshold** (Phase 4.4) — add `--cov-fail-under=80` to CI; coverage is at ~83% so this is a one-line change.
+2. **Integration tests** (Phase 4.2) — at least one end-to-end test against a mocked comdirect response for the full `parse_instrument_data` flow.
+3. **Retry logic with exponential backoff** (Phase 5.2) — wrap `httpx` calls in `app/scrapers/scrape_url.py` to handle transient 5xx / connection drops from comdirect.
+4. **Global exception handlers** (Phase 5.2) — standardize error response shape across all routers; define `app/core/exceptions.py`.
+5. **Quote caching** (Phase 5.1) — short TTL (5–10 min) for `GET /v1/quotes/{id}`, following the existing instrument/index cache pattern.
+6. **MCP Server** (Phase 7) — standalone Python MCP server wrapping API calls; enables AI-assistant integration with Claude Desktop / VS Code.
 
 ## Questions for Stakeholders
 

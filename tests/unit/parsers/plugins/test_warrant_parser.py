@@ -98,7 +98,7 @@ class TestUnderlyingName:
     def test_full_name_from_span_title(self):
         soup = _warrant_page(
             basiswert='<a href="/inf/aktien/US67066G1040" title="NVIDIA Corporation">'
-                      '<span title="NVIDIA Corporation">NVIDIA Corp ..</span></a>'
+            '<span title="NVIDIA Corporation">NVIDIA Corp ..</span></a>'
         )
         assert _parser.parse_details(soup).underlying_name == "NVIDIA Corporation"
 
@@ -222,22 +222,32 @@ class TestStrike:
 
 class TestDates:
     def test_maturity_short_year(self):
-        assert _parser.parse_details(_warrant_page(faelligkeit="18.06.26")).maturity_date == date(2026, 6, 18)
+        assert _parser.parse_details(_warrant_page(faelligkeit="18.06.26")).maturity_date == date(
+            2026, 6, 18
+        )
 
     def test_maturity_full_year(self):
-        assert _parser.parse_details(_warrant_page(faelligkeit="18.06.2026")).maturity_date == date(2026, 6, 18)
+        assert _parser.parse_details(_warrant_page(faelligkeit="18.06.2026")).maturity_date == date(
+            2026, 6, 18
+        )
 
     def test_last_trading_day_short_year(self):
-        assert _parser.parse_details(_warrant_page(letzter_handelstag="17.06.26")).last_trading_day == date(2026, 6, 17)
+        assert _parser.parse_details(
+            _warrant_page(letzter_handelstag="17.06.26")
+        ).last_trading_day == date(2026, 6, 17)
 
     def test_last_trading_day_full_year(self):
-        assert _parser.parse_details(_warrant_page(letzter_handelstag="17.06.2026")).last_trading_day == date(2026, 6, 17)
+        assert _parser.parse_details(
+            _warrant_page(letzter_handelstag="17.06.2026")
+        ).last_trading_day == date(2026, 6, 17)
 
     def test_dash_maturity_returns_none(self):
         assert _parser.parse_details(_warrant_page(faelligkeit="--")).maturity_date is None
 
     def test_dash_last_trading_day_returns_none(self):
-        assert _parser.parse_details(_warrant_page(letzter_handelstag="--")).last_trading_day is None
+        assert (
+            _parser.parse_details(_warrant_page(letzter_handelstag="--")).last_trading_day is None
+        )
 
 
 # ---------------------------------------------------------------------------

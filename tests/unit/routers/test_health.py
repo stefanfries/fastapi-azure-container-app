@@ -6,7 +6,6 @@ Mocks MongoDB ping and httpx HEAD request so no real connections are made.
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -14,6 +13,7 @@ from app.main import app
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_client(mock_db=None):
     """Return a TestClient with database patched."""
@@ -33,6 +33,7 @@ def _make_client(mock_db=None):
 # /health  (liveness)
 # ---------------------------------------------------------------------------
 
+
 class TestLiveness:
     def test_returns_200(self, client):
         response = client.get("/health")
@@ -50,6 +51,7 @@ class TestLiveness:
 # /health/ready  (readiness — all healthy)
 # ---------------------------------------------------------------------------
 
+
 class TestReadinessAllHealthy:
     def test_returns_200_when_all_pass(self, client):
         mock_response = MagicMock()
@@ -64,9 +66,9 @@ class TestReadinessAllHealthy:
             mock_get_db.return_value = mock_db
 
             mock_async_ctx = MagicMock()
-            mock_async_ctx.__aenter__ = AsyncMock(return_value=MagicMock(
-                head=AsyncMock(return_value=mock_response)
-            ))
+            mock_async_ctx.__aenter__ = AsyncMock(
+                return_value=MagicMock(head=AsyncMock(return_value=mock_response))
+            )
             mock_async_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value = mock_async_ctx
 
@@ -87,9 +89,9 @@ class TestReadinessAllHealthy:
             mock_db.command = AsyncMock(return_value={"ok": 1})
             mock_get_db.return_value = mock_db
             mock_async_ctx = MagicMock()
-            mock_async_ctx.__aenter__ = AsyncMock(return_value=MagicMock(
-                head=AsyncMock(return_value=MagicMock(status_code=200))
-            ))
+            mock_async_ctx.__aenter__ = AsyncMock(
+                return_value=MagicMock(head=AsyncMock(return_value=MagicMock(status_code=200)))
+            )
             mock_async_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value = mock_async_ctx
 
@@ -101,6 +103,7 @@ class TestReadinessAllHealthy:
 # /health/ready  (readiness — database failure)
 # ---------------------------------------------------------------------------
 
+
 class TestReadinessDatabaseFailure:
     def test_returns_503_when_db_fails(self, client):
         with (
@@ -111,9 +114,9 @@ class TestReadinessDatabaseFailure:
             mock_db.command = AsyncMock(side_effect=Exception("connection refused"))
             mock_get_db.return_value = mock_db
             mock_async_ctx = MagicMock()
-            mock_async_ctx.__aenter__ = AsyncMock(return_value=MagicMock(
-                head=AsyncMock(return_value=MagicMock(status_code=200))
-            ))
+            mock_async_ctx.__aenter__ = AsyncMock(
+                return_value=MagicMock(head=AsyncMock(return_value=MagicMock(status_code=200)))
+            )
             mock_async_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value = mock_async_ctx
 
@@ -128,6 +131,7 @@ class TestReadinessDatabaseFailure:
 # /health/ready  (readiness — comdirect unreachable)
 # ---------------------------------------------------------------------------
 
+
 class TestReadinessComdirectFailure:
     def test_returns_503_when_comdirect_fails(self, client):
         with (
@@ -138,9 +142,9 @@ class TestReadinessComdirectFailure:
             mock_db.command = AsyncMock(return_value={"ok": 1})
             mock_get_db.return_value = mock_db
             mock_async_ctx = MagicMock()
-            mock_async_ctx.__aenter__ = AsyncMock(return_value=MagicMock(
-                head=AsyncMock(side_effect=Exception("timeout"))
-            ))
+            mock_async_ctx.__aenter__ = AsyncMock(
+                return_value=MagicMock(head=AsyncMock(side_effect=Exception("timeout")))
+            )
             mock_async_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value = mock_async_ctx
 

@@ -77,6 +77,7 @@ class TestSplitValueCurrency:
 # parse_name — exercised via a concrete subclass (StockParser)
 # ---------------------------------------------------------------------------
 
+
 class TestParseName:
     def test_raises_value_error_when_no_h1(self):
         from bs4 import BeautifulSoup
@@ -91,6 +92,7 @@ class TestParseName:
 # ---------------------------------------------------------------------------
 # parse_id_notations — exercises the dropdown + categorize path
 # ---------------------------------------------------------------------------
+
 
 class TestParseIdNotations:
     def test_with_dropdown_returns_categorized_venues(self):

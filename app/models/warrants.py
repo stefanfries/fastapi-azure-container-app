@@ -143,7 +143,9 @@ class WarrantReferenceData(BaseModel):
     is_capped: bool = Field(
         False, description="True if the warrant has a cap (maximum payout limit)"
     )
-    cap: float | None = Field(None, description="Cap level (maximum payout price of the underlying)")
+    cap: float | None = Field(
+        None, description="Cap level (maximum payout price of the underlying)"
+    )
     cap_currency: str | None = Field(None, description="Currency of the cap level")
     issuer_action: bool = Field(
         False, description="Off-market flat-fee comdirect Aktion (ISSUER_ACTION)"

@@ -95,7 +95,9 @@ class IndicesRepository:
         if cached_at is None or not self._is_fresh(cached_at):
             logger.debug("Index members cache stale for ISIN %s", isin)
             return None
-        logger.debug("Index members cache hit for ISIN %s (%d members)", isin, len(doc.get("members", [])))
+        logger.debug(
+            "Index members cache hit for ISIN %s (%d members)", isin, len(doc.get("members", []))
+        )
         return [IndexMember(**m) for m in doc["members"]]
 
     async def save_members(self, isin: str, members: list[IndexMember]) -> None:

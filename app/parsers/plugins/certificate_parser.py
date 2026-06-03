@@ -53,7 +53,11 @@ class CertificateParser(StandardAssetParser):
                     if td:
                         # Prefer <span title="Full Name"> over truncated display text.
                         span = td.find("span", attrs={"title": True})
-                        v = span["title"].strip() if span and span["title"].strip() else td.get_text(" ", strip=True)
+                        v = (
+                            span["title"].strip()
+                            if span and span["title"].strip()
+                            else td.get_text(" ", strip=True)
+                        )
                         return v if v and v.strip() not in ("--", "k. A.") else None
             return None
 

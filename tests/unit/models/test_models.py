@@ -19,6 +19,7 @@ from app.models.indices import IndexInfo, IndexMember
 # Depot models
 # ===========================================================================
 
+
 class TestDepotItem:
     _VALID = dict(
         wkn="716460",
@@ -103,6 +104,7 @@ class TestDepot:
 # History models
 # ===========================================================================
 
+
 class TestHistoryRecord:
     _VALID = dict(
         datetime=datetime(2026, 1, 2, 9, 0),
@@ -127,7 +129,11 @@ class TestHistoryRecord:
 class TestHistoryData:
     _RECORD = dict(
         datetime=datetime(2026, 1, 2),
-        open=100.0, high=105.0, low=99.0, close=103.5, volume=500_000,
+        open=100.0,
+        high=105.0,
+        low=99.0,
+        close=103.5,
+        volume=500_000,
     )
     _VALID = dict(
         name="SAP SE",
@@ -173,6 +179,7 @@ class TestHistoryData:
 # ===========================================================================
 # Indices models
 # ===========================================================================
+
 
 class TestIndexInfo:
     _VALID = dict(

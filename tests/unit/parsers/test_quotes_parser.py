@@ -26,9 +26,7 @@ def _instrument(asset_class: AssetClass) -> MagicMock:
 
 def _table(rows: list[tuple[str, str]]) -> BeautifulSoup:
     """Build a minimal Kursdaten BeautifulSoup table from (label, value) pairs."""
-    row_html = "\n".join(
-        f"<tr><th>{label}</th><td>{value}</td></tr>" for label, value in rows
-    )
+    row_html = "\n".join(f"<tr><th>{label}</th><td>{value}</td></tr>" for label, value in rows)
     return BeautifulSoup(
         f"<table>{row_html}</table>",
         "html.parser",
@@ -38,10 +36,10 @@ def _table(rows: list[tuple[str, str]]) -> BeautifulSoup:
 def _table_with_span(rows: list[tuple[str, str]]) -> BeautifulSoup:
     """Build a Kursdaten table where values use the realtime-indicator span layout."""
     row_html = "\n".join(
-        f'<tr><th>{label}</th>'
+        f"<tr><th>{label}</th>"
         f'<td><div class="realtime-indicator">'
         f'<span class="realtime-indicator--value">{value}</span>'
-        f'</div></td></tr>'
+        f"</div></td></tr>"
         for label, value in rows
     )
     return BeautifulSoup(
@@ -54,34 +52,41 @@ def _table_with_span(rows: list[tuple[str, str]]) -> BeautifulSoup:
 # _extract_table_price
 # ---------------------------------------------------------------------------
 
+
 class TestExtractTablePrice:
     def test_plain_td_integer(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table([("Geld", "8,93")])
         assert _extract_table_price(table, "Geld") == pytest.approx(8.93)
 
     def test_plain_td_thousands_separator(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table([("Geld", "1.234,56")])
         assert _extract_table_price(table, "Geld") == pytest.approx(1234.56)
 
     def test_realtime_span_layout(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table_with_span([("Geld", "112,89")])
         assert _extract_table_price(table, "Geld") == pytest.approx(112.89)
 
     def test_returns_none_for_missing_label(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table([("Brief", "9,01")])
         assert _extract_table_price(table, "Geld") is None
 
     def test_returns_none_for_double_dash(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table([("Geld", "--")])
         assert _extract_table_price(table, "Geld") is None
 
     def test_fonds_ruecknahmepreis(self):
         from app.parsers.quotes import _extract_table_price
+
         table = _table([("Rücknahmepreis", "92,40"), ("Ausgabepreis", "97,02")])
         assert _extract_table_price(table, "Rücknahmepreis") == pytest.approx(92.40)
         assert _extract_table_price(table, "Ausgabepreis") == pytest.approx(97.02)
@@ -91,11 +96,13 @@ class TestExtractTablePrice:
 # _extract_timestamp
 # ---------------------------------------------------------------------------
 
+
 class TestExtractTimestamp:
     def test_single_zeit_row(self):
         from datetime import datetime
 
         from app.parsers.quotes import _extract_timestamp
+
         table = _table([("Zeit", "05.05.26 22:02")])
         assert _extract_timestamp(table) == datetime(2026, 5, 5, 22, 2)
 
@@ -104,6 +111,7 @@ class TestExtractTimestamp:
         from datetime import datetime
 
         from app.parsers.quotes import _extract_timestamp
+
         html = textwrap.dedent("""
             <table>
               <tr><th>Aktuell</th><td>8,97</td></tr>
@@ -118,11 +126,13 @@ class TestExtractTimestamp:
 
     def test_returns_none_for_dash_timestamp(self):
         from app.parsers.quotes import _extract_timestamp
+
         table = _table([("Brief", "--"), ("Zeit", "-- --")])
         assert _extract_timestamp(table) is None
 
     def test_returns_none_when_no_zeit_row(self):
         from app.parsers.quotes import _extract_timestamp
+
         table = _table([("Geld", "10,00")])
         assert _extract_timestamp(table) is None
 
@@ -131,15 +141,19 @@ class TestExtractTimestamp:
 # parse_quote — asset-class guard
 # ---------------------------------------------------------------------------
 
+
 class TestParseQuoteAssetClassGuard:
     """parse_quote raises HTTP 501 for special (non-tradeable) asset classes only."""
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.INDEX,
-        AssetClass.COMMODITY,
-        AssetClass.CURRENCY,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.INDEX,
+            AssetClass.COMMODITY,
+            AssetClass.CURRENCY,
+        ],
+    )
     async def test_raises_501_for_special_asset_classes(self, asset_class):
         from app.parsers.quotes import parse_quote
 
@@ -153,14 +167,17 @@ class TestParseQuoteAssetClassGuard:
         assert exc_info.value.status_code == 501
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.STOCK,
-        AssetClass.BOND,
-        AssetClass.ETF,
-        AssetClass.FONDS,
-        AssetClass.WARRANT,
-        AssetClass.CERTIFICATE,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.STOCK,
+            AssetClass.BOND,
+            AssetClass.ETF,
+            AssetClass.FONDS,
+            AssetClass.WARRANT,
+            AssetClass.CERTIFICATE,
+        ],
+    )
     async def test_does_not_raise_501_for_standard_asset_classes(self, asset_class):
         """Standard tradeable assets should pass the guard and attempt to fetch the page."""
         from app.parsers.quotes import parse_quote
@@ -179,4 +196,3 @@ class TestParseQuoteAssetClassGuard:
         ):
             with pytest.raises(Exception, match="scraping skipped"):
                 await parse_quote("846900", None)
-

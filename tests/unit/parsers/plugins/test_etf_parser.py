@@ -45,16 +45,19 @@ def _etf_page(
     currency: str = "USD",
     fund_size: str = "1,23 Mrd.",
 ) -> BeautifulSoup:
-    return _section_page("Stammdaten", [
-        ("Vergleichsindex", index),
-        ("Laufende Kosten", ter),
-        ("Abbildungsart", replication),
-        ("Art", distribution),
-        ("Fondsdomizil", domicile),
-        ("Auflagedatum", inception),
-        ("W\u00e4hrung", currency),
-        ("Fondsvolumen", fund_size),
-    ])
+    return _section_page(
+        "Stammdaten",
+        [
+            ("Vergleichsindex", index),
+            ("Laufende Kosten", ter),
+            ("Abbildungsart", replication),
+            ("Art", distribution),
+            ("Fondsdomizil", domicile),
+            ("Auflagedatum", inception),
+            ("W\u00e4hrung", currency),
+            ("Fondsvolumen", fund_size),
+        ],
+    )
 
 
 _parser = ETFParser()
@@ -71,25 +74,39 @@ class TestETFDetailsParser:
         assert _parser.parse_details(_etf_page(index="MSCI World")).tracked_index == "MSCI World"
 
     def test_expense_ratio_percent(self):
-        assert _parser.parse_details(_etf_page(ter="0,20 %")).expense_ratio_percent == pytest.approx(0.20)
+        assert _parser.parse_details(
+            _etf_page(ter="0,20 %")
+        ).expense_ratio_percent == pytest.approx(0.20)
 
     def test_replication_method(self):
-        assert _parser.parse_details(_etf_page(replication="physisch")).replication_method == "physisch"
+        assert (
+            _parser.parse_details(_etf_page(replication="physisch")).replication_method
+            == "physisch"
+        )
 
     def test_distribution_policy(self):
-        assert _parser.parse_details(_etf_page(distribution="thesaurierend")).distribution_policy == "thesaurierend"
+        assert (
+            _parser.parse_details(_etf_page(distribution="thesaurierend")).distribution_policy
+            == "thesaurierend"
+        )
 
     def test_inception_date(self):
-        assert _parser.parse_details(_etf_page(inception="25.10.2005")).inception_date == date(2005, 10, 25)
+        assert _parser.parse_details(_etf_page(inception="25.10.2005")).inception_date == date(
+            2005, 10, 25
+        )
 
     def test_fund_currency(self):
         assert _parser.parse_details(_etf_page(currency="USD")).fund_currency == "USD"
 
     def test_fund_size_mrd(self):
-        assert _parser.parse_details(_etf_page(fund_size="1,23 Mrd.")).fund_size == pytest.approx(1_230_000_000.0)
+        assert _parser.parse_details(_etf_page(fund_size="1,23 Mrd.")).fund_size == pytest.approx(
+            1_230_000_000.0
+        )
 
     def test_fund_size_mio(self):
-        assert _parser.parse_details(_etf_page(fund_size="512,00 Mio.")).fund_size == pytest.approx(512_000_000.0)
+        assert _parser.parse_details(_etf_page(fund_size="512,00 Mio.")).fund_size == pytest.approx(
+            512_000_000.0
+        )
 
     def test_fund_size_placeholder(self):
         assert _parser.parse_details(_etf_page(fund_size="--")).fund_size is None

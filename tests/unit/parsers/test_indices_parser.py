@@ -16,6 +16,7 @@ from app.parsers.indices import fetch_index_list, fetch_index_members
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_index(name: str = "DAX", isin: str = "DE0008469008") -> IndexInfo:
     return IndexInfo(
         name=name,
@@ -38,6 +39,7 @@ def _make_member() -> IndexMember:
 # fetch_index_list — cache hit
 # ---------------------------------------------------------------------------
 
+
 async def test_fetch_index_list_returns_cache_hit():
     indices = [_make_index()]
     with patch("app.parsers.indices._repo") as mock_repo:
@@ -54,13 +56,16 @@ async def test_fetch_index_list_returns_cache_hit():
 # fetch_index_list — cache miss
 # ---------------------------------------------------------------------------
 
+
 async def test_fetch_index_list_scrapes_and_saves_on_cache_miss():
     indices = [_make_index()]
     with patch("app.parsers.indices._repo") as mock_repo:
         mock_repo.get_catalogue = AsyncMock(return_value=None)
         mock_repo.save_catalogue = AsyncMock()
 
-        with patch("app.parsers.indices._scrape_index_list", new_callable=AsyncMock, return_value=indices):
+        with patch(
+            "app.parsers.indices._scrape_index_list", new_callable=AsyncMock, return_value=indices
+        ):
             result = await fetch_index_list()
 
     assert result == indices
@@ -70,6 +75,7 @@ async def test_fetch_index_list_scrapes_and_saves_on_cache_miss():
 # ---------------------------------------------------------------------------
 # fetch_index_members — catalogue cache + members cache hit
 # ---------------------------------------------------------------------------
+
 
 async def test_fetch_index_members_returns_members_cache_hit():
     index = _make_index()
@@ -93,6 +99,7 @@ async def test_fetch_index_members_returns_members_cache_hit():
 # fetch_index_members — catalogue cache + members cache miss → scrape
 # ---------------------------------------------------------------------------
 
+
 async def test_fetch_index_members_scrapes_when_members_cache_miss():
     index = _make_index()
     members = [_make_member()]
@@ -103,7 +110,9 @@ async def test_fetch_index_members_scrapes_when_members_cache_miss():
         mock_repo.get_members = AsyncMock(return_value=None)
         mock_repo.save_members = AsyncMock()
 
-        with patch("app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members):
+        with patch(
+            "app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members
+        ):
             result = await fetch_index_members("DAX")
 
     assert result == members
@@ -113,6 +122,7 @@ async def test_fetch_index_members_scrapes_when_members_cache_miss():
 # ---------------------------------------------------------------------------
 # fetch_index_members — ISIN lookup via catalogue link
 # ---------------------------------------------------------------------------
+
 
 async def test_fetch_index_members_lookup_by_isin():
     index = _make_index(name="DAX", isin="DE0008469008")
@@ -124,7 +134,9 @@ async def test_fetch_index_members_lookup_by_isin():
         mock_repo.get_members = AsyncMock(return_value=None)
         mock_repo.save_members = AsyncMock()
 
-        with patch("app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members):
+        with patch(
+            "app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members
+        ):
             result = await fetch_index_members("DE0008469008")
 
     assert result == members
@@ -133,6 +145,7 @@ async def test_fetch_index_members_lookup_by_isin():
 # ---------------------------------------------------------------------------
 # fetch_index_members — ISIN fallback (not in catalogue)
 # ---------------------------------------------------------------------------
+
 
 async def test_fetch_index_members_isin_fallback_not_in_catalogue():
     """An ISIN not found in the catalogue should still be fetched directly."""
@@ -144,7 +157,9 @@ async def test_fetch_index_members_isin_fallback_not_in_catalogue():
         mock_repo.get_members = AsyncMock(return_value=None)
         mock_repo.save_members = AsyncMock()
 
-        with patch("app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members):
+        with patch(
+            "app.parsers.indices._fetch_all_members", new_callable=AsyncMock, return_value=members
+        ):
             result = await fetch_index_members("DE0008469008")
 
     assert result == members
@@ -154,6 +169,7 @@ async def test_fetch_index_members_isin_fallback_not_in_catalogue():
 # ---------------------------------------------------------------------------
 # fetch_index_members — ISIN fallback with members cache hit
 # ---------------------------------------------------------------------------
+
 
 async def test_fetch_index_members_isin_fallback_cache_hit():
     members = [_make_member()]
@@ -173,6 +189,7 @@ async def test_fetch_index_members_isin_fallback_cache_hit():
 # ---------------------------------------------------------------------------
 # fetch_index_members — unknown name → 404
 # ---------------------------------------------------------------------------
+
 
 async def test_fetch_index_members_unknown_name_raises_404():
     with patch("app.parsers.indices._repo") as mock_repo:

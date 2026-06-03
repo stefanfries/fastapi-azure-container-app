@@ -45,7 +45,9 @@ class FondsParser(StandardAssetParser):
         fund_manager = _get("Fondsmanager")
         inception_date = self._parse_date(_get("Auflagedatum"))
         distribution_policy_raw = _get("Art")
-        distribution_policy = " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
+        distribution_policy = (
+            " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
+        )
         expense_ratio_percent = clean_float_value(_get("Laufende Kosten"))
         fund_currency = _get("Währung")
 

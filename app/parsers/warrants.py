@@ -306,7 +306,9 @@ def build_warrant_finder_url(
 
     # Greek / indicator filters — in comdirect's expected order.
     # Exposed filters use caller-supplied bounds; unexposed ones are emitted disabled.
-    params += _greek_filter_pairs("IMPLIED_VOLATILITY", implied_volatility_min, implied_volatility_max)
+    params += _greek_filter_pairs(
+        "IMPLIED_VOLATILITY", implied_volatility_min, implied_volatility_max
+    )
     params += _greek_filter_pairs("DELTA", delta_min, delta_max)
     params += _greek_filter_pairs("LEVERAGE", leverage_min, leverage_max)
     params += _greek_filter_pairs("PREMIUM_PER_ANNUM", premium_per_annum_min, premium_per_annum_max)

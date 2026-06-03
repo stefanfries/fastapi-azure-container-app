@@ -45,16 +45,19 @@ def _fonds_page(
     currency: str = "EUR",
     fund_size: str = "512,00 Mio.",
 ) -> BeautifulSoup:
-    return _section_page("Stammdaten", [
-        ("Fondskategorie", fund_type),
-        ("Fondsmanager", fund_manager),
-        ("Auflagedatum", inception),
-        ("Fondsdomizil", domicile),
-        ("Art", distribution),
-        ("Laufende Kosten", ter),
-        ("W\u00e4hrung", currency),
-        ("Fondsvolumen", fund_size),
-    ])
+    return _section_page(
+        "Stammdaten",
+        [
+            ("Fondskategorie", fund_type),
+            ("Fondsmanager", fund_manager),
+            ("Auflagedatum", inception),
+            ("Fondsdomizil", domicile),
+            ("Art", distribution),
+            ("Laufende Kosten", ter),
+            ("W\u00e4hrung", currency),
+            ("Fondsvolumen", fund_size),
+        ],
+    )
 
 
 _parser = FondsParser()
@@ -68,32 +71,50 @@ class TestFondsDetailsParser:
         assert _parser.parse_details(_fonds_page()).asset_class == "Fund"
 
     def test_fund_type(self):
-        assert _parser.parse_details(_fonds_page(fund_type="Aktienfonds")).fund_type == "Aktienfonds"
+        assert (
+            _parser.parse_details(_fonds_page(fund_type="Aktienfonds")).fund_type == "Aktienfonds"
+        )
 
     def test_fund_manager(self):
-        assert _parser.parse_details(_fonds_page(fund_manager="BlackRock")).fund_manager == "BlackRock"
+        assert (
+            _parser.parse_details(_fonds_page(fund_manager="BlackRock")).fund_manager == "BlackRock"
+        )
 
     def test_inception_date(self):
-        assert _parser.parse_details(_fonds_page(inception="01.04.1994")).inception_date == date(1994, 4, 1)
+        assert _parser.parse_details(_fonds_page(inception="01.04.1994")).inception_date == date(
+            1994, 4, 1
+        )
 
     def test_distribution_policy(self):
-        assert _parser.parse_details(_fonds_page(distribution="ausschüttend")).distribution_policy == "ausschüttend"
+        assert (
+            _parser.parse_details(_fonds_page(distribution="ausschüttend")).distribution_policy
+            == "ausschüttend"
+        )
 
     def test_distribution_policy_normalizes_whitespace(self):
         raw = "Ausschüttend\n                        (zuletzt 16.06.25 0,78 EUR)"
-        assert _parser.parse_details(_fonds_page(distribution=raw)).distribution_policy == "Ausschüttend (zuletzt 16.06.25 0,78 EUR)"
+        assert (
+            _parser.parse_details(_fonds_page(distribution=raw)).distribution_policy
+            == "Ausschüttend (zuletzt 16.06.25 0,78 EUR)"
+        )
 
     def test_expense_ratio_percent(self):
-        assert _parser.parse_details(_fonds_page(ter="1,50 %")).expense_ratio_percent == pytest.approx(1.50)
+        assert _parser.parse_details(
+            _fonds_page(ter="1,50 %")
+        ).expense_ratio_percent == pytest.approx(1.50)
 
     def test_fund_currency(self):
         assert _parser.parse_details(_fonds_page(currency="EUR")).fund_currency == "EUR"
 
     def test_fund_size_mio(self):
-        assert _parser.parse_details(_fonds_page(fund_size="512,00 Mio.")).fund_size == pytest.approx(512_000_000.0)
+        assert _parser.parse_details(
+            _fonds_page(fund_size="512,00 Mio.")
+        ).fund_size == pytest.approx(512_000_000.0)
 
     def test_fund_size_mrd(self):
-        assert _parser.parse_details(_fonds_page(fund_size="3,10 Mrd.")).fund_size == pytest.approx(3_100_000_000.0)
+        assert _parser.parse_details(_fonds_page(fund_size="3,10 Mrd.")).fund_size == pytest.approx(
+            3_100_000_000.0
+        )
 
     def test_placeholder_becomes_none(self):
         result = _parser.parse_details(_fonds_page(fund_type="--", fund_manager="--"))

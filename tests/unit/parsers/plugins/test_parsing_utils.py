@@ -44,6 +44,7 @@ def _soup(html: str) -> BeautifulSoup:
 # clean_float_value
 # ---------------------------------------------------------------------------
 
+
 class TestCleanFloatValue:
     def test_german_decimal_with_percent(self):
         assert clean_float_value("2,34 %") == pytest.approx(2.34)
@@ -80,6 +81,7 @@ class TestCleanFloatValue:
 # clean_numeric_value
 # ---------------------------------------------------------------------------
 
+
 class TestCleanNumericValue:
     def test_bil_suffix(self):
         assert clean_numeric_value("4,20 Bil.") == 4_200_000_000_000
@@ -110,6 +112,7 @@ class TestCleanNumericValue:
 # infer_currency
 # ---------------------------------------------------------------------------
 
+
 class TestInferCurrency:
     def test_explicit_suffix_in_parens(self):
         assert infer_currency("SIX SWISS (USD)") == "USD"
@@ -129,6 +132,7 @@ class TestInferCurrency:
 # extract_wkn_from_h2
 # ---------------------------------------------------------------------------
 
+
 class TestExtractWknFromH2:
     def test_standard_position(self):
         soup = _soup("<html><body><h2>WKN: 918422 ISIN: US67066G1040</h2></body></html>")
@@ -146,6 +150,7 @@ class TestExtractWknFromH2:
 # ---------------------------------------------------------------------------
 # extract_after_label
 # ---------------------------------------------------------------------------
+
 
 class TestExtractAfterLabel:
     def test_isin_label(self):
@@ -168,6 +173,7 @@ class TestExtractAfterLabel:
 # ---------------------------------------------------------------------------
 # extract_name_from_h1
 # ---------------------------------------------------------------------------
+
 
 class TestExtractNameFromH1:
     def test_removes_suffix(self):
@@ -192,6 +198,7 @@ class TestExtractNameFromH1:
 # extract_table_cell_by_label
 # ---------------------------------------------------------------------------
 
+
 class TestExtractTableCellByLabel:
     def _page(self, label_text="Stammaktie") -> BeautifulSoup:
         html = f"""
@@ -208,22 +215,32 @@ class TestExtractTableCellByLabel:
         return _soup(html)
 
     def test_plain_cell(self):
-        assert extract_table_cell_by_label(self._page(), "Aktieninformationen", "Wertpapiertyp") == "Stammaktie"
+        assert (
+            extract_table_cell_by_label(self._page(), "Aktieninformationen", "Wertpapiertyp")
+            == "Stammaktie"
+        )
 
     def test_span_title_preferred(self):
         result = extract_table_cell_by_label(self._page(), "Aktieninformationen", "Branche")
         assert result == "Halbleiterindustrie"
 
     def test_section_not_found_returns_none(self):
-        assert extract_table_cell_by_label(self._page(), "Nonexistent Section", "Wertpapiertyp") is None
+        assert (
+            extract_table_cell_by_label(self._page(), "Nonexistent Section", "Wertpapiertyp")
+            is None
+        )
 
     def test_label_not_found_returns_none(self):
-        assert extract_table_cell_by_label(self._page(), "Aktieninformationen", "NonexistentLabel") is None
+        assert (
+            extract_table_cell_by_label(self._page(), "Aktieninformationen", "NonexistentLabel")
+            is None
+        )
 
 
 # ---------------------------------------------------------------------------
 # extract_id_notation_from_data_plugin
 # ---------------------------------------------------------------------------
+
 
 class TestExtractIdNotationFromDataPlugin:
     def test_extracts_id_notation(self):
@@ -240,6 +257,7 @@ class TestExtractIdNotationFromDataPlugin:
 # ---------------------------------------------------------------------------
 # extract_venues_from_dropdown
 # ---------------------------------------------------------------------------
+
 
 class TestExtractVenuesFromDropdown:
     def test_label_value_options(self):
@@ -274,6 +292,7 @@ class TestExtractVenuesFromDropdown:
 # categorize_lt_ex_venues
 # ---------------------------------------------------------------------------
 
+
 class TestCategorizeVenues:
     def test_lt_prefix_categorised_correctly(self):
         venues = {"LT Société Générale": "123", "Xetra": "456"}
@@ -295,9 +314,11 @@ class TestCategorizeVenues:
 # extract_preferred_lt_notation — single venue fallback
 # ---------------------------------------------------------------------------
 
+
 class TestExtractPreferredLt:
     def test_single_venue_fallback(self):
         from app.models.instruments import VenueInfo
+
         lt = {"LT HSBC": VenueInfo(id_notation="777", currency="EUR")}
         soup = _soup("<html><body></body></html>")
         result = extract_preferred_lt_notation(soup, lt, use_single_venue_fallback=True)
@@ -312,9 +333,11 @@ class TestExtractPreferredLt:
 # extract_preferred_ex_notation — single venue fallback
 # ---------------------------------------------------------------------------
 
+
 class TestExtractPreferredEx:
     def test_single_venue_fallback(self):
         from app.models.instruments import VenueInfo
+
         ex = {"Xetra": VenueInfo(id_notation="888", currency="EUR")}
         soup = _soup("<html><body></body></html>")
         result = extract_preferred_ex_notation(soup, ex, use_single_venue_fallback=True)
@@ -329,24 +352,29 @@ class TestExtractPreferredEx:
 # extract_from_h2_position
 # ---------------------------------------------------------------------------
 
+
 class TestExtractFromH2Position:
     def test_extracts_at_position_0(self):
         from app.parsers.plugins.parsing_utils import extract_from_h2_position
+
         soup = _soup("<html><body><h2>WKN: 918422 ISIN: US67066G1040</h2></body></html>")
         assert extract_from_h2_position(soup, 0) == "WKN:"
 
     def test_extracts_at_position_1(self):
         from app.parsers.plugins.parsing_utils import extract_from_h2_position
+
         soup = _soup("<html><body><h2>WKN: 918422 ISIN: US67066G1040</h2></body></html>")
         assert extract_from_h2_position(soup, 1) == "918422"
 
     def test_position_out_of_bounds_returns_none(self):
         from app.parsers.plugins.parsing_utils import extract_from_h2_position
+
         soup = _soup("<html><body><h2>WKN 918422</h2></body></html>")
         assert extract_from_h2_position(soup, 99) is None
 
     def test_no_h2_returns_none(self):
         from app.parsers.plugins.parsing_utils import extract_from_h2_position
+
         soup = _soup("<html><body><p>no h2</p></body></html>")
         assert extract_from_h2_position(soup, 0) is None
 
@@ -354,6 +382,7 @@ class TestExtractFromH2Position:
 # ---------------------------------------------------------------------------
 # extract_after_label — fallback (label without colon / case-insensitive)
 # ---------------------------------------------------------------------------
+
 
 class TestExtractAfterLabelFallback:
     def test_label_without_colon_still_matches(self):
@@ -372,6 +401,7 @@ class TestExtractAfterLabelFallback:
 # clean_numeric_value — Tsd. suffix (thousands)
 # ---------------------------------------------------------------------------
 
+
 class TestCleanNumericValueTsd:
     def test_tsd_suffix(self):
         assert clean_numeric_value("5,00 Tsd.") == 5_000
@@ -383,6 +413,7 @@ class TestCleanNumericValueTsd:
 # ---------------------------------------------------------------------------
 # extract_venue_from_single_table
 # ---------------------------------------------------------------------------
+
 
 class TestExtractVenueFromSingleTable:
     def _single_venue_page(self, venue="Tradegate", notation="123456") -> BeautifulSoup:
@@ -403,18 +434,21 @@ class TestExtractVenueFromSingleTable:
 
     def test_extracts_venue_and_notation(self):
         from app.parsers.plugins.parsing_utils import extract_venue_from_single_table
+
         soup = self._single_venue_page("Tradegate", "123456")
         result = extract_venue_from_single_table(soup)
         assert result == {"Tradegate": "123456"}
 
     def test_returns_empty_when_no_matching_table(self):
         from app.parsers.plugins.parsing_utils import extract_venue_from_single_table
+
         soup = _soup("<html><body><table><tr><td>nothing</td></tr></table></body></html>")
         result = extract_venue_from_single_table(soup)
         assert result == {}
 
     def test_returns_empty_when_no_data_plugin(self):
         from app.parsers.plugins.parsing_utils import extract_venue_from_single_table
+
         html = """
         <html><body>
           <div class="grid grid--no-gutter">
@@ -433,6 +467,7 @@ class TestExtractVenueFromSingleTable:
 # ---------------------------------------------------------------------------
 # extract_preferred_lt_notation — multi-venue table traversal
 # ---------------------------------------------------------------------------
+
 
 class TestExtractPreferredLtMultiVenue:
     def _lt_table_soup(self) -> BeautifulSoup:
@@ -462,6 +497,7 @@ class TestExtractPreferredLtMultiVenue:
 
     def test_returns_venue_with_highest_gestellte_kurse(self):
         from app.models.instruments import VenueInfo
+
         lt = {
             "LT HSBC": VenueInfo(id_notation="111"),
             "LT Société Générale": VenueInfo(id_notation="222"),
@@ -472,6 +508,7 @@ class TestExtractPreferredLtMultiVenue:
 
     def test_no_matching_table_falls_back_to_first(self):
         from app.models.instruments import VenueInfo
+
         lt = {
             "LT HSBC": VenueInfo(id_notation="111"),
             "LT SG": VenueInfo(id_notation="222"),
@@ -485,6 +522,7 @@ class TestExtractPreferredLtMultiVenue:
 # ---------------------------------------------------------------------------
 # extract_preferred_ex_notation — multi-venue table traversal
 # ---------------------------------------------------------------------------
+
 
 class TestExtractPreferredExMultiVenue:
     def _ex_table_soup(self) -> BeautifulSoup:
@@ -514,6 +552,7 @@ class TestExtractPreferredExMultiVenue:
 
     def test_returns_venue_with_highest_anzahl_kurse(self):
         from app.models.instruments import VenueInfo
+
         ex = {
             "Xetra": VenueInfo(id_notation="333"),
             "Frankfurt": VenueInfo(id_notation="444"),
@@ -524,6 +563,7 @@ class TestExtractPreferredExMultiVenue:
 
     def test_no_matching_table_falls_back_to_first(self):
         from app.models.instruments import VenueInfo
+
         ex = {
             "Xetra": VenueInfo(id_notation="333"),
             "Frankfurt": VenueInfo(id_notation="444"),

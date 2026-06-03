@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 553 unit tests passing; coverage reporting enabled (~78%)
+- 562 unit tests passing; coverage reporting enabled (~79%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 553 unit tests passing; no parser/scraper integration tests yet
+- **Testing**: 562 unit tests passing (~79%); no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -162,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 553 unit tests passing; coverage reporting active (~78%)
+- ✅ 562 unit tests passing; coverage reporting active (~79%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -301,7 +301,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 553 unit tests; test layout mirrors `app/` directory structure
+- ✅ 562 unit tests; test layout mirrors `app/` directory structure
   - `tests/unit/parsers/test_warrants_parser.py` — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
   - `tests/unit/core/test_database.py` — 13 tests for `get_database()` / `get_collection()` guard logic and `Collections` constants
   - `tests/unit/models/test_models.py` — 25 tests for `Depot`, `HistoryData`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex
@@ -376,7 +376,7 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (553 unit tests)
+- ✅ Comprehensive test suite (562 unit tests)
 - ✅ 82% code coverage
 - ✅ Automated test execution in CI
 
@@ -396,6 +396,11 @@ Priority: MEDIUM - Optimize for production
   - [x] Fix offset-naive vs offset-aware datetime comparison in `is_cache_valid` ✅
     - MongoDB returns naive UTC datetimes; `cached_at` coerced to UTC-aware before computing cache age
     - Regression test added: `test_cache_valid_when_recent_naive_datetime`
+  - [x] Fix `_derive_yfinance_symbol` to prefer home exchange over US OTC listing ✅
+    - Bug: German DAX stocks (e.g. Infineon) were resolved to their US OTC ticker (IFNNF, USD) instead of Xetra (IFX.DE, EUR), causing ATM band mismatches against EUR warrant strikes
+    - Fix: home-exchange match (ISIN country → `_ISIN_COUNTRY_TO_PRIMARY_EXCH`) is now Priority 1; US exchange is Priority 2 fallback; US stocks unaffected (isin_country "US" → exchCode "US" → no suffix)
+    - `scripts/clear_instrument_cache.py` added to purge stale cached instruments from MongoDB
+    - 9 unit tests added: `tests/unit/services/test_identifier_enrichment.py`
   
 - [ ] Implement quote caching
   - Short-lived cache (5-15 minutes for real-time quotes)
@@ -646,7 +651,7 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 553 unit tests passing; ~78% coverage
+- ✅ 562 unit tests passing; ~79% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
@@ -664,7 +669,7 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 553 unit tests passing
+- ✅ 562 unit tests passing
 - ✅ ~83% code coverage
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed
@@ -721,14 +726,15 @@ Priority: MEDIUM - Improve developer experience
 
 ## Next Steps
 
-_Updated 2026-06-02 — Phases 1–3 complete; Phases 4–5 in progress._
+_Updated 2026-06-03 — Phases 1–3 complete; Phases 4–5 in progress._
 
-1. **Enforce coverage threshold** (Phase 4.4) — add `--cov-fail-under=80` to CI; coverage is at ~83% so this is a one-line change.
-2. **Integration tests** (Phase 4.2) — at least one end-to-end test against a mocked comdirect response for the full `parse_instrument_data` flow.
-3. **Retry logic with exponential backoff** (Phase 5.2) — wrap `httpx` calls in `app/scrapers/scrape_url.py` to handle transient 5xx / connection drops from comdirect.
-4. **Global exception handlers** (Phase 5.2) — standardize error response shape across all routers; define `app/core/exceptions.py`.
-5. **Quote caching** (Phase 5.1) — short TTL (5–10 min) for `GET /v1/quotes/{id}`, following the existing instrument/index cache pattern.
-6. **MCP Server** (Phase 7) — standalone Python MCP server wrapping API calls; enables AI-assistant integration with Claude Desktop / VS Code.
+1. **Clear instrument cache** — run `uv run python scripts/clear_instrument_cache.py` once to purge instruments cached with the wrong `symbol_yfinance` (US OTC ticker instead of home-exchange ticker).
+2. **Enforce coverage threshold** (Phase 4.4) — add `--cov-fail-under=80` to CI; coverage is at ~79% so first bring it back above 80%, then add the flag.
+3. **Integration tests** (Phase 4.2) — at least one end-to-end test against a mocked comdirect response for the full `parse_instrument_data` flow.
+4. **Retry logic with exponential backoff** (Phase 5.2) — wrap `httpx` calls in `app/scrapers/scrape_url.py` to handle transient 5xx / connection drops from comdirect.
+5. **Global exception handlers** (Phase 5.2) — standardize error response shape across all routers; define `app/core/exceptions.py`.
+6. **Quote caching** (Phase 5.1) — short TTL (5–10 min) for `GET /v1/quotes/{id}`, following the existing instrument/index cache pattern.
+7. **MCP Server** (Phase 7) — standalone Python MCP server wrapping API calls; enables AI-assistant integration with Claude Desktop / VS Code.
 
 ## Questions for Stakeholders
 
@@ -783,8 +789,10 @@ tests/
 │   │       └── test_factory.py
 │   ├── repositories/
 │   │   └── test_depot_repository.py    # DepotRepository unit tests
-│   └── routers/
-│       └── test_root.py                # Root endpoint tests
+│   ├── routers/
+│   │   └── test_root.py                # Root endpoint tests
+│   └── services/
+│       └── test_identifier_enrichment.py  # _derive_yfinance_symbol unit tests
 └── integration/                        # Integration tests (to be added)
 
 docs/

@@ -47,6 +47,7 @@ def _make_instrument_with_notations(lt: dict[str, str], ex: dict[str, str]) -> I
 # valid_id_notation
 # ---------------------------------------------------------------------------
 
+
 class TestValidIdNotation:
     def test_found_in_lt(self):
         instrument = _make_instrument_with_notations({"LT HSBC": "111"}, {})
@@ -69,18 +70,22 @@ class TestValidIdNotation:
 # parse_asset_class
 # ---------------------------------------------------------------------------
 
+
 class TestParseAssetClass:
-    @pytest.mark.parametrize("url_segment, expected", [
-        ("aktien", AssetClass.STOCK),
-        ("etfs", AssetClass.ETF),
-        ("fonds", AssetClass.FONDS),
-        ("anleihen", AssetClass.BOND),
-        ("optionsscheine", AssetClass.WARRANT),
-        ("zertifikate", AssetClass.CERTIFICATE),
-        ("indizes", AssetClass.INDEX),
-        ("rohstoffe", AssetClass.COMMODITY),
-        ("waehrungen", AssetClass.CURRENCY),
-    ])
+    @pytest.mark.parametrize(
+        "url_segment, expected",
+        [
+            ("aktien", AssetClass.STOCK),
+            ("etfs", AssetClass.ETF),
+            ("fonds", AssetClass.FONDS),
+            ("anleihen", AssetClass.BOND),
+            ("optionsscheine", AssetClass.WARRANT),
+            ("zertifikate", AssetClass.CERTIFICATE),
+            ("indizes", AssetClass.INDEX),
+            ("rohstoffe", AssetClass.COMMODITY),
+            ("waehrungen", AssetClass.CURRENCY),
+        ],
+    )
     def test_known_segment(self, url_segment, expected):
         url = f"https://www.comdirect.de/inf/{url_segment}/detail/uebersicht.html"
         response = _make_response(url)
@@ -97,6 +102,7 @@ class TestParseAssetClass:
 # parse_default_id_notation
 # ---------------------------------------------------------------------------
 
+
 class TestParseDefaultIdNotation:
     def test_extracts_id_notation_from_query(self):
         url = "https://www.comdirect.de/inf/aktien/detail/uebersicht.html?ID_NOTATION=12345678"
@@ -110,6 +116,7 @@ class TestParseDefaultIdNotation:
 # ---------------------------------------------------------------------------
 # parse_symbol
 # ---------------------------------------------------------------------------
+
 
 class TestParseSymbol:
     def _stock_page_with_symbol(self, symbol: str = "NVD") -> BeautifulSoup:
@@ -130,7 +137,9 @@ class TestParseSymbol:
         assert parse_symbol(AssetClass.STOCK, soup) == "NVD"
 
     def test_returns_none_when_no_symbol_row(self):
-        soup = BeautifulSoup("<html><body><p>Aktieninformationen</p><table></table></body></html>", "html.parser")
+        soup = BeautifulSoup(
+            "<html><body><p>Aktieninformationen</p><table></table></body></html>", "html.parser"
+        )
         assert parse_symbol(AssetClass.STOCK, soup) is None
 
     def test_non_stock_returns_none_when_no_stammdaten(self):
@@ -173,6 +182,7 @@ class TestParseSymbol:
 # parse_instrument_data — cache hit / cache miss
 # ---------------------------------------------------------------------------
 
+
 def _make_cached_instrument(wkn: str = "716460", isin: str = "US5949181045") -> Instrument:
     return Instrument(
         name="Microsoft Corp.",
@@ -192,13 +202,18 @@ class TestParseInstrumentDataCaching:
     def _scrape_mocks(self, cached: Instrument):
         """Return a dict of context-manager patches for the scraping path."""
         from unittest.mock import patch
+
         return [
             patch("app.parsers.instruments.fetch_one"),
             patch("app.parsers.instruments.BeautifulSoup"),
             patch("app.parsers.instruments.parse_asset_class", return_value=AssetClass.STOCK),
             patch("app.parsers.instruments.parse_default_id_notation", return_value="12345678"),
             patch("app.parsers.instruments.parse_symbol", return_value=None),
-            patch("app.parsers.instruments.build_global_identifiers", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.parsers.instruments.build_global_identifiers",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.parsers.plugins.factory.ParserFactory.get_parser"),
         ]
 
@@ -252,7 +267,11 @@ class TestParseInstrumentDataCaching:
             patch("app.parsers.instruments.parse_asset_class", return_value=AssetClass.STOCK),
             patch("app.parsers.instruments.parse_default_id_notation", return_value="12345678"),
             patch("app.parsers.instruments.parse_symbol", return_value=None),
-            patch("app.parsers.instruments.build_global_identifiers", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.parsers.instruments.build_global_identifiers",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.parsers.plugins.factory.ParserFactory.get_parser") as mock_factory,
         ):
             mock_repo.find_by_wkn = AsyncMock(return_value=cached)
@@ -288,7 +307,11 @@ class TestParseInstrumentDataCaching:
             patch("app.parsers.instruments.parse_asset_class", return_value=AssetClass.STOCK),
             patch("app.parsers.instruments.parse_default_id_notation", return_value="12345678"),
             patch("app.parsers.instruments.parse_symbol", return_value=None),
-            patch("app.parsers.instruments.build_global_identifiers", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.parsers.instruments.build_global_identifiers",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.parsers.plugins.factory.ParserFactory.get_parser") as mock_factory,
         ):
             mock_repo.find_by_wkn = AsyncMock(return_value=None)

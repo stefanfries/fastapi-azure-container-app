@@ -38,12 +38,8 @@ def _build(**kwargs) -> dict[str, list[str]]:
 
 
 def _pagination_html(pages: list[int]) -> BeautifulSoup:
-    spans = "".join(
-        f'<span class="pagination__page">{p}</span>' for p in pages
-    )
-    return BeautifulSoup(
-        f'<div class="pagination">{spans}</div>', "html.parser"
-    )
+    spans = "".join(f'<span class="pagination__page">{p}</span>' for p in pages)
+    return BeautifulSoup(f'<div class="pagination">{spans}</div>', "html.parser")
 
 
 def _table_row(
@@ -80,6 +76,7 @@ def _warrant_table(*rows: str) -> BeautifulSoup:
 # _greek_filter_pairs
 # ---------------------------------------------------------------------------
 
+
 class TestGreekFilterPairs:
     def test_both_none_emits_disabled_placeholder(self):
         pairs = _greek_filter_pairs("DELTA", None, None)
@@ -112,6 +109,7 @@ class TestGreekFilterPairs:
 # _parse_maturity_param
 # ---------------------------------------------------------------------------
 
+
 class TestParseMaturityParam:
     def test_none_disables_filter(self):
         assert _parse_maturity_param(None) == ("", "", False)
@@ -139,6 +137,7 @@ class TestParseMaturityParam:
 # _parse_date
 # ---------------------------------------------------------------------------
 
+
 class TestParseDate:
     def test_two_digit_year(self):
         assert _parse_date("16.06.27") == date(2027, 6, 16)
@@ -160,6 +159,7 @@ class TestParseDate:
 # build_warrant_finder_url
 # ---------------------------------------------------------------------------
 
+
 class TestBuildWarrantFinderUrl:
     def test_url_starts_with_results_base(self):
         url = build_warrant_finder_url(**_BASE_URL_ARGS)
@@ -179,6 +179,7 @@ class TestBuildWarrantFinderUrl:
 
     def test_preselection_call(self):
         from app.models.warrants import WarrantPreselection
+
         qs = _build(preselection=WarrantPreselection.CALL)
         assert qs["PRESELECTION"] == ["CALL"]
 
@@ -221,10 +222,20 @@ class TestBuildWarrantFinderUrl:
     def test_all_14_greek_prefixes_present_when_disabled(self):
         qs = _build()
         for prefix in (
-            "IMPLIED_VOLATILITY", "DELTA", "LEVERAGE", "PREMIUM_PER_ANNUM",
-            "GEARING", "PRESENT_VALUE", "SPREAD_ASK_PCT", "THETA_DAY",
-            "THEORETICAL_VALUE", "INTRINSIC_VALUE", "BREAK_EVEN", "MONEYNESS",
-            "VEGA", "GAMMA",
+            "IMPLIED_VOLATILITY",
+            "DELTA",
+            "LEVERAGE",
+            "PREMIUM_PER_ANNUM",
+            "GEARING",
+            "PRESENT_VALUE",
+            "SPREAD_ASK_PCT",
+            "THETA_DAY",
+            "THEORETICAL_VALUE",
+            "INTRINSIC_VALUE",
+            "BREAK_EVEN",
+            "MONEYNESS",
+            "VEGA",
+            "GAMMA",
         ):
             assert f"{prefix}_VALUE" in qs, f"{prefix}_VALUE missing from URL"
             assert f"{prefix}_COMPARATOR" in qs, f"{prefix}_COMPARATOR missing from URL"
@@ -258,6 +269,7 @@ class TestBuildWarrantFinderUrl:
 # _get_total_pages
 # ---------------------------------------------------------------------------
 
+
 class TestGetTotalPages:
     def test_no_pagination_returns_1(self):
         soup = BeautifulSoup("<div>no pager here</div>", "html.parser")
@@ -285,6 +297,7 @@ class TestGetTotalPages:
 # ---------------------------------------------------------------------------
 # _parse_warrant_rows
 # ---------------------------------------------------------------------------
+
 
 class TestParseWarrantRows:
     def test_no_table_returns_empty(self):

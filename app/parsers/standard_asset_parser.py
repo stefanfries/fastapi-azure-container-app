@@ -134,4 +134,3 @@ class StandardAssetParser(InstrumentParser):
             raw = " ".join(parts[:-1])
         value = clean_float_value(raw)
         return value, currency
-

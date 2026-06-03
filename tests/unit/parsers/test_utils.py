@@ -29,23 +29,21 @@ from app.parsers.utils import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _instrument(lt: dict[str, str] | None = None, ex: dict[str, str] | None = None) -> Instrument:
     return Instrument(
         name="Test",
         wkn="918422",
         asset_class=AssetClass.STOCK,
-        id_notations_life_trading={
-            k: VenueInfo(id_notation=v) for k, v in (lt or {}).items()
-        },
-        id_notations_exchange_trading={
-            k: VenueInfo(id_notation=v) for k, v in (ex or {}).items()
-        },
+        id_notations_life_trading={k: VenueInfo(id_notation=v) for k, v in (lt or {}).items()},
+        id_notations_exchange_trading={k: VenueInfo(id_notation=v) for k, v in (ex or {}).items()},
     )
 
 
 # ---------------------------------------------------------------------------
 # check_valid_id_notation
 # ---------------------------------------------------------------------------
+
 
 class TestCheckValidIdNotation:
     def test_valid_in_lt_passes(self):
@@ -75,6 +73,7 @@ class TestCheckValidIdNotation:
 # get_id_notations_dict
 # ---------------------------------------------------------------------------
 
+
 class TestGetIdNotationsDict:
     def test_merges_lt_and_ex(self):
         instrument = _instrument(lt={"LT HSBC": "111"}, ex={"Xetra": "222"})
@@ -99,6 +98,7 @@ class TestGetIdNotationsDict:
 # get_trading_venues_dict
 # ---------------------------------------------------------------------------
 
+
 class TestGetTradingVenuesDict:
     def test_reverse_mapping(self):
         instrument = _instrument(lt={"LT HSBC": "111"}, ex={"Xetra": "222"})
@@ -114,6 +114,7 @@ class TestGetTradingVenuesDict:
 # ---------------------------------------------------------------------------
 # get_id_notation
 # ---------------------------------------------------------------------------
+
 
 class TestGetIdNotation:
     def test_found_in_lt(self):
@@ -134,6 +135,7 @@ class TestGetIdNotation:
 # get_trading_venue
 # ---------------------------------------------------------------------------
 
+
 class TestGetTradingVenue:
     def test_found(self):
         instrument = _instrument(ex={"Xetra": "222"})
@@ -148,6 +150,7 @@ class TestGetTradingVenue:
 # ---------------------------------------------------------------------------
 # round_time
 # ---------------------------------------------------------------------------
+
 
 class TestRoundTime:
     # --- case 3: HH:MM:SS ---
@@ -179,6 +182,7 @@ class TestRoundTime:
 # ---------------------------------------------------------------------------
 # round_datetime
 # ---------------------------------------------------------------------------
+
 
 class TestRoundDatetime:
     # --- case 3: YYYY-MM-DD ---

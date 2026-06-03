@@ -45,7 +45,9 @@ class ETFParser(StandardAssetParser):
         expense_ratio_percent = clean_float_value(_get("Laufende Kosten"))
         replication_method = _get("Abbildungsart")
         distribution_policy_raw = _get("Art")
-        distribution_policy = " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
+        distribution_policy = (
+            " ".join(distribution_policy_raw.split()) if distribution_policy_raw else None
+        )
         inception_date = self._parse_date(_get("Auflagedatum"))
         fund_currency = _get("Währung")
 

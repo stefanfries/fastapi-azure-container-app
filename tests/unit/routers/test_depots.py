@@ -8,8 +8,6 @@ The depot repository is patched at the router level so no real DB is needed.
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from app.models.depots import Depot
 
 
@@ -29,6 +27,7 @@ def _make_depot(**overrides) -> Depot:
 # ---------------------------------------------------------------------------
 # GET /v1/depots/
 # ---------------------------------------------------------------------------
+
 
 class TestGetAllDepots:
     def test_returns_200_with_empty_list(self, client):
@@ -53,6 +52,7 @@ class TestGetAllDepots:
 # ---------------------------------------------------------------------------
 # GET /v1/depots/{depot_id}
 # ---------------------------------------------------------------------------
+
 
 class TestGetDepotById:
     def test_returns_depot_when_found(self, client):

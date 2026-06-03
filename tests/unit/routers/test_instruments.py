@@ -20,6 +20,7 @@ def _instrument(**overrides) -> Instrument:
 # GET /v1/instruments/
 # ---------------------------------------------------------------------------
 
+
 class TestListInstruments:
     def test_returns_200_with_empty_list(self, client):
         with patch("app.routers.instruments._repo.find_all", new_callable=AsyncMock) as mock_find:
@@ -53,14 +54,13 @@ class TestListInstruments:
         mock_find.assert_awaited_once_with(asset_class="Stock")
 
     def test_invalid_asset_class_returns_422(self, client):
-        response = client.get(
-            "/v1/instruments/?asset_class=Banana", headers={"X-API-Key": "test"}
-        )
+        client.get("/v1/instruments/?asset_class=Banana", headers={"X-API-Key": "test"})
 
 
 # ---------------------------------------------------------------------------
 # GET /v1/instruments/{instrument_id}
 # ---------------------------------------------------------------------------
+
 
 class TestGetInstrument:
     def test_returns_200_with_instrument(self, client):

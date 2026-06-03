@@ -45,16 +45,19 @@ def _certificate_page(
     emittent: str = "DZ BANK AG",
     waehrung: str = "EUR",
 ) -> BeautifulSoup:
-    return _section_page("Stammdaten", [
-        ("Typ", cert_type),
-        ("Basiswert", basiswert),
-        ("Cap-Niveau", cap),
-        ("Barriere", barrier),
-        ("Partizipationsrate", participation),
-        ("Fälligkeit", faelligkeit),
-        ("Emittent", emittent),
-        ("Währung", waehrung),
-    ])
+    return _section_page(
+        "Stammdaten",
+        [
+            ("Typ", cert_type),
+            ("Basiswert", basiswert),
+            ("Cap-Niveau", cap),
+            ("Barriere", barrier),
+            ("Partizipationsrate", participation),
+            ("Fälligkeit", faelligkeit),
+            ("Emittent", emittent),
+            ("Währung", waehrung),
+        ],
+    )
 
 
 _parser = CertificateParser()
@@ -68,7 +71,10 @@ class TestCertificateDetailsParser:
         assert _parser.parse_details(_certificate_page()).asset_class == "Certificate"
 
     def test_certificate_type(self):
-        assert _parser.parse_details(_certificate_page(cert_type="Discount")).certificate_type == "Discount"
+        assert (
+            _parser.parse_details(_certificate_page(cert_type="Discount")).certificate_type
+            == "Discount"
+        )
 
     def test_underlying_name(self):
         assert _parser.parse_details(_certificate_page(basiswert="DAX")).underlying_name == "DAX"
@@ -84,16 +90,24 @@ class TestCertificateDetailsParser:
         assert result.barrier_currency == "EUR"
 
     def test_participation_rate(self):
-        assert _parser.parse_details(_certificate_page(participation="100,00 %")).participation_rate == pytest.approx(100.0)
+        assert _parser.parse_details(
+            _certificate_page(participation="100,00 %")
+        ).participation_rate == pytest.approx(100.0)
 
     def test_maturity_date(self):
-        assert _parser.parse_details(_certificate_page(faelligkeit="20.12.2025")).maturity_date == date(2025, 12, 20)
+        assert _parser.parse_details(
+            _certificate_page(faelligkeit="20.12.2025")
+        ).maturity_date == date(2025, 12, 20)
 
     def test_open_end_maturity_is_none(self):
-        assert _parser.parse_details(_certificate_page(faelligkeit="Open End")).maturity_date is None
+        assert (
+            _parser.parse_details(_certificate_page(faelligkeit="Open End")).maturity_date is None
+        )
 
     def test_issuer(self):
-        assert _parser.parse_details(_certificate_page(emittent="DZ BANK AG")).issuer == "DZ BANK AG"
+        assert (
+            _parser.parse_details(_certificate_page(emittent="DZ BANK AG")).issuer == "DZ BANK AG"
+        )
 
     def test_currency(self):
         assert _parser.parse_details(_certificate_page(waehrung="EUR")).currency == "EUR"
@@ -112,6 +126,8 @@ class TestCertificateDetailsParser:
         assert result.maturity_date is None
 
     def test_no_cap_barrier_for_tracker(self):
-        result = _parser.parse_details(_certificate_page(cert_type="Tracker", cap="--", barrier="--"))
+        result = _parser.parse_details(
+            _certificate_page(cert_type="Tracker", cap="--", barrier="--")
+        )
         assert result.cap is None
         assert result.barrier is None

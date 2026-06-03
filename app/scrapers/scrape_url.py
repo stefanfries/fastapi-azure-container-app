@@ -48,7 +48,9 @@ async def fetch_one(
         httpx.RequestError: If the HTTP request failed due to a network error or timeout.
     """
 
-    logger.debug("fetch_one(%s, asset_class=%s, id_notation=%s)", instrument_id, asset_class, id_notation)
+    logger.debug(
+        "fetch_one(%s, asset_class=%s, id_notation=%s)", instrument_id, asset_class, id_notation
+    )
     async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
         url = compose_url(instrument_id, asset_class, id_notation)
         response = await client.get(url)

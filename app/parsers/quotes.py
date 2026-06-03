@@ -70,11 +70,7 @@ def _extract_timestamp(table: BeautifulSoup) -> datetime | None:
     Returns None when no parseable timestamp is found (e.g. market is closed).
     """
     th_ask = table.find("th", string=re.compile(r"^Brief$|^Ausgabepreis$"))
-    th_zeit = (
-        th_ask.find_next("th", string=re.compile(r"^Zeit$"))
-        if th_ask is not None
-        else None
-    )
+    th_zeit = th_ask.find_next("th", string=re.compile(r"^Zeit$")) if th_ask is not None else None
     if th_zeit is None:
         th_zeit = table.find("th", string=re.compile(r"^Zeit$"))
     if th_zeit is None:
@@ -128,7 +124,9 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
 
     # fetch instrument data from the web for the given id_notation
     try:
-        response = await fetch_one(str(instrument_data.wkn), instrument_data.asset_class, id_notation)
+        response = await fetch_one(
+            str(instrument_data.wkn), instrument_data.asset_class, id_notation
+        )
     except Exception as exc:
         logger.warning("fetch_one failed for %s: %s", instrument_id, exc)
         raise HTTPException(
@@ -184,7 +182,8 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
     else:
         # ETF and Fonds pages omit the Börse row; look up the venue by id_notation
         venue_maps = [
-            m for m in (
+            m
+            for m in (
                 instrument_data.id_notations_life_trading,
                 instrument_data.id_notations_exchange_trading,
             )

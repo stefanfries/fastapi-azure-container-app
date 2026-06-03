@@ -28,6 +28,7 @@ def parse_date(text: str | None) -> date | None:
             continue
     return None
 
+
 # Known home currencies for comdirect trading venues.
 # Venues that carry an explicit currency suffix in their name (e.g. "SIX SWISS (USD)")
 # are handled by infer_currency() before this table is consulted.

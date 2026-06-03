@@ -44,6 +44,7 @@ def repo(collection):
 
 # --- find_by_wkn ---
 
+
 async def test_find_by_wkn_returns_instrument(repo, collection):
     instrument = _make_instrument()
     doc = instrument.model_dump()
@@ -78,6 +79,7 @@ async def test_find_by_wkn_not_found(repo, collection):
 
 # --- find_by_isin ---
 
+
 async def test_find_by_isin_returns_instrument(repo, collection):
     instrument = _make_instrument()
     doc = instrument.model_dump()
@@ -97,14 +99,15 @@ async def test_find_by_isin_not_found(repo, collection):
 
 # --- save ---
 
+
 async def test_save_calls_upsert(repo, collection):
     instrument = _make_instrument()
     await repo.save(instrument)
 
     collection.update_one.assert_awaited_once()
     call_args = collection.update_one.call_args
-    assert call_args[0][0] == {"wkn": "918422"}   # filter
-    assert "$set" in call_args[0][1]               # update op
+    assert call_args[0][0] == {"wkn": "918422"}  # filter
+    assert "$set" in call_args[0][1]  # update op
     assert call_args[1]["upsert"] is True
 
 
@@ -137,6 +140,7 @@ async def test_save_skips_when_both_wkn_and_isin_are_none(repo, collection):
 
 
 # --- is_cache_valid ---
+
 
 async def test_cache_valid_when_recent(repo, collection):
     collection.find_one.return_value = {"cached_at": datetime.now(UTC)}
@@ -175,6 +179,7 @@ async def test_cache_invalid_when_no_cached_at(repo, collection):
 
 # --- delete_by_wkn ---
 
+
 async def test_delete_returns_true_on_success(repo, collection):
     collection.delete_one.return_value = MagicMock(deleted_count=1)
     assert await repo.delete_by_wkn("918422") is True
@@ -186,6 +191,7 @@ async def test_delete_returns_false_when_not_found(repo, collection):
 
 
 # --- count ---
+
 
 async def test_count_returns_zero(repo, collection):
     collection.count_documents.return_value = 0

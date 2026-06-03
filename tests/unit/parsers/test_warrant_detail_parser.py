@@ -9,11 +9,10 @@ from bs4 import BeautifulSoup
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _soup_from_rows(rows: list[tuple[str, str]], heading: str = "Stammdaten") -> BeautifulSoup:
     """Wrap (label, value) pairs in a section that matches _section_table()."""
-    row_html = "\n".join(
-        f"<tr><th>{label}</th><td>{value}</td></tr>" for label, value in rows
-    )
+    row_html = "\n".join(f"<tr><th>{label}</th><td>{value}</td></tr>" for label, value in rows)
     html = f"""
     <div>
         <h2>{heading}</h2>
@@ -27,33 +26,41 @@ def _soup_from_rows(rows: list[tuple[str, str]], heading: str = "Stammdaten") ->
 # _parse_float
 # ---------------------------------------------------------------------------
 
+
 class TestParseFloat:
     def test_german_decimal(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("0,75 %") == pytest.approx(0.75)
 
     def test_thousands_separator(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("1.234,56 EUR") == pytest.approx(1234.56)
 
     def test_integer_value(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("220") == pytest.approx(220.0)
 
     def test_double_dash_returns_none(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("--") is None
 
     def test_empty_returns_none(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("") is None
 
     def test_none_returns_none(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float(None) is None
 
     def test_k_a_returns_none(self):
         from app.parsers.warrant_detail import _parse_float
+
         assert _parse_float("k. A.") is None
 
 
@@ -61,29 +68,35 @@ class TestParseFloat:
 # _parse_amount_currency
 # ---------------------------------------------------------------------------
 
+
 class TestParseAmountCurrency:
     def test_value_and_currency(self):
         from app.parsers.warrant_detail import _parse_amount_currency
+
         value, currency = _parse_amount_currency("240,00 USD")
         assert value == pytest.approx(240.0)
         assert currency == "USD"
 
     def test_eur_currency(self):
         from app.parsers.warrant_detail import _parse_amount_currency
+
         value, currency = _parse_amount_currency("1.234,56 EUR")
         assert value == pytest.approx(1234.56)
         assert currency == "EUR"
 
     def test_double_dash_returns_none_pair(self):
         from app.parsers.warrant_detail import _parse_amount_currency
+
         assert _parse_amount_currency("--") == (None, None)
 
     def test_none_returns_none_pair(self):
         from app.parsers.warrant_detail import _parse_amount_currency
+
         assert _parse_amount_currency(None) == (None, None)
 
     def test_value_without_currency(self):
         from app.parsers.warrant_detail import _parse_amount_currency
+
         value, currency = _parse_amount_currency("220,00")
         assert value == pytest.approx(220.0)
         assert currency is None
@@ -93,27 +106,33 @@ class TestParseAmountCurrency:
 # _parse_date
 # ---------------------------------------------------------------------------
 
+
 class TestParseDate:
     def test_two_digit_year(self):
         from app.parsers.warrant_detail import _parse_date
+
         assert _parse_date("16.06.27") == date(2027, 6, 16)
 
     def test_four_digit_year(self):
         from app.parsers.warrant_detail import _parse_date
+
         assert _parse_date("16.06.2027") == date(2027, 6, 16)
 
     def test_double_dash_returns_none(self):
         from app.parsers.warrant_detail import _parse_date
+
         assert _parse_date("--") is None
 
     def test_none_returns_none(self):
         from app.parsers.warrant_detail import _parse_date
+
         assert _parse_date(None) is None
 
 
 # ---------------------------------------------------------------------------
 # _parse_reference_data — capped warrant
 # ---------------------------------------------------------------------------
+
 
 class TestParseReferenceDataCapped:
     """UN2U70-style: Stammdaten contains a 'Cap' row."""
@@ -136,6 +155,7 @@ class TestParseReferenceDataCapped:
 
     def _parse(self):
         from app.parsers.warrant_detail import _parse_reference_data
+
         soup = _soup_from_rows(self._ROWS)
         return _parse_reference_data(soup)
 
@@ -167,6 +187,7 @@ class TestParseReferenceDataCapped:
 # _parse_reference_data — regular (uncapped) warrant
 # ---------------------------------------------------------------------------
 
+
 class TestParseReferenceDataUncapped:
     """MK9L2L-style: Stammdaten has no 'Cap' row."""
 
@@ -187,6 +208,7 @@ class TestParseReferenceDataUncapped:
 
     def _parse(self):
         from app.parsers.warrant_detail import _parse_reference_data
+
         soup = _soup_from_rows(self._ROWS)
         return _parse_reference_data(soup)
 

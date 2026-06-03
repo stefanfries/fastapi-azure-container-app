@@ -140,9 +140,10 @@ def _derive_yfinance_symbol(records: list[dict[str, Any]], isin_country: str | N
     Derive the yfinance-compatible ticker symbol from OpenFIGI mapping records.
 
     Priority order:
-    1. US-listed record (e.g. "NVDA" for NVIDIA) — no suffix needed
-    2. Record whose exchange matches the instrument's home country (from ISIN prefix)
-    3. First record whose exchCode maps to a known Yahoo Finance suffix
+    1. Record whose exchange matches the instrument's home country (from ISIN prefix).
+       US stocks land here too: isin_country "US" → exchCode "US" → no suffix.
+    2. Any US-listed record — fallback when the country is unknown or unmapped.
+    3. First record whose exchCode maps to a known Yahoo Finance suffix.
 
     OpenFIGI uses "/" for share-class separators (e.g. "BF/B"), but Yahoo Finance
     uses "-" (e.g. "BF-B"). All "/" characters in the ticker are replaced with "-".
@@ -171,17 +172,18 @@ def _derive_yfinance_symbol(records: list[dict[str, Any]], isin_country: str | N
     if not candidates:
         return None
 
-    # Priority 1: US exchange (no suffix)
-    for ticker, suffix, exch in candidates:
-        if exch in us_exch_codes:
-            return ticker.replace("/", "-")
-
-    # Priority 2: home exchange matching ISIN country code
+    # Priority 1: home exchange matching ISIN country code
+    # US stocks are handled here too: isin_country "US" → home_exch "US" → no suffix.
     if isin_country and isin_country in _ISIN_COUNTRY_TO_PRIMARY_EXCH:
         home_exch = _ISIN_COUNTRY_TO_PRIMARY_EXCH[isin_country]
         for ticker, suffix, exch in candidates:
             if exch == home_exch:
                 return f"{ticker.replace('/', '-')}{suffix}"
+
+    # Priority 2: any US exchange (fallback when country is unknown or not mapped)
+    for ticker, suffix, exch in candidates:
+        if exch in us_exch_codes:
+            return ticker.replace("/", "-")
 
     # Priority 3: first known-exchange candidate
     ticker, suffix, _ = candidates[0]

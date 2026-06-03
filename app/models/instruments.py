@@ -116,7 +116,9 @@ class GlobalIdentifiers(BaseModel):
     """
 
     isin: ISIN | None = Field(None, description="ISIN")
-    wkn: WKN | None = Field(None, description="German WKN (None for foreign instruments without a WKN)")
+    wkn: WKN | None = Field(
+        None, description="German WKN (None for foreign instruments without a WKN)"
+    )
     cusip: str | None = Field(None, description="CUSIP (US/CA instruments only)")
     figi: str | None = Field(None, description="Composite FIGI from OpenFIGI")
     symbol_comdirect: str | None = Field(None, description="Ticker symbol on comdirect")
@@ -162,7 +164,9 @@ class Instrument(BaseModel):
 
     name: str = Field(..., description="Name of the financial instrument")
 
-    wkn: WKN | None = Field(None, description="WKN of the financial instrument (None for foreign instruments)")
+    wkn: WKN | None = Field(
+        None, description="WKN of the financial instrument (None for foreign instruments)"
+    )
 
     isin: ISIN | None = Field(None, description="International Securities Identification Number")
 

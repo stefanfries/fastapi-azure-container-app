@@ -27,17 +27,20 @@ from app.models.instrument_details import (
 class TestInstrumentDetailsUnion:
     """Ensure each concrete model carries the correct discriminator literal."""
 
-    @pytest.mark.parametrize("model,expected", [
-        (StockDetails(),       "Stock"),
-        (BondDetails(),        "Bond"),
-        (ETFDetails(),         "ETF"),
-        (FondsDetails(),       "Fund"),
-        (WarrantDetails(),     "Warrant"),
-        (CertificateDetails(), "Certificate"),
-        (IndexDetails(),       "Index"),
-        (CommodityDetails(),   "Commodity"),
-        (CurrencyDetails(),    "Currency"),
-    ])
+    @pytest.mark.parametrize(
+        "model,expected",
+        [
+            (StockDetails(), "Stock"),
+            (BondDetails(), "Bond"),
+            (ETFDetails(), "ETF"),
+            (FondsDetails(), "Fund"),
+            (WarrantDetails(), "Warrant"),
+            (CertificateDetails(), "Certificate"),
+            (IndexDetails(), "Index"),
+            (CommodityDetails(), "Commodity"),
+            (CurrencyDetails(), "Currency"),
+        ],
+    )
     def test_discriminator_value(self, model, expected):
         assert model.asset_class == expected
 
@@ -49,7 +52,9 @@ class TestInstrumentDetailsUnion:
         assert data["free_float"] == pytest.approx(68.46)
 
     def test_bond_details_serialises_to_dict(self):
-        details = BondDetails(issuer="Bund", coupon_rate_percent=1.5, maturity_date=date(2030, 1, 15))
+        details = BondDetails(
+            issuer="Bund", coupon_rate_percent=1.5, maturity_date=date(2030, 1, 15)
+        )
         data = details.model_dump()
         assert data["asset_class"] == "Bond"
         assert data["coupon_rate_percent"] == pytest.approx(1.5)

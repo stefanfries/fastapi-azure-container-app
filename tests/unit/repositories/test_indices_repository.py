@@ -15,8 +15,11 @@ from app.repositories.indices import IndicesRepository
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_index_info(**overrides) -> IndexInfo:
-    defaults = dict(name="DAX", isin="DE0008469008", member_count=40, link="/inf/indizes/DE0008469008")
+    defaults = dict(
+        name="DAX", isin="DE0008469008", member_count=40, link="/inf/indizes/DE0008469008"
+    )
     defaults.update(overrides)
     return IndexInfo(**defaults)
 
@@ -42,6 +45,7 @@ def _doc_from_index(index: IndexInfo, age: timedelta = timedelta(hours=1)) -> di
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def catalogue_col():
     col = MagicMock()
@@ -62,10 +66,13 @@ def members_col():
 @pytest.fixture
 def repo(catalogue_col, members_col):
     r = IndicesRepository()
-    with patch("app.repositories.indices.get_collection", side_effect=lambda name: {
-        "index_catalogue": catalogue_col,
-        "index_members": members_col,
-    }[name]):
+    with patch(
+        "app.repositories.indices.get_collection",
+        side_effect=lambda name: {
+            "index_catalogue": catalogue_col,
+            "index_members": members_col,
+        }[name],
+    ):
         _ = r.catalogue
         _ = r.members
     return r
@@ -81,6 +88,7 @@ def _mock_find(col, docs: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 # IndicesRepository._is_fresh
 # ---------------------------------------------------------------------------
+
 
 def test_is_fresh_recent(repo):
     assert repo._is_fresh(datetime.now(UTC) - timedelta(hours=1)) is True
@@ -101,6 +109,7 @@ def test_is_fresh_naive_datetime_treated_as_utc(repo):
 # ---------------------------------------------------------------------------
 # IndicesRepository.get_catalogue
 # ---------------------------------------------------------------------------
+
 
 async def test_get_catalogue_returns_none_when_empty(repo, catalogue_col):
     _mock_find(catalogue_col, [])
@@ -149,6 +158,7 @@ async def test_get_catalogue_returns_entries_when_fresh(repo, catalogue_col):
 # IndicesRepository.save_catalogue
 # ---------------------------------------------------------------------------
 
+
 async def test_save_catalogue_upserts_each_index(repo, catalogue_col):
     indices = [_make_index_info(), _make_index_info(name="MDAX", isin="DE0008467416")]
     await repo.save_catalogue(indices)
@@ -174,6 +184,7 @@ async def test_save_catalogue_uses_isin_as_key(repo, catalogue_col):
 # ---------------------------------------------------------------------------
 # IndicesRepository.get_members
 # ---------------------------------------------------------------------------
+
 
 async def test_get_members_returns_none_when_not_found(repo, members_col):
     members_col.find_one.return_value = None
@@ -222,6 +233,7 @@ async def test_get_members_queries_by_isin(repo, members_col):
 # ---------------------------------------------------------------------------
 # IndicesRepository.save_members
 # ---------------------------------------------------------------------------
+
 
 async def test_save_members_upserts_with_isin_key(repo, members_col):
     members = [_make_member()]

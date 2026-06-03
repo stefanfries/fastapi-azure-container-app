@@ -195,4 +195,3 @@ class SpecialAssetParser(InstrumentParser):
             quote_currency=quote_currency,
             country=_get("Land"),
         )
-

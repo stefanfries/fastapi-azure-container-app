@@ -227,7 +227,9 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
             match.name,
             match.member_count,
         )
-        members = await _fetch_all_members(isin, label=match.name, expected_count=match.member_count)
+        members = await _fetch_all_members(
+            isin, label=match.name, expected_count=match.member_count
+        )
         await _repo.save_members(isin, members)
         return members
 
@@ -248,8 +250,7 @@ async def fetch_index_members(index_name: str) -> list[IndexMember]:
 
     raise HTTPException(
         status_code=404,
-        detail=f"Index '{index_name}' not found. "
-        f"Supported indices: {[i.name for i in indices]}",
+        detail=f"Index '{index_name}' not found. Supported indices: {[i.name for i in indices]}",
     )
 
 
@@ -262,7 +263,9 @@ def _members_page_url(isin: str, offset: int = 0) -> str:
     )
 
 
-async def _fetch_all_members(isin: str, label: str, expected_count: int | None = None) -> list[IndexMember]:
+async def _fetch_all_members(
+    isin: str, label: str, expected_count: int | None = None
+) -> list[IndexMember]:
     """Fetch all paginated member rows for an index identified by ISIN."""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
         first_response = await client.get(_members_page_url(isin))

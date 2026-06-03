@@ -161,9 +161,7 @@ class WarrantParser(StandardAssetParser):
                 href = a_tag.get("href", "")
                 if href:
                     underlying_link = (
-                        f"https://www.comdirect.de{href}"
-                        if href.startswith("/")
-                        else href
+                        f"https://www.comdirect.de{href}" if href.startswith("/") else href
                     )
             else:
                 text = basiswert_td.get_text(" ", strip=True)

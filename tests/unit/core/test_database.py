@@ -15,6 +15,7 @@ from app.core.database import Collections, get_collection, get_database
 # get_database — RuntimeError when uninitialised
 # ---------------------------------------------------------------------------
 
+
 class TestGetDatabase:
     def setup_method(self):
         """Ensure _database is None before each test."""
@@ -38,6 +39,7 @@ class TestGetDatabase:
 # ---------------------------------------------------------------------------
 # get_collection — delegates to get_database
 # ---------------------------------------------------------------------------
+
 
 class TestGetCollection:
     def setup_method(self):
@@ -64,6 +66,7 @@ class TestGetCollection:
 # ---------------------------------------------------------------------------
 # Collections constants
 # ---------------------------------------------------------------------------
+
 
 class TestCollections:
     def test_instruments_constant(self):

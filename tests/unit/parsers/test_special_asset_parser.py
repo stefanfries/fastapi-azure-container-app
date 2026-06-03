@@ -17,21 +17,27 @@ from app.parsers.special_asset_parser import SpecialAssetParser
 
 
 class TestAssetClass:
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.INDEX,
-        AssetClass.COMMODITY,
-        AssetClass.CURRENCY,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.INDEX,
+            AssetClass.COMMODITY,
+            AssetClass.CURRENCY,
+        ],
+    )
     def test_asset_class_roundtrip(self, asset_class):
         assert SpecialAssetParser(asset_class).asset_class == asset_class
 
 
 class TestParseIsin:
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.INDEX,
-        AssetClass.COMMODITY,
-        AssetClass.CURRENCY,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.INDEX,
+            AssetClass.COMMODITY,
+            AssetClass.CURRENCY,
+        ],
+    )
     def test_returns_none_when_no_stammdaten_isin(self, asset_class):
         """Returns None when the Stammdaten table has no ISIN row."""
         soup = _stammdaten_page([("Land", "Deutschland")])
@@ -64,15 +70,18 @@ class TestParseIdNotations:
 # parse_name — raises ValueError when no H1 found
 # ---------------------------------------------------------------------------
 
+
 class TestParseName:
     def test_raises_when_no_h1(self):
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup("<html><body><p>nothing</p></body></html>", "html.parser")
         with pytest.raises(ValueError, match="H1 headline"):
             SpecialAssetParser(AssetClass.INDEX).parse_name(soup)
 
     def test_returns_full_name_without_suffix_removal(self):
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup("<html><body><h1>DAX Index</h1></body></html>", "html.parser")
         assert SpecialAssetParser(AssetClass.INDEX).parse_name(soup) == "DAX Index"
 
@@ -81,31 +90,32 @@ class TestParseName:
 # parse_wkn — raises ValueError when H2 yields nothing
 # ---------------------------------------------------------------------------
 
+
 class TestParseWkn:
     def test_returns_none_when_no_h2(self):
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup("<html><body><p>no h2</p></body></html>", "html.parser")
         assert SpecialAssetParser(AssetClass.INDEX).parse_wkn(soup) is None
 
     def test_extracts_wkn_at_position_2(self):
         from bs4 import BeautifulSoup
-        soup = BeautifulSoup(
-            "<html><body><h2>WKN WKN WKN846900</h2></body></html>", "html.parser"
-        )
+
+        soup = BeautifulSoup("<html><body><h2>WKN WKN WKN846900</h2></body></html>", "html.parser")
         assert SpecialAssetParser(AssetClass.INDEX).parse_wkn(soup) == "WKN846900"
 
     def test_returns_none_for_double_dash_wkn(self):
         from bs4 import BeautifulSoup
+
         # Instruments without a WKN (e.g. L&S Brent Oil) have "--" at position 2
-        soup = BeautifulSoup(
-            "<html><body><h2>WKN WKN --</h2></body></html>", "html.parser"
-        )
+        soup = BeautifulSoup("<html><body><h2>WKN WKN --</h2></body></html>", "html.parser")
         assert SpecialAssetParser(AssetClass.COMMODITY).parse_wkn(soup) is None
 
 
 # ---------------------------------------------------------------------------
 # Helpers shared by parse_details tests
 # ---------------------------------------------------------------------------
+
 
 def _make_soup(html: str) -> BeautifulSoup:
     return BeautifulSoup(textwrap.dedent(html), "html.parser")
@@ -135,6 +145,7 @@ def _stammdaten_page(rows: list[tuple[str, str]]) -> BeautifulSoup:
 # parse_details — INDEX
 # ---------------------------------------------------------------------------
 
+
 class TestParseDetailsIndex:
     _parser = SpecialAssetParser(AssetClass.INDEX)
 
@@ -145,11 +156,13 @@ class TestParseDetailsIndex:
         currency: str = "EUR",
         constituents: str = "40",
     ) -> BeautifulSoup:
-        return _stammdaten_page([
-            ("Land", country),
-            ("Landeswährung", currency),
-            ("Enthaltene Werte", constituents),
-        ])
+        return _stammdaten_page(
+            [
+                ("Land", country),
+                ("Landeswährung", currency),
+                ("Enthaltene Werte", constituents),
+            ]
+        )
 
     def test_returns_index_details_instance(self):
         assert isinstance(self._parser.parse_details(self._page()), IndexDetails)
@@ -168,25 +181,31 @@ class TestParseDetailsIndex:
 
     def test_num_constituents_in_anchor_tag(self):
         """Comdirect wraps the constituent count in an <a> tag — still extracts correctly."""
-        soup = _stammdaten_page([
-            ("Enthaltene Werte", '<a href="/inf/indizes/werte/dax-index-DE0008469008">40</a>'),
-        ])
+        soup = _stammdaten_page(
+            [
+                ("Enthaltene Werte", '<a href="/inf/indizes/werte/dax-index-DE0008469008">40</a>'),
+            ]
+        )
         assert self._parser.parse_details(soup).num_constituents == 40
 
     def test_constituents_url_built_from_isin(self):
         """constituents_url uses the ISIN from the Stammdaten table."""
-        soup = _stammdaten_page([
-            ("ISIN", "DE0008469008"),
-            ("Enthaltene Werte", "40"),
-        ])
+        soup = _stammdaten_page(
+            [
+                ("ISIN", "DE0008469008"),
+                ("Enthaltene Werte", "40"),
+            ]
+        )
         assert self._parser.parse_details(soup).constituents_url == "/v1/indices/DE0008469008"
 
     def test_constituents_url_falls_back_to_wkn(self):
         """constituents_url falls back to WKN when no ISIN is present."""
-        soup = _stammdaten_page([
-            ("WKN", "846900"),
-            ("Enthaltene Werte", "40"),
-        ])
+        soup = _stammdaten_page(
+            [
+                ("WKN", "846900"),
+                ("Enthaltene Werte", "40"),
+            ]
+        )
         assert self._parser.parse_details(soup).constituents_url == "/v1/indices/846900"
 
     def test_constituents_url_is_none_when_no_identifier(self):
@@ -212,6 +231,7 @@ class TestParseDetailsIndex:
 # parse_details — COMMODITY
 # ---------------------------------------------------------------------------
 
+
 class TestParseDetailsCommodity:
     _parser = SpecialAssetParser(AssetClass.COMMODITY)
 
@@ -222,11 +242,13 @@ class TestParseDetailsCommodity:
         symbol: str = "XAU",
         country: str = "USA",
     ) -> BeautifulSoup:
-        return _stammdaten_page([
-            ("Land", country),
-            ("Landeswährung", currency),
-            ("Symbol", symbol),
-        ])
+        return _stammdaten_page(
+            [
+                ("Land", country),
+                ("Landeswährung", currency),
+                ("Symbol", symbol),
+            ]
+        )
 
     def test_returns_commodity_details_instance(self):
         assert isinstance(self._parser.parse_details(self._page()), CommodityDetails)
@@ -259,6 +281,7 @@ class TestParseDetailsCommodity:
 # parse_details — CURRENCY
 # ---------------------------------------------------------------------------
 
+
 class TestParseDetailsCurrency:
     _parser = SpecialAssetParser(AssetClass.CURRENCY)
 
@@ -268,10 +291,12 @@ class TestParseDetailsCurrency:
         exchange_rate: str = "EUR/USD",
         country: str = "USA",
     ) -> BeautifulSoup:
-        return _stammdaten_page([
-            ("Land", country),
-            ("Wechselkurs", exchange_rate),
-        ])
+        return _stammdaten_page(
+            [
+                ("Land", country),
+                ("Wechselkurs", exchange_rate),
+            ]
+        )
 
     def test_returns_currency_details_instance(self):
         assert isinstance(self._parser.parse_details(self._page()), CurrencyDetails)
@@ -280,10 +305,14 @@ class TestParseDetailsCurrency:
         assert self._parser.parse_details(self._page()).asset_class == "Currency"
 
     def test_base_currency_parsed_from_exchange_rate(self):
-        assert self._parser.parse_details(self._page(exchange_rate="EUR/USD")).base_currency == "EUR"
+        assert (
+            self._parser.parse_details(self._page(exchange_rate="EUR/USD")).base_currency == "EUR"
+        )
 
     def test_quote_currency_parsed_from_exchange_rate(self):
-        assert self._parser.parse_details(self._page(exchange_rate="EUR/USD")).quote_currency == "USD"
+        assert (
+            self._parser.parse_details(self._page(exchange_rate="EUR/USD")).quote_currency == "USD"
+        )
 
     def test_country(self):
         assert self._parser.parse_details(self._page(country="USA")).country == "USA"
@@ -314,10 +343,10 @@ class TestParseDetailsCurrency:
 # parse_details — dispatch (unknown asset class returns None)
 # ---------------------------------------------------------------------------
 
+
 class TestParseDetailsDispatch:
     def test_returns_none_for_non_special_asset_class(self):
         # Force an invalid state by bypassing __init__ validation
         parser = SpecialAssetParser(AssetClass.INDEX)
         parser._asset_class = AssetClass.STOCK  # type: ignore[assignment]
         assert parser.parse_details(_make_soup("<html><body></body></html>")) is None
-

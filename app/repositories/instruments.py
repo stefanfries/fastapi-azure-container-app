@@ -124,7 +124,13 @@ class InstrumentRepository:
         age = datetime.now(UTC) - cached_at
 
         is_valid = age < timedelta(days=max_age_days)
-        logger.debug("Cache validity for %s: %s (age: %s days, ttl: %s days)", wkn, is_valid, age.days, max_age_days)
+        logger.debug(
+            "Cache validity for %s: %s (age: %s days, ttl: %s days)",
+            wkn,
+            is_valid,
+            age.days,
+            max_age_days,
+        )
 
         return is_valid
 

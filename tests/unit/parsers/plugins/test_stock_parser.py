@@ -59,10 +59,16 @@ class TestStockDetailsParser:
         assert _parser.parse_details(_stock_page()).asset_class == "Stock"
 
     def test_security_type(self):
-        assert _parser.parse_details(_stock_page(wertpapiertyp="Stammaktie")).security_type == "Stammaktie"
+        assert (
+            _parser.parse_details(_stock_page(wertpapiertyp="Stammaktie")).security_type
+            == "Stammaktie"
+        )
 
     def test_market_segment(self):
-        assert _parser.parse_details(_stock_page(marktsegment="Freiverkehr")).market_segment == "Freiverkehr"
+        assert (
+            _parser.parse_details(_stock_page(marktsegment="Freiverkehr")).market_segment
+            == "Freiverkehr"
+        )
 
     def test_sector_from_span_title(self):
         """Sector must come from the span title attribute, not the truncated display text."""
@@ -78,10 +84,14 @@ class TestStockDetailsParser:
         assert result.sector != "Halbleiterind.."
 
     def test_fiscal_year_end_normalised(self):
-        assert _parser.parse_details(_stock_page(geschaeftsjahr="25.01.")).fiscal_year_end == "25-01"
+        assert (
+            _parser.parse_details(_stock_page(geschaeftsjahr="25.01.")).fiscal_year_end == "25-01"
+        )
 
     def test_fiscal_year_end_december(self):
-        assert _parser.parse_details(_stock_page(geschaeftsjahr="31.12.")).fiscal_year_end == "31-12"
+        assert (
+            _parser.parse_details(_stock_page(geschaeftsjahr="31.12.")).fiscal_year_end == "31-12"
+        )
 
     def test_fiscal_year_end_placeholder(self):
         assert _parser.parse_details(_stock_page(geschaeftsjahr="--")).fiscal_year_end is None
@@ -108,7 +118,9 @@ class TestStockDetailsParser:
         assert result.market_cap_currency is None
 
     def test_free_float(self):
-        assert _parser.parse_details(_stock_page(streubesitz="68,46 %")).free_float == pytest.approx(68.46)
+        assert _parser.parse_details(
+            _stock_page(streubesitz="68,46 %")
+        ).free_float == pytest.approx(68.46)
 
     def test_free_float_placeholder(self):
         assert _parser.parse_details(_stock_page(streubesitz="--")).free_float is None

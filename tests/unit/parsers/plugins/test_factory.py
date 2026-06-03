@@ -46,32 +46,42 @@ def _minimal_soup() -> BeautifulSoup:
 # get_parser — concrete type
 # ---------------------------------------------------------------------------
 
+
 class TestGetParserType:
-    @pytest.mark.parametrize("asset_class, expected_type", [
-        (AssetClass.STOCK, StockParser),
-        (AssetClass.BOND, BondParser),
-        (AssetClass.ETF, ETFParser),
-        (AssetClass.FONDS, FondsParser),
-        (AssetClass.CERTIFICATE, CertificateParser),
-        (AssetClass.WARRANT, WarrantParser),
-    ])
+    @pytest.mark.parametrize(
+        "asset_class, expected_type",
+        [
+            (AssetClass.STOCK, StockParser),
+            (AssetClass.BOND, BondParser),
+            (AssetClass.ETF, ETFParser),
+            (AssetClass.FONDS, FondsParser),
+            (AssetClass.CERTIFICATE, CertificateParser),
+            (AssetClass.WARRANT, WarrantParser),
+        ],
+    )
     def test_standard_parser_type(self, asset_class, expected_type):
         assert isinstance(ParserFactory.get_parser(asset_class), expected_type)
 
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.INDEX,
-        AssetClass.COMMODITY,
-        AssetClass.CURRENCY,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.INDEX,
+            AssetClass.COMMODITY,
+            AssetClass.CURRENCY,
+        ],
+    )
     def test_special_parser_type(self, asset_class):
         parser = ParserFactory.get_parser(asset_class)
         assert isinstance(parser, SpecialAssetParser)
 
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.INDEX,
-        AssetClass.COMMODITY,
-        AssetClass.CURRENCY,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.INDEX,
+            AssetClass.COMMODITY,
+            AssetClass.CURRENCY,
+        ],
+    )
     def test_special_parser_carries_asset_class(self, asset_class):
         """SpecialAssetParser must be initialised with the correct asset_class."""
         parser = ParserFactory.get_parser(asset_class)
@@ -87,6 +97,7 @@ class TestGetParserType:
 # is_registered
 # ---------------------------------------------------------------------------
 
+
 class TestIsRegistered:
     def test_all_asset_classes_registered(self):
         for ac in AssetClass:
@@ -96,6 +107,7 @@ class TestIsRegistered:
 # ---------------------------------------------------------------------------
 # get_parser — error handling
 # ---------------------------------------------------------------------------
+
 
 class TestGetParserErrors:
     def test_raises_for_unregistered_class(self):
@@ -113,15 +125,19 @@ class TestGetParserErrors:
 # parse_details dispatch
 # ---------------------------------------------------------------------------
 
+
 class TestParseDetailsDispatch:
-    @pytest.mark.parametrize("asset_class", [
-        AssetClass.STOCK,
-        AssetClass.BOND,
-        AssetClass.ETF,
-        AssetClass.FONDS,
-        AssetClass.CERTIFICATE,
-        AssetClass.WARRANT,
-    ])
+    @pytest.mark.parametrize(
+        "asset_class",
+        [
+            AssetClass.STOCK,
+            AssetClass.BOND,
+            AssetClass.ETF,
+            AssetClass.FONDS,
+            AssetClass.CERTIFICATE,
+            AssetClass.WARRANT,
+        ],
+    )
     def test_returns_details_object_not_none(self, asset_class):
         parser = ParserFactory.get_parser(asset_class)
         assert parser.parse_details(_minimal_soup()) is not None

@@ -19,7 +19,6 @@ from app.core.logging import logger
 from app.core.settings import get_settings
 
 _OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
-_OPENFIGI_SEARCH_URL = "https://api.openfigi.com/v3/search"
 
 
 async def map_by_isin(isin: str) -> list[dict[str, Any]]:
@@ -48,28 +47,6 @@ async def map_by_wkn(wkn: str) -> list[dict[str, Any]]:
         List of FIGI result dicts for the instrument. Empty list if not found or on error.
     """
     return await _map([{"idType": "ID_WERTPAPIER", "idValue": wkn, "marketSecDes": "Equity"}])
-
-
-async def search_by_name(name: str, exch_code: str | None = None) -> list[dict[str, Any]]:
-    """
-    Search OpenFIGI for equity records by company name via the v3 search API.
-
-    Used to locate the primary common-stock listing of a company when only its
-    name is known (e.g. to map an ADR back to its underlying ordinary share).
-    Results are restricted to common stock (``securityType2="Common Stock"``).
-
-    Args:
-        name: Company name to search for (e.g. "ASML HOLDING NV").
-        exch_code: Optional OpenFIGI exchange code filter (e.g. "GY" for Xetra).
-                   When given, only listings on that exchange are returned.
-
-    Returns:
-        List of FIGI result dicts. Empty list if not found or on error.
-    """
-    body: dict[str, Any] = {"query": name, "securityType2": "Common Stock"}
-    if exch_code:
-        body["exchCode"] = exch_code
-    return await _search(body)
 
 
 async def _map(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -119,54 +96,4 @@ async def _map(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return []
     except httpx.RequestError as exc:
         logger.warning("OpenFIGI request failed (%s) — skipping enrichment", exc)
-        return []
-
-
-async def _search(body: dict[str, Any]) -> list[dict[str, Any]]:
-    """
-    Send a search request to the OpenFIGI v3 search API and return the data list.
-
-    Never raises — all HTTP and network errors are caught and logged. Unlike the
-    mapping endpoint, the search endpoint returns a single result object (not an
-    array of per-job results).
-
-    Args:
-        body: Search request object (query plus optional filters).
-
-    Returns:
-        List of FIGI records. Empty list on warning, error, or failure.
-    """
-    settings = get_settings()
-    headers: dict[str, str] = {"Content-Type": "application/json"}
-
-    api_key = settings.openfigi.api_key
-    if api_key:
-        headers["X-OPENFIGI-APIKEY"] = api_key.get_secret_value()
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(_OPENFIGI_SEARCH_URL, json=body, headers=headers)
-
-        if response.status_code == 429:
-            logger.warning("OpenFIGI rate limit reached — skipping search")
-            return []
-
-        response.raise_for_status()
-        result: dict[str, Any] = response.json()
-
-        if "warning" in result:
-            logger.debug("OpenFIGI search: no match — %s", result["warning"])
-            return []
-
-        if "error" in result:
-            logger.warning("OpenFIGI search error: %s", result["error"])
-            return []
-
-        return result.get("data", [])
-
-    except httpx.HTTPStatusError as exc:
-        logger.warning("OpenFIGI HTTP error %s — skipping search", exc.response.status_code)
-        return []
-    except httpx.RequestError as exc:
-        logger.warning("OpenFIGI search request failed (%s) — skipping search", exc)
         return []

@@ -120,21 +120,14 @@ def parse_symbol(asset_class: AssetClass, soup: BeautifulSoup) -> str | None:
         return None
 
 
-async def parse_instrument_data(instrument: str, *, _allow_adr_redirect: bool = True) -> Instrument:
+async def parse_instrument_data(instrument: str) -> Instrument:
     """
     Fetches and parses the instrument master data for a given instrument using the plugin system.
 
     Checks the MongoDB cache first. On a cache miss, scrapes comdirect and saves the result.
 
-    When the resolved instrument is an ADR (American Depositary Receipt), the lookup
-    is transparently redirected to the underlying primary listing, because no
-    comdirect derivatives exist for ADR ISINs. If the primary listing cannot be
-    resolved, the ADR is returned unchanged.
-
     Args:
         instrument: The ID of the instrument to fetch data for (WKN, ISIN, etc.)
-        _allow_adr_redirect: Internal flag; set to False to suppress ADR→primary
-            redirection (used by the ADR resolution service to avoid recursion).
 
     Returns:
         Instrument: An object containing the master data of the instrument.
@@ -158,7 +151,7 @@ async def parse_instrument_data(instrument: str, *, _allow_adr_redirect: bool = 
         cache_fresh = await _repo.is_cache_valid(cache_key) if cached.wkn else True
         if cache_fresh:
             logger.debug("Instrument cache hit: %s", instrument)
-            return await _redirect_if_adr(cached) if _allow_adr_redirect else cached
+            return cached
         logger.debug("Instrument cache stale, re-fetching: %s", instrument)
 
     from app.parsers.plugins.factory import ParserFactory
@@ -207,24 +200,4 @@ async def parse_instrument_data(instrument: str, *, _allow_adr_redirect: bool = 
     )
     await _repo.save(instrument_data)
     logger.debug("parse_instrument_data(%s) done -> %s", instrument, asset_class)
-    return await _redirect_if_adr(instrument_data) if _allow_adr_redirect else instrument_data
-
-
-async def _redirect_if_adr(instrument_data: Instrument) -> Instrument:
-    """Redirect an ADR instrument to its primary listing, if one can be resolved.
-
-    Returns the primary listing's instrument when *instrument_data* is an ADR and
-    its underlying primary share can be found; otherwise returns *instrument_data*
-    unchanged.
-    """
-    from app.services.adr_resolution import is_adr, resolve_adr_to_primary
-
-    if not is_adr(instrument_data):
-        return instrument_data
-
-    primary_isin = await resolve_adr_to_primary(instrument_data)
-    if not primary_isin:
-        return instrument_data
-
-    logger.info("Redirecting ADR %s to primary listing %s", instrument_data.isin, primary_isin)
-    return await parse_instrument_data(primary_isin, _allow_adr_redirect=False)
+    return instrument_data

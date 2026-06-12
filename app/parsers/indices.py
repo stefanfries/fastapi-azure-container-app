@@ -9,6 +9,7 @@ from app.core.constants import BASE_URL, asset_class_identifier_to_asset_class_m
 from app.core.logging import logger
 from app.models.indices import IndexInfo, IndexMember
 from app.repositories.indices import IndicesRepository
+from app.services.adr_resolution import looks_like_adr_name, resolve_member_isin
 
 INDEX_LIST_URL = f"{BASE_URL}/inf/index.html"
 
@@ -263,6 +264,38 @@ def _members_page_url(isin: str, offset: int = 0) -> str:
     )
 
 
+async def _resolve_adr_members(members: list[IndexMember]) -> list[IndexMember]:
+    """Replace ADR members with their primary listing; drop unresolvable ADRs.
+
+    Members whose display name does not look like an ADR are returned unchanged.
+    For ADR-named members, the primary (non-ADR) ISIN is resolved in parallel.
+    A member whose ADR cannot be mapped to a primary listing is omitted, because
+    no comdirect derivatives exist for ADR ISINs (the reason for this fix).
+    """
+    adr_indexes = [i for i, m in enumerate(members) if looks_like_adr_name(m.name)]
+    if not adr_indexes:
+        return members
+
+    resolved_isins = await asyncio.gather(
+        *(resolve_member_isin(members[i].name, members[i].isin) for i in adr_indexes)
+    )
+
+    drop: set[int] = set()
+    for idx, new_isin in zip(adr_indexes, resolved_isins):
+        member = members[idx]
+        if new_isin is None:
+            logger.info(
+                "Dropping ADR member '%s' (%s): no primary listing", member.name, member.isin
+            )
+            drop.add(idx)
+        elif new_isin != member.isin:
+            members[idx] = member.model_copy(
+                update={"isin": new_isin, "instrument_url": f"/v1/instruments/{new_isin}"}
+            )
+
+    return [m for i, m in enumerate(members) if i not in drop]
+
+
 async def _fetch_all_members(
     isin: str, label: str, expected_count: int | None = None
 ) -> list[IndexMember]:
@@ -285,6 +318,8 @@ async def _fetch_all_members(
                 page_response.raise_for_status()
                 page_soup = BeautifulSoup(page_response.content, "html.parser")
                 members.extend(_parse_members_from_table(page_soup))
+
+    members = await _resolve_adr_members(members)
 
     if expected_count is not None and len(members) != expected_count:
         logger.warning(

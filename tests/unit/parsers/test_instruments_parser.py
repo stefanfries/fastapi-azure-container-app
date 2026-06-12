@@ -334,3 +334,83 @@ class TestParseInstrumentDataCaching:
         saved_instrument = mock_repo.save.call_args[0][0]
         assert saved_instrument.wkn == "716460"
         assert result.wkn == "716460"
+
+
+# ---------------------------------------------------------------------------
+# _redirect_if_adr — ADR → primary redirect
+# ---------------------------------------------------------------------------
+
+
+class TestRedirectIfAdr:
+    """Verifies the ADR→primary redirect helper without network or DB access."""
+
+    def _adr(self) -> Instrument:
+        return Instrument(
+            name="ASML ADR",
+            isin="USN070592100",
+            asset_class=AssetClass.STOCK,
+        )
+
+    @pytest.mark.asyncio
+    async def test_non_adr_returned_unchanged(self):
+        from app.parsers.instruments import _redirect_if_adr
+
+        instrument = _make_cached_instrument()
+        with (
+            patch("app.services.adr_resolution.is_adr", return_value=False),
+            patch(
+                "app.services.adr_resolution.resolve_adr_to_primary",
+                new_callable=AsyncMock,
+            ) as mock_resolve,
+        ):
+            result = await _redirect_if_adr(instrument)
+
+        assert result is instrument
+        mock_resolve.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_adr_with_primary_redirects(self):
+        from app.parsers.instruments import _redirect_if_adr
+
+        adr = self._adr()
+        primary = Instrument(
+            name="ASML Holding",
+            isin="NL0010273215",
+            asset_class=AssetClass.STOCK,
+        )
+        with (
+            patch("app.services.adr_resolution.is_adr", return_value=True),
+            patch(
+                "app.services.adr_resolution.resolve_adr_to_primary",
+                new=AsyncMock(return_value="NL0010273215"),
+            ),
+            patch(
+                "app.parsers.instruments.parse_instrument_data",
+                new=AsyncMock(return_value=primary),
+            ) as mock_parse,
+        ):
+            result = await _redirect_if_adr(adr)
+
+        assert result is primary
+        mock_parse.assert_awaited_once_with("NL0010273215", _allow_adr_redirect=False)
+
+    @pytest.mark.asyncio
+    async def test_adr_without_primary_returns_adr(self):
+        from app.parsers.instruments import _redirect_if_adr
+
+        adr = self._adr()
+        with (
+            patch("app.services.adr_resolution.is_adr", return_value=True),
+            patch(
+                "app.services.adr_resolution.resolve_adr_to_primary",
+                new=AsyncMock(return_value=None),
+            ),
+            patch(
+                "app.parsers.instruments.parse_instrument_data",
+                new_callable=AsyncMock,
+            ) as mock_parse,
+        ):
+            result = await _redirect_if_adr(adr)
+
+        assert result is adr
+        mock_parse.assert_not_awaited()

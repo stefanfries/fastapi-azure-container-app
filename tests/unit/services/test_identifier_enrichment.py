@@ -1,6 +1,17 @@
-"""Unit tests for _derive_yfinance_symbol in app.services.identifier_enrichment."""
+"""Unit tests for app.services.identifier_enrichment."""
 
-from app.services.identifier_enrichment import _derive_yfinance_symbol
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from app.models.instruments import AssetClass
+from app.services.identifier_enrichment import (
+    _derive_cusip,
+    _derive_yfinance_symbol,
+    _pick_composite_figi,
+    _pick_name,
+    build_global_identifiers,
+)
 
 
 def _rec(ticker: str, exch_code: str) -> dict:
@@ -50,3 +61,112 @@ class TestDeriveYfinanceSymbol:
         """All records filtered out → None."""
         records = [_rec("IFNNF", "OQX")]
         assert _derive_yfinance_symbol(records, "DE") is None
+
+
+class TestDeriveCusip:
+    def test_us_isin_extracts_cusip(self) -> None:
+        assert _derive_cusip("US0378331005") == "037833100"
+
+    def test_non_us_isin_returns_none(self) -> None:
+        assert _derive_cusip("DE0007164600") is None
+
+    def test_none_returns_none(self) -> None:
+        assert _derive_cusip(None) is None
+
+    def test_short_string_returns_none(self) -> None:
+        assert _derive_cusip("US123") is None
+
+
+class TestPickCompositeFigi:
+    def test_prefers_us_exchange_record(self) -> None:
+        records = [
+            {"exchCode": "GY", "compositeFIGI": "BBG000GY"},
+            {"exchCode": "UN", "compositeFIGI": "BBG000US"},
+        ]
+        assert _pick_composite_figi(records) == "BBG000US"
+
+    def test_falls_back_to_first_with_figi(self) -> None:
+        records = [
+            {"exchCode": "GY", "compositeFIGI": "BBG000GY"},
+            {"exchCode": "GF", "compositeFIGI": None},
+        ]
+        assert _pick_composite_figi(records) == "BBG000GY"
+
+    def test_empty_records_returns_none(self) -> None:
+        assert _pick_composite_figi([]) is None
+
+    def test_all_null_figis_returns_none(self) -> None:
+        records = [{"exchCode": "GY", "compositeFIGI": None}]
+        assert _pick_composite_figi(records) is None
+
+
+class TestPickName:
+    def test_returns_first_non_null_name(self) -> None:
+        records = [{"name": None}, {"name": "NVIDIA CORP"}, {"name": "NVIDIA"}]
+        assert _pick_name(records) == "NVIDIA CORP"
+
+    def test_empty_records_returns_none(self) -> None:
+        assert _pick_name([]) is None
+
+    def test_all_null_names_returns_none(self) -> None:
+        assert _pick_name([{"name": None}]) is None
+
+
+class TestBuildGlobalIdentifiers:
+    async def test_skips_enrichment_for_warrant(self) -> None:
+        result = await build_global_identifiers(
+            isin="DE0007164600", wkn="716460", symbol_comdirect="SIE", asset_class=AssetClass.WARRANT
+        )
+        assert result.figi is None
+        assert result.symbol_yfinance is None
+        assert result.isin == "DE0007164600"
+
+    async def test_skips_enrichment_for_certificate(self) -> None:
+        result = await build_global_identifiers(
+            isin=None, wkn="716460", symbol_comdirect="YYY", asset_class=AssetClass.CERTIFICATE
+        )
+        assert result.figi is None
+        assert result.wkn == "716460"
+
+    async def test_enriches_stock_via_isin(self) -> None:
+        mock_records = [{"exchCode": "UN", "compositeFIGI": "BBG000NVD", "ticker": "NVDA", "name": "NVIDIA CORP"}]
+        with patch(
+            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+            new=AsyncMock(return_value=mock_records),
+        ):
+            result = await build_global_identifiers(
+                isin="US67066G1040", wkn=None, symbol_comdirect="NVDA", asset_class=AssetClass.STOCK
+            )
+        assert result.figi == "BBG000NVD"
+        assert result.symbol_yfinance == "NVDA"
+        assert result.name_openfigi == "NVIDIA CORP"
+        assert result.cusip == "67066G104"
+
+    async def test_enriches_stock_via_wkn_when_no_isin(self) -> None:
+        mock_records = [{"exchCode": "GY", "compositeFIGI": "BBG000GYX", "ticker": "SIE", "name": "SIEMENS AG"}]
+        with patch(
+            "app.services.identifier_enrichment.openfigi_client.map_by_wkn",
+            new=AsyncMock(return_value=mock_records),
+        ):
+            result = await build_global_identifiers(
+                isin=None, wkn="723610", symbol_comdirect="SIE", asset_class=AssetClass.STOCK
+            )
+        assert result.figi == "BBG000GYX"
+        assert result.symbol_yfinance == "SIE.DE"
+
+    async def test_no_isin_no_wkn_returns_empty_identifiers(self) -> None:
+        result = await build_global_identifiers(
+            isin=None, wkn=None, symbol_comdirect="SYM", asset_class=AssetClass.STOCK
+        )
+        assert result.figi is None
+        assert result.symbol_yfinance is None
+
+    async def test_openfigi_failure_returns_gracefully(self) -> None:
+        with patch(
+            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+            new=AsyncMock(side_effect=Exception("network error")),
+        ):
+            with pytest.raises(Exception):
+                await build_global_identifiers(
+                    isin="US0378331005", wkn=None, symbol_comdirect="AAPL", asset_class=AssetClass.STOCK
+                )

@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 562 unit tests passing; coverage reporting enabled (~79%)
+- 562 unit tests passing; coverage reporting enabled (79%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 562 unit tests passing (~79%); no parser/scraper integration tests yet
+- **Testing**: 562 unit tests passing (79%); no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -45,7 +45,6 @@ Based on a comprehensive review of the codebase against business and technical r
 
 - **Integration Tests**: No tests for parsers, scrapers, or end-to-end flows
 - **Load Testing**: No performance or scalability verification
-- **DB Initialization Script**: WKN/ISIN indexes not yet created on instruments collection
 - **Software Release Versioning**: No dedicated version module; version set via `app_version` in settings
 
 ---
@@ -104,8 +103,8 @@ Priority: HIGH - Required for reliable development
   - [ ] `pytest-env` for environment management (not yet needed)
   
 - [ ] Establish test coverage targets
-  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently 82%)
-  - [x] Reach minimum 80% coverage for new code ✅
+  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently 79%)
+  - [ ] Reach minimum 80% coverage for new code — currently 1% below threshold
 
 #### 1.4 API & Software Versioning
 
@@ -162,7 +161,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 562 unit tests passing; coverage reporting active (~79%)
+- ✅ 562 unit tests passing; coverage reporting active (79%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -301,8 +300,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 562 unit tests; test layout mirrors `app/` directory structure
-  - `tests/unit/parsers/test_warrants_parser.py` — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
+- ✅ 562 unit tests; test layout mirrors `app/` directory structure — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
   - `tests/unit/core/test_database.py` — 13 tests for `get_database()` / `get_collection()` guard logic and `Collections` constants
   - `tests/unit/models/test_models.py` — 25 tests for `Depot`, `HistoryData`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex
 
@@ -377,7 +375,7 @@ Priority: MEDIUM-HIGH - Ensure reliability
 **Deliverables:**
 
 - ✅ Comprehensive test suite (562 unit tests)
-- ✅ 82% code coverage
+- ⚠️ 79% code coverage — 1% below the 80% target; threshold flag not yet added to CI
 - ✅ Automated test execution in CI
 
 ---
@@ -670,7 +668,7 @@ Priority: MEDIUM - Improve developer experience
 ### Phase 4 (Testing)
 
 - ✅ 562 unit tests passing
-- ✅ ~83% code coverage
+- ⚠️ 79% code coverage — 1% below 80% target
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed
 
@@ -726,7 +724,7 @@ Priority: MEDIUM - Improve developer experience
 
 ## Next Steps
 
-_Updated 2026-06-03 — Phases 1–3 complete; Phases 4–5 in progress._
+_Updated 2026-06-20 — Phases 1–3 complete; Phases 4–5 in progress. 562 tests passing, 79% coverage (verified)._
 
 1. **Clear instrument cache** — run `uv run python scripts/clear_instrument_cache.py` once to purge instruments cached with the wrong `symbol_yfinance` (US OTC ticker instead of home-exchange ticker).
 2. **Enforce coverage threshold** (Phase 4.4) — add `--cov-fail-under=80` to CI; coverage is at ~79% so first bring it back above 80%, then add the flag.
@@ -790,7 +788,14 @@ tests/
 │   ├── repositories/
 │   │   └── test_depot_repository.py    # DepotRepository unit tests
 │   ├── routers/
-│   │   └── test_root.py                # Root endpoint tests
+│   │   ├── test_root.py                # Root endpoint tests
+│   │   ├── test_health.py
+│   │   ├── test_instruments.py
+│   │   ├── test_quotes.py
+│   │   ├── test_history.py
+│   │   ├── test_indices.py
+│   │   ├── test_depots.py
+│   │   └── test_warrants_router.py
 │   └── services/
 │       └── test_identifier_enrichment.py  # _derive_yfinance_symbol unit tests
 └── integration/                        # Integration tests (to be added)
@@ -872,7 +877,7 @@ Priority: LOW-MEDIUM - AI Assistant Enhancement
 
 Enable AI assistants (Claude Desktop, IDEs, etc.) to interact with the financial data API through the Model Context Protocol (MCP).
 
-**Design Decision**: This API performs active operations (web scraping, HTML parsing, real-time calculations) rather than serving static data. Therefore, MCP **Tools** are the primary interface for basedata, pricedata, and history endpoints. Resources are only used for static metadata (asset class lists, schemas) if needed.
+**Design Decision**: This API performs active operations (web scraping, HTML parsing, real-time calculations) rather than serving static data. Therefore, MCP **Tools** are the primary interface for instruments, quotes, and history endpoints. Resources are only used for static metadata (asset class lists, schemas) if needed.
 
 #### 7.1 MCP Architecture Design
 
@@ -888,7 +893,7 @@ Enable AI assistants (Claude Desktop, IDEs, etc.) to interact with the financial
 
 - [ ] Design MCP component types
   - **Tools** (Primary): Executable functions for data retrieval and computation
-    - Main API operations: get_basedata(), get_pricedata(), get_history()
+    - Main API operations: get_instrument(), get_quote(), get_history()
     - Rationale: API endpoints perform active operations (scraping, parsing, computing)
     - Not static data - each call triggers HTTP requests and transformations
   - **Resources** (Optional): Static metadata and reference data
@@ -908,9 +913,9 @@ Tools enable AI to perform data retrieval, computations, and analysis.
   - File: `mcp_server/tools.py`
 
 - [ ] Implement core data retrieval tools
-  - `get_basedata(isin: str)` - Fetch instrument base data
-  - `get_pricedata(isin: str, venue: Optional[str])` - Fetch current prices
-  - `get_history(isin: str, from_date: str, to_date: str)` - Fetch historical data
+  - `get_instrument(instrument_id: str)` - Fetch instrument details
+  - `get_quote(instrument_id: str)` - Fetch current quote
+  - `get_history(instrument_id: str, from_date: str, to_date: str)` - Fetch historical data
   - Each tool wraps FastAPI endpoint with parameter validation
 
 - [ ] Implement analysis tools
@@ -928,44 +933,41 @@ import httpx
 mcp = Server("financial-data-mcp")
 
 @mcp.tool()
-async def get_basedata(isin: str) -> dict:
+async def get_instrument(instrument_id: str) -> dict:
     """
     Get base information for a financial instrument.
     Actively scrapes and parses data from comdirect.de.
     
     Args:
-        isin: The ISIN identifier (e.g., 'BASF11', 'DE0005140008')
+        instrument_id: Instrument identifier accepted by the API (e.g., WKN/ISIN)
     
     Returns:
         Dictionary with instrument details, trading venues, and identifiers
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"http://localhost:8080/v1/basedata/{isin}",
-            headers={"Authorization": f"Bearer {get_token()}"}
+            f"http://localhost:8080/v1/instruments/{instrument_id}",
+            headers={"X-API-Key": get_api_key()}
         )
         response.raise_for_status()
         return response.json()
 
 @mcp.tool()
-async def get_pricedata(isin: str, venue: str = None) -> dict:
+async def get_quote(instrument_id: str) -> dict:
     """
     Get current price data for a financial instrument.
     Actively fetches real-time pricing from comdirect.de.
     
     Args:
-        isin: The ISIN identifier
-        venue: Optional trading venue code (e.g., 'XETRA', 'FSE')
+        instrument_id: Instrument identifier accepted by the API (e.g., WKN/ISIN)
     
     Returns:
         Dictionary with bid, ask, spread, timestamp, and venue
     """
-    params = {"venue": venue} if venue else {}
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"http://localhost:8080/v1/pricedata/{isin}",
-            headers={"Authorization": f"Bearer {get_token()}"},
-            params=params
+            f"http://localhost:8080/v1/quotes/{instrument_id}",
+            headers={"X-API-Key": get_api_key()}
         )
         response.raise_for_status()
         return response.json()
@@ -979,8 +981,8 @@ Resources provide static metadata and reference information.
   - File: `mcp_server/resources.py`
 
 - [ ] Implement metadata resources (optional)
-  - `finance://schema/basedata` - Pydantic model as JSON schema
-  - `finance://schema/pricedata` - Price data schema
+  - `finance://schema/instruments` - Pydantic model as JSON schema
+  - `finance://schema/quotes` - Quote data schema
   - `finance://asset-classes` - List of supported asset classes
   - Only for static reference data, not computed results
 

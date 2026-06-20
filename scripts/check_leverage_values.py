@@ -96,12 +96,14 @@ async def main() -> None:
                 out_of_range += 1
 
             lev_str = f"{leverage:.2f}" if leverage is not None else "None"
-            om_str  = f"{omega:.2f}"    if omega    is not None else "None"
+            om_str = f"{omega:.2f}" if omega is not None else "None"
             print(f"  {wkn:<12} {isin:<15} {lev_str:>10} {om_str:>8}  {note}")
 
         print()
-        print(f"Summary: {len(warrants)} total | in range 3–8: {in_range} | "
-              f"no analytics: {no_analytics} | out of range: {out_of_range}")
+        print(
+            f"Summary: {len(warrants)} total | in range 3–8: {in_range} | "
+            f"no analytics: {no_analytics} | out of range: {out_of_range}"
+        )
 
         if no_analytics > 0:
             print()

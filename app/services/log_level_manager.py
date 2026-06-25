@@ -1,5 +1,7 @@
 """Runtime log-level management with optional MongoDB persistence."""
 
+import logging
+
 from pymongo.errors import PyMongoError
 
 from app.core.database import get_database
@@ -32,7 +34,7 @@ def set_runtime_log_level(level: str) -> str:
 def get_runtime_log_level() -> str:
     """Return the current effective logger level."""
     level = logger.getEffectiveLevel()
-    level_name = logger.getLevelName(level)
+    level_name = logging.getLevelName(level)
     return level_name if isinstance(level_name, str) else str(level)
 
 

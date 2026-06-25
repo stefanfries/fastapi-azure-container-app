@@ -145,6 +145,50 @@ az containerapp update \
   --set-env-vars "NEW_VAR=value"
 ```
 
+Recommended production baseline:
+
+```powershell
+az containerapp update \
+  --name ca-fastapi \
+  --resource-group rg-FastAPI-AzureContainerApp-dev \
+  --set-env-vars LOG_LEVEL=WARNING ENVIRONMENT=production
+```
+
+Notes:
+
+- `LOG_LEVEL` controls application logger verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`)
+- `ENVIRONMENT` should be `production` for deployed environments
+- `APP_VERSION` is injected automatically by the CD workflow on deploy
+
+### Runtime Log-Level Tuning (No Code Deployment)
+
+The API exposes an authenticated admin endpoint to change log level at runtime.
+All admin endpoints require `X-API-Key` when `API_KEY` is configured.
+
+Read current effective log level:
+
+```bash
+curl -H "X-API-Key: <your-api-key>" https://<app-fqdn>/v1/admin/log-level
+```
+
+Temporarily change log level for current runtime only:
+
+```bash
+curl -X PUT https://<app-fqdn>/v1/admin/log-level \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <your-api-key>" \
+  -d '{"log_level":"DEBUG","persist":false}'
+```
+
+Change and persist log level in MongoDB (`app_config/logging`):
+
+```bash
+curl -X PUT https://<app-fqdn>/v1/admin/log-level \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <your-api-key>" \
+  -d '{"log_level":"WARNING","persist":true}'
+```
+
 ### Update Docker Image Manually
 
 ```powershell

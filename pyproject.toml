@@ -1,6 +1,6 @@
 [project]
 name = "fastapi-azure-container-app"
-version = "0.1.0"
+version = "0.1.1"
 description = "Financial data aggregation API providing unified access to instruments, quotes, historical prices, and depot data from comdirect, deployed on Azure Container Apps"
 readme = "README.md"
 requires-python = ">=3.13"

@@ -66,6 +66,18 @@ class AppSettings(BaseSettings):
         validation_alias="LOG_LEVEL",
     )
 
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def validate_log_level(cls, v: object) -> object:
+        """Normalize and validate configured log level."""
+        if not isinstance(v, str):
+            raise ValueError("LOG_LEVEL must be a string")
+        normalized = v.strip().upper()
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if normalized not in allowed:
+            raise ValueError(f"LOG_LEVEL must be one of: {', '.join(sorted(allowed))}")
+        return normalized
+
     app_name: str = Field(
         default="FinHub API",
         description="Application name",
@@ -73,7 +85,7 @@ class AppSettings(BaseSettings):
     )
 
     app_version: str = Field(
-        default="0.1.0",
+        default="0.1.1",
         description="Application version",
         validation_alias="APP_VERSION",
     )

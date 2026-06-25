@@ -16,7 +16,7 @@ async def log_client_ip_middleware(request: Request, call_next):
     client_ip = request.headers.get(
         "X-Forwarded-For", request.client.host if request.client else "unknown"
     )
-    logger.info("API called by client IP address: %s", client_ip)
+    logger.debug("API called by client IP address: %s", client_ip)
     response = await call_next(request)
     response.headers["X-API-Version"] = "v1"
     return response

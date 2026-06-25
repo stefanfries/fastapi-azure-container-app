@@ -18,8 +18,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.database import close_database_connection, connect_to_database
 from app.core.logging import logger
+from app.core.settings import settings
 from app.middleware import log_client_ip_middleware
 from app.routers import (
+    admin,
     depots,
     health,
     history,
@@ -29,6 +31,7 @@ from app.routers import (
     root,
     warrants,
 )
+from app.services.log_level_manager import initialize_runtime_log_level
 
 
 @asynccontextmanager
@@ -40,6 +43,7 @@ async def lifespan(app: FastAPI):
     # Startup: Connect to MongoDB
     try:
         await connect_to_database()
+        await initialize_runtime_log_level()
     except Exception as e:
         logger.error("Failed to connect to database during startup: %s", e)
         raise
@@ -66,7 +70,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="FinHub API",
     description="Financial data aggregator API providing unified access to instrument master data, quotes, historical prices, warrant and index information from comdirect.",
-    version="0.1.0",
+    version=settings.app.app_version,
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -81,6 +85,7 @@ app.middleware("http")(log_client_ip_middleware)
 
 app.include_router(root.router)
 app.include_router(health.router)
+app.include_router(admin.router)
 app.include_router(instruments.router)
 app.include_router(quotes.router)
 app.include_router(history.router)

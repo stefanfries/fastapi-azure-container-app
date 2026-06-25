@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 562 unit tests passing; coverage reporting enabled (79%)
+- 600 unit tests passing; coverage reporting enabled (90%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 562 unit tests passing (79%); no parser/scraper integration tests yet
+- **Testing**: 600 unit tests passing (90%); no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -69,6 +69,7 @@ Priority: HIGH - Required for reliable development
   
 - [x] Logging module implemented ✅ (`app/core/logging.py`, `api_logger`)
   - [x] Add comprehensive entry/exit logging to parsers and scrapers ✅ — `debug`-level entry/exit logs added to `parse_instrument_data`, `parse_quote`, `parse_history_data`, `parse_warrant_detail`, `fetch_warrants` (already logged), and `fetch_one`
+  - [x] Runtime log-level management added ✅ — `LOG_LEVEL` env var is validated and applied at startup, with optional MongoDB-backed override via `/v1/admin/log-level`
 
 #### 1.2 Database Integration
 
@@ -103,8 +104,8 @@ Priority: HIGH - Required for reliable development
   - [ ] `pytest-env` for environment management (not yet needed)
   
 - [ ] Establish test coverage targets
-  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently 79%)
-  - [ ] Reach minimum 80% coverage for new code — currently 1% below threshold
+  - [x] Coverage reporting configured in `pyproject.toml` ✅ (currently 90%)
+  - [x] Reach minimum 80% coverage for new code ✅
 
 #### 1.4 API & Software Versioning
 
@@ -113,7 +114,7 @@ Priority: HIGH - Required for reliable development
   - [ ] Consider restructuring into `app/api/v1/` if versioning beyond v1 is needed
   
 - [x] Add software release versioning ✅
-  - `app_version` field in `app/core/settings.py` (default `"0.1.0"`)
+  - `app_version` field in `app/core/settings.py` (default `"0.1.1"`)
   - Version exposed via `FastAPI(version=...)` in `main.py` and in `GET /health/ready` response
   - [ ] No dedicated `app/version.py` module; version set via `APP_VERSION` env var
   
@@ -123,7 +124,7 @@ Priority: HIGH - Required for reliable development
     ```json
     {
       "application": "FinHub API",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "api_version": "v1",
       "data_sources": ["comdirect"],
       "docs": "/docs",
@@ -161,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 562 unit tests passing; coverage reporting active (79%)
+- ✅ 600 unit tests passing; coverage reporting active (90%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -300,7 +301,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 562 unit tests; test layout mirrors `app/` directory structure — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
+- ✅ 600 unit tests; test layout mirrors `app/` directory structure — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
   - `tests/unit/core/test_database.py` — 13 tests for `get_database()` / `get_collection()` guard logic and `Collections` constants
   - `tests/unit/models/test_models.py` — 25 tests for `Depot`, `HistoryData`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex
 
@@ -368,14 +369,14 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 #### 4.4 Coverage Targets
 
-- [x] Achieve minimum 80% code coverage ✅ (82%)
+- [x] Achieve minimum 80% code coverage ✅ (90%)
 - [x] Generate coverage reports in CI ✅
-- [ ] Enforce coverage thresholds (`--cov-fail-under` not yet configured)
+- [x] Enforce coverage thresholds (`--cov-fail-under=80`) ✅
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (562 unit tests)
-- ⚠️ 79% code coverage — 1% below the 80% target; threshold flag not yet added to CI
+- ✅ Comprehensive test suite (600 unit tests)
+- ✅ 90% code coverage — above 80% target with threshold enforcement enabled
 - ✅ Automated test execution in CI
 
 ---
@@ -649,7 +650,7 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 562 unit tests passing; ~79% coverage
+- ✅ 600 unit tests passing; ~90% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
@@ -667,8 +668,8 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 562 unit tests passing
-- ⚠️ 79% code coverage — 1% below 80% target
+- ✅ 600 unit tests passing
+- ✅ 90% code coverage — above 80% target
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed
 
@@ -724,10 +725,10 @@ Priority: MEDIUM - Improve developer experience
 
 ## Next Steps
 
-_Updated 2026-06-20 — Phases 1–3 complete; Phases 4–5 in progress. 562 tests passing, 79% coverage (verified)._
+_Updated 2026-06-25 — Phases 1–3 complete; Phases 4–5 in progress. 600 tests passing, 90% coverage (verified)._
 
 1. **Clear instrument cache** — run `uv run python scripts/clear_instrument_cache.py` once to purge instruments cached with the wrong `symbol_yfinance` (US OTC ticker instead of home-exchange ticker).
-2. **Enforce coverage threshold** (Phase 4.4) — add `--cov-fail-under=80` to CI; coverage is at ~79% so first bring it back above 80%, then add the flag.
+2. **Maintain coverage threshold** (Phase 4.4) — keep `--cov-fail-under=80` active in CI and prevent regressions below the gate.
 3. **Integration tests** (Phase 4.2) — at least one end-to-end test against a mocked comdirect response for the full `parse_instrument_data` flow.
 4. **Retry logic with exponential backoff** (Phase 5.2) — wrap `httpx` calls in `app/scrapers/scrape_url.py` to handle transient 5xx / connection drops from comdirect.
 5. **Global exception handlers** (Phase 5.2) — standardize error response shape across all routers; define `app/core/exceptions.py`.

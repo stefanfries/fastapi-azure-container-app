@@ -7,6 +7,8 @@ and Papertrail via SysLogHandler.  Import ``logger`` from this module.
 import logging
 import logging.config
 
+from app.core.settings import settings
+
 PAPERTRAILHOST = "logs2.papertrailapp.com"
 PAPERTRAILPORT = 41485
 
@@ -37,7 +39,7 @@ config_dict = {
     },
     "loggers": {
         "api_logger": {
-            "level": "DEBUG",
+            "level": settings.app.log_level,
             "handlers": ["console", "file", "papertrail"],
             "propagate": False,
         },

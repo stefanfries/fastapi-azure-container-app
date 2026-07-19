@@ -208,6 +208,59 @@ az containerapp update \
   --max-replicas 5
 ```
 
+### Post-Deploy Data-Quality Backfill (ISIN Mapping)
+
+After deploying mapping-related changes, run a targeted backfill to update cached
+`symbol_yfinance` and constituent-name corrections without clearing the full cache.
+
+```powershell
+uv run python -m scripts.backfill_mapping_overrides
+```
+
+Expected output:
+
+```text
+Backfill complete: instrument_docs_updated=<n> index_member_docs_updated=<n>
+```
+
+### Post-Deploy Smoke Checks (Mapping)
+
+Verify canonical mappings:
+
+```powershell
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/US74743L1008" | Select-Object -ExpandProperty global_identifiers
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH0044328745" | Select-Object -ExpandProperty global_identifiers
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH0114405324" | Select-Object -ExpandProperty global_identifiers
+```
+
+Expected `symbol_yfinance` values:
+
+- `US74743L1008` -> `BG`
+- `CH0044328745` -> `CB`
+- `CH0114405324` -> `GRMN`
+
+Verify S&P 500 constituent name corrections:
+
+```powershell
+$members = Invoke-RestMethod -Uri "https://<app-fqdn>/v1/indices/S%26P%20500"
+$members | Where-Object { $_.isin -in @('US74743L1008','CH0044328745','CH0114405324') } | Select-Object isin, name
+```
+
+Expected names:
+
+- `US74743L1008` -> `Bunge Global S.A.`
+- `CH0044328745` -> `Chubb Limited`
+- `CH0114405324` -> `Garmin Ltd.`
+
+### Rollback (Mapping Patch)
+
+If a regression is detected:
+
+1. Roll back to the previous app revision.
+2. Revert mapping changes and redeploy.
+3. Clear affected cache entries (or let TTL expire) before re-verification.
+4. Re-run the smoke checks above.
+
 ---
 
 ## 🐛 Troubleshooting

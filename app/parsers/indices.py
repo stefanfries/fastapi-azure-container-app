@@ -1,5 +1,6 @@
 import asyncio
 import re
+from collections import Counter
 
 import httpx
 from bs4 import BeautifulSoup
@@ -14,6 +15,13 @@ INDEX_LIST_URL = f"{BASE_URL}/inf/index.html"
 
 _ISIN_RE = re.compile(r"([A-Z]{2}[A-Z0-9]{10})$")
 _repo = IndicesRepository()
+
+# Canonical constituent names keyed by ISIN for known malformed aliases.
+_INDEX_MEMBER_NAME_OVERRIDES: dict[str, str] = {
+    "US74743L1008": "Bunge Global S.A.",
+    "CH0044328745": "Chubb Limited",
+    "CH0114405324": "Garmin Ltd.",
+}
 
 
 def _normalize_name(name: str) -> str:
@@ -41,6 +49,77 @@ def _extract_asset_class_label(href: str) -> str | None:
         asset_class = asset_class_identifier_to_asset_class_map.get(identifier)
         return asset_class.value if asset_class else None
     return None
+
+
+def _normalize_company_name(name: str) -> str:
+    """Normalize constituent names for duplicate/anomaly detection."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _apply_member_name_override(isin: str, parsed_name: str) -> str:
+    """Return canonical name for known malformed aliases."""
+    override = _INDEX_MEMBER_NAME_OVERRIDES.get(isin)
+    if override and override != parsed_name:
+        logger.warning(
+            "constituent_name_corrected isin=%s old_name=%s new_name=%s",
+            isin,
+            parsed_name,
+            override,
+        )
+        return override
+    return parsed_name
+
+
+def _deduplicate_members_by_isin(members: list[IndexMember], label: str) -> list[IndexMember]:
+    """Drop duplicate constituents by ISIN, preserving first occurrence."""
+    deduped: list[IndexMember] = []
+    seen_isins: set[str] = set()
+    duplicate_isins: set[str] = set()
+
+    for member in members:
+        if member.isin in seen_isins:
+            duplicate_isins.add(member.isin)
+            continue
+        seen_isins.add(member.isin)
+        deduped.append(member)
+
+    if duplicate_isins:
+        logger.warning(
+            "constituent_duplicate_isin index=%s duplicate_count=%d duplicate_isins=%s",
+            label,
+            len(duplicate_isins),
+            sorted(duplicate_isins),
+        )
+
+    return deduped
+
+
+def _log_member_anomalies(members: list[IndexMember], label: str) -> None:
+    """Log duplicate and override-drift anomalies for constituent names."""
+    normalized_counter = Counter(_normalize_company_name(member.name) for member in members)
+    duplicate_names = sorted(name for name, count in normalized_counter.items() if count > 1)
+    if duplicate_names:
+        logger.warning(
+            "constituent_duplicate_normalized_name index=%s duplicate_count=%d names=%s",
+            label,
+            len(duplicate_names),
+            duplicate_names,
+        )
+
+    override_drift = [
+        member
+        for member in members
+        if member.isin in _INDEX_MEMBER_NAME_OVERRIDES
+        and member.name != _INDEX_MEMBER_NAME_OVERRIDES[member.isin]
+    ]
+    if override_drift:
+        logger.warning(
+            "constituent_override_drift index=%s count=%d isins=%s names=%s",
+            label,
+            len(override_drift),
+            [member.isin for member in override_drift],
+            [member.name for member in override_drift],
+        )
 
 
 def _get_total_pages(soup: BeautifulSoup) -> int:
@@ -76,9 +155,12 @@ def _parse_members_from_table(soup: BeautifulSoup) -> list[IndexMember]:
         if not isin:
             logger.warning("Could not extract ISIN from href '%s', skipping", href)
             continue
+        parsed_name = link_tag.get_text(strip=True)
+        name = _apply_member_name_override(isin, parsed_name)
+
         members.append(
             IndexMember(
-                name=link_tag.get_text(strip=True),
+                name=name,
                 isin=isin,
                 link=f"{BASE_URL}{href}",
                 asset_class=_extract_asset_class_label(href),
@@ -285,6 +367,9 @@ async def _fetch_all_members(
                 page_response.raise_for_status()
                 page_soup = BeautifulSoup(page_response.content, "html.parser")
                 members.extend(_parse_members_from_table(page_soup))
+
+    members = _deduplicate_members_by_isin(members, label)
+    _log_member_anomalies(members, label)
 
     if expected_count is not None and len(members) != expected_count:
         logger.warning(

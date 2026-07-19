@@ -120,3 +120,28 @@ All original technical requirements are met. The following has been implemented:
 - Coverage threshold enforcement (`--cov-fail-under`) not yet configured in CI
 - `yfinance` slash-to-hyphen normalisation: OpenFIGI returns share-class tickers like `BF/B`;
   `_derive_yfinance_symbol()` normalises these to `BF-B` (Yahoo Finance format) on all return paths
+
+## Mapping Quality Hardening (2026-07-19)
+
+- ✅ Deterministic yfinance symbol ranking implemented in `app/services/identifier_enrichment.py`:
+  1. home exchange from ISIN country,
+  2. US listing fallback,
+  3. known exchange fallback.
+- ✅ Auditable server-side override table (`_ISIN_SYMBOL_OVERRIDES`) added for exceptional ISIN mappings,
+  including `owner`, `reason`, and `updated_at` metadata.
+- ✅ Post-mapping validation added against Yahoo chart availability (`range=5d`, `interval=1d`) with
+  automatic promotion to the next viable ranked candidate when primary candidate has no recent series.
+- ✅ Structured observability logs added for:
+  - `mapping_override_applied`
+  - `mapping_corrected_by_validation`
+  - `mapping_validation_fallback`
+  - `mapping_unresolved_no_candidates`
+  - `openfigi_lookup_failed`
+- ✅ Index constituent hygiene in `app/parsers/indices.py`:
+  - ISIN-keyed canonical name overrides for known malformed aliases
+  - deduplication by ISIN
+  - anomaly checks by normalized company name
+  - focused override-drift logging (replacing noisy broad `O.N.` heuristic)
+- ✅ Targeted cache backfill script added: `scripts/backfill_mapping_overrides.py`.
+- ✅ Regression coverage added for mapping overrides, candidate fallback promotion, constituent name
+  normalization, and member-count mismatch warning behavior.

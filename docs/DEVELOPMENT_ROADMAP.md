@@ -725,9 +725,9 @@ Priority: MEDIUM - Improve developer experience
 
 ## Next Steps
 
-_Updated 2026-06-25 — Phases 1–3 complete; Phases 4–5 in progress. 600 tests passing, 90% coverage (verified)._
+_Updated 2026-07-19 — Phases 1–3 complete; Phases 4–5 in progress. 609 tests passing, 91% coverage (verified)._
 
-1. **Clear instrument cache** — run `uv run python scripts/clear_instrument_cache.py` once to purge instruments cached with the wrong `symbol_yfinance` (US OTC ticker instead of home-exchange ticker).
+1. **Run targeted mapping backfill** — run `uv run python -m scripts.backfill_mapping_overrides` once after deploy to update cached instrument and index-member corrections for known ISIN overrides.
 2. **Maintain coverage threshold** (Phase 4.4) — keep `--cov-fail-under=80` active in CI and prevent regressions below the gate.
 3. **Integration tests** (Phase 4.2) — at least one end-to-end test against a mocked comdirect response for the full `parse_instrument_data` flow.
 4. **Retry logic with exponential backoff** (Phase 5.2) — wrap `httpx` calls in `app/scrapers/scrape_url.py` to handle transient 5xx / connection drops from comdirect.

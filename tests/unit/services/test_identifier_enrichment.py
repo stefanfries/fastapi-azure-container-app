@@ -10,6 +10,7 @@ from app.services.identifier_enrichment import (
     _derive_yfinance_symbol,
     _pick_composite_figi,
     _pick_name,
+    _rank_yfinance_candidates,
     build_global_identifiers,
 )
 
@@ -61,6 +62,12 @@ class TestDeriveYfinanceSymbol:
         """All records filtered out → None."""
         records = [_rec("IFNNF", "OQX")]
         assert _derive_yfinance_symbol(records, "DE") is None
+
+    def test_rank_candidates_is_deterministic(self) -> None:
+        records = [_rec("Q23", "SW"), _rec("BG", "UN"), _rec("BG", "US")]
+        ranked = _rank_yfinance_candidates(records, "US")
+        assert ranked[0][0] == "BG"
+        assert ranked[0][1] == "home_exchange"
 
 
 class TestDeriveCusip:
@@ -133,6 +140,9 @@ class TestBuildGlobalIdentifiers:
         with patch(
             "app.services.identifier_enrichment.openfigi_client.map_by_isin",
             new=AsyncMock(return_value=mock_records),
+        ), patch(
+            "app.services.identifier_enrichment._has_recent_yahoo_prices",
+            new=AsyncMock(return_value=True),
         ):
             result = await build_global_identifiers(
                 isin="US67066G1040", wkn=None, symbol_comdirect="NVDA", asset_class=AssetClass.STOCK
@@ -147,6 +157,9 @@ class TestBuildGlobalIdentifiers:
         with patch(
             "app.services.identifier_enrichment.openfigi_client.map_by_wkn",
             new=AsyncMock(return_value=mock_records),
+        ), patch(
+            "app.services.identifier_enrichment._has_recent_yahoo_prices",
+            new=AsyncMock(return_value=True),
         ):
             result = await build_global_identifiers(
                 isin=None, wkn="723610", symbol_comdirect="SIE", asset_class=AssetClass.STOCK
@@ -166,7 +179,53 @@ class TestBuildGlobalIdentifiers:
             "app.services.identifier_enrichment.openfigi_client.map_by_isin",
             new=AsyncMock(side_effect=Exception("network error")),
         ):
-            with pytest.raises(Exception):
-                await build_global_identifiers(
-                    isin="US0378331005", wkn=None, symbol_comdirect="AAPL", asset_class=AssetClass.STOCK
-                )
+            result = await build_global_identifiers(
+                isin="US0378331005", wkn=None, symbol_comdirect="AAPL", asset_class=AssetClass.STOCK
+            )
+        assert result.figi is None
+        assert result.symbol_yfinance is None
+
+    async def test_known_overrides_return_expected_symbols(self) -> None:
+        with patch(
+            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+            new=AsyncMock(return_value=[]),
+        ):
+            bg = await build_global_identifiers(
+                isin="US74743L1008",
+                wkn=None,
+                symbol_comdirect="BG",
+                asset_class=AssetClass.STOCK,
+            )
+            cb = await build_global_identifiers(
+                isin="CH0044328745",
+                wkn=None,
+                symbol_comdirect="CB",
+                asset_class=AssetClass.STOCK,
+            )
+            grmn = await build_global_identifiers(
+                isin="CH0114405324",
+                wkn=None,
+                symbol_comdirect="GRMN",
+                asset_class=AssetClass.STOCK,
+            )
+
+        assert bg.symbol_yfinance == "BG"
+        assert cb.symbol_yfinance == "CB"
+        assert grmn.symbol_yfinance == "GRMN"
+
+    async def test_validation_promotes_next_viable_candidate(self) -> None:
+        records = [
+            {"exchCode": "GY", "compositeFIGI": "BBG001", "ticker": "ABC", "name": "ABC AG"},
+            {"exchCode": "UN", "compositeFIGI": "BBG002", "ticker": "ABCU", "name": "ABC AG"},
+        ]
+        with patch(
+            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+            new=AsyncMock(return_value=records),
+        ), patch(
+            "app.services.identifier_enrichment._has_recent_yahoo_prices",
+            new=AsyncMock(side_effect=[False, True]),
+        ):
+            result = await build_global_identifiers(
+                isin="DE0007164600", wkn=None, symbol_comdirect="ABC", asset_class=AssetClass.STOCK
+            )
+        assert result.symbol_yfinance == "ABCU"

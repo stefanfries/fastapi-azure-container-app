@@ -355,6 +355,8 @@ App reads MONGODB_CONNECTION_STRING env var
 
 ### Initial Setup (one-time)
 
+<!-- markdownlint-disable MD029 -->
+
 1. Store the secret in Key Vault**
 
 ```bash
@@ -400,6 +402,8 @@ az containerapp update \
   --resource-group rg-FastAPI-AzureContainerApp-dev \
   --set-env-vars "MONGODB_CONNECTION_STRING=secretref:mongodb-connection-string"
 ```
+
+<!-- markdownlint-enable MD029 -->
 
 ### Rotating the Secret
 

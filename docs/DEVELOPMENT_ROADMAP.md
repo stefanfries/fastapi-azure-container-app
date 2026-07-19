@@ -1260,4 +1260,4 @@ if __name__ == "__main__":
 
 ---
 
-*This plan is a living document and should be updated as requirements evolve or priorities change.*
+_This plan is a living document and should be updated as requirements evolve or priorities change._

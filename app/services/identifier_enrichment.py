@@ -87,10 +87,16 @@ class MappingOverride:
 
 # Server-side correction table for known mapping anomalies.
 _ISIN_SYMBOL_OVERRIDES: dict[str, MappingOverride] = {
-    "US74743L1008": MappingOverride(
+    "CH1300646267": MappingOverride(
         symbol_yfinance="BG",
         owner="data-quality-team",
         reason="OpenFIGI returned stale/wrong symbols (Q23, Q23.SW) for Bunge Global S.A.",
+        updated_at="2026-07-19T00:00:00Z",
+    ),
+    "US74743L1008": MappingOverride(
+        symbol_yfinance="BG",
+        owner="data-quality-team",
+        reason="Legacy Bunge ISIN retained for backward compatibility with historical cache rows.",
         updated_at="2026-07-19T00:00:00Z",
     ),
     "CH0044328745": MappingOverride(

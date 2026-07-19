@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
-from app.models.instruments import AssetClass, Instrument
+from app.models.instruments import AssetClass, GlobalIdentifiers, Instrument
 
 
 def _instrument(**overrides) -> Instrument:
@@ -83,3 +83,31 @@ class TestGetInstrument:
         ) as mock_fn:
             client.get("/v1/instruments/US67066G1040", headers={"X-API-Key": "test"})
         mock_fn.assert_awaited_once_with("US67066G1040")
+
+    def test_ch1300646267_returns_bg_yfinance_symbol(self, client):
+        instrument = _instrument(
+            name="Bunge Global S.A.",
+            wkn=None,
+            isin="CH1300646267",
+            global_identifiers=GlobalIdentifiers(
+                isin="CH1300646267",
+                wkn=None,
+                cusip=None,
+                figi="BBG01XYZ",
+                symbol_comdirect="Q23",
+                symbol_yfinance="BG",
+                name_openfigi="BUNGE GLOBAL SA",
+            ),
+        )
+        with patch(
+            "app.routers.instruments.parse_instrument_data",
+            new_callable=AsyncMock,
+            return_value=instrument,
+        ):
+            response = client.get("/v1/instruments/CH1300646267", headers={"X-API-Key": "test"})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["isin"] == "CH1300646267"
+        assert body["global_identifiers"]["symbol_yfinance"] == "BG"
+        assert body["global_identifiers"]["symbol_comdirect"] == "Q23"

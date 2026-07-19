@@ -18,6 +18,7 @@ _repo = IndicesRepository()
 
 # Canonical constituent names keyed by ISIN for known malformed aliases.
 _INDEX_MEMBER_NAME_OVERRIDES: dict[str, str] = {
+    "CH1300646267": "Bunge Global S.A.",
     "US74743L1008": "Bunge Global S.A.",
     "CH0044328745": "Chubb Limited",
     "CH0114405324": "Garmin Ltd.",

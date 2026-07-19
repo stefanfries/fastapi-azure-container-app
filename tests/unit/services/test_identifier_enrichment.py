@@ -191,9 +191,9 @@ class TestBuildGlobalIdentifiers:
             new=AsyncMock(return_value=[]),
         ):
             bg = await build_global_identifiers(
-                isin="US74743L1008",
+                isin="CH1300646267",
                 wkn=None,
-                symbol_comdirect="BG",
+                symbol_comdirect="Q23",
                 asset_class=AssetClass.STOCK,
             )
             cb = await build_global_identifiers(

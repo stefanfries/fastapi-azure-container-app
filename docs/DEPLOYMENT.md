@@ -212,6 +212,8 @@ az containerapp update \
 
 After deploying mapping-related changes, run a targeted backfill to update cached
 `symbol_yfinance` and constituent-name corrections without clearing the full cache.
+The script also refreshes `cached_at` on touched records so corrected values are
+served immediately.
 
 ```powershell
 uv run python -m scripts.backfill_mapping_overrides
@@ -228,6 +230,7 @@ Backfill complete: instrument_docs_updated=<n> index_member_docs_updated=<n>
 Verify canonical mappings:
 
 ```powershell
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH1300646267" | Select-Object -ExpandProperty global_identifiers
 Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/US74743L1008" | Select-Object -ExpandProperty global_identifiers
 Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH0044328745" | Select-Object -ExpandProperty global_identifiers
 Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH0114405324" | Select-Object -ExpandProperty global_identifiers
@@ -235,7 +238,8 @@ Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH0114405324" | Select
 
 Expected `symbol_yfinance` values:
 
-- `US74743L1008` -> `BG`
+- `CH1300646267` -> `BG`
+- `US74743L1008` -> `BG` (legacy compatibility)
 - `CH0044328745` -> `CB`
 - `CH0114405324` -> `GRMN`
 
@@ -248,9 +252,22 @@ $members | Where-Object { $_.isin -in @('US74743L1008','CH0044328745','CH0114405
 
 Expected names:
 
+- `CH1300646267` -> `Bunge Global S.A.`
 - `US74743L1008` -> `Bunge Global S.A.`
 - `CH0044328745` -> `Chubb Limited`
 - `CH0114405324` -> `Garmin Ltd.`
+
+Verify idempotency of enrichment output:
+
+```powershell
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH1300646267" | Select-Object -ExpandProperty global_identifiers
+Invoke-RestMethod -Uri "https://<app-fqdn>/v1/instruments/CH1300646267" | Select-Object -ExpandProperty global_identifiers
+```
+
+Expected behavior on repeated calls:
+
+- `symbol_yfinance` remains `BG` for `CH1300646267`.
+- `symbol_comdirect` may remain exchange-local (for example `Q23`).
 
 ### Rollback (Mapping Patch)
 

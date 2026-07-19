@@ -7,7 +7,7 @@ Implemented on 2026-07-19.
 ## Implementation Summary
 
 1. Canonical mapping fixes delivered:
-   - `US74743L1008` -> `BG`
+   - `CH1300646267` -> `BG`
    - `CH0044328745` -> `CB`
    - `CH0114405324` -> `GRMN`
 2. Deterministic source-priority/ranking rules added for yfinance symbol selection.
@@ -20,6 +20,16 @@ Implemented on 2026-07-19.
 6. Backfill script delivered: `scripts/backfill_mapping_overrides.py`.
 7. Regression tests added and full suite passing (`609 passed`, coverage `91.06%`).
 8. API response schema unchanged.
+
+## Post-Fix Note
+
+- Why `Q23`/`Q23.SW` appeared:
+   OpenFIGI can return exchange-local aliases for cross-listed instruments, and
+   for Bunge this occasionally surfaced the Swiss/local alias path instead of the
+   canonical Yahoo symbol.
+- Why `BG` is now guaranteed for this ISIN:
+   FinHub now applies an auditable ISIN-keyed override for `CH1300646267` before
+   fallback selection, and cache backfill rewrites previously stored rows.
 
 You are working on FinHub API data quality for index constituent and instrument mapping.
 
@@ -34,14 +44,14 @@ Context
 
 Known examples to fix
 
-1) ISIN US74743L1008 (Bunge Global S.A.) should map to Yahoo symbol `BG` (NYSE).
+1) ISIN CH1300646267 (Bunge Global S.A.) should map to Yahoo symbol `BG` (NYSE).
    - Current bad symbols observed: `Q23`, `Q23.SW`
 2) ISIN CH0044328745 (Chubb) should map to `CB`
 3) ISIN CH0114405324 (Garmin) should map to `GRMN`
 
 Observed index-quality issue
 
-- S&P 500 constituent payload includes suspicious naming for US74743L1008 ("QNITY ELECTRONICS O.N.") and duplicate-like Bunge representations.
+- S&P 500 constituent payload includes suspicious naming for Bunge aliases (e.g. "QNITY ELECTRONICS O.N.") and duplicate-like Bunge representations.
 - Please validate and correct constituent metadata normalization as part of this change.
 
 Required FinHub changes
@@ -65,7 +75,7 @@ Required FinHub changes
 
 Acceptance criteria
 
-1. `/v1/instruments/US74743L1008` => `symbol_yfinance = "BG"`
+1. `/v1/instruments/CH1300646267` => `symbol_yfinance = "BG"`
 2. `/v1/instruments/CH0044328745` => `symbol_yfinance = "CB"`
 3. `/v1/instruments/CH0114405324` => `symbol_yfinance = "GRMN"`
 4. No regressions for already-correct mappings.

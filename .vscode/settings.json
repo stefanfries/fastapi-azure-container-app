@@ -21,8 +21,10 @@
             "icon": "terminal-powershell",
             "args": [
                 "-NoExit",
+                "-ExecutionPolicy",
+                "Bypass",
                 "-Command",
-                "& { if (Test-Path '${workspaceFolder}/.venv/Scripts/Activate.ps1') { & '${workspaceFolder}/.venv/Scripts/Activate.ps1' } }"
+                "& '${workspaceFolder}/.venv/Scripts/Activate.ps1'"
             ]
         }
     },

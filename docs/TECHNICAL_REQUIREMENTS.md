@@ -68,6 +68,7 @@ All original technical requirements are met. The following has been implemented:
   - Returns HTTP 503 when market is closed (prices show `--`) or data source unreachable
   - Handles two distinct comdirect HTML table layouts: `realtime-indicator--value` span (STOCK, BOND, WARRANT) and plain `<td>` (ETF, FONDS); uses Rücknahmepreis/Ausgabepreis labels for Fonds
   - Trading venue resolved from `Börse` table row (BOND, CERTIFICATE) or from instrument venue map (ETF, FONDS)
+- ✅ Quote responses include `timestamp_utc` (RFC 3339 UTC) in addition to the unchanged local `timestamp`; it represents comdirect's quote time, not FinHub's fetch time. Naive source values are interpreted as `Europe/Berlin`; ambiguous fall-back times use the first occurrence.
 - ✅ `fetch_one` (scrape_url.py) enforces a 15-second request timeout; callers receive `httpx.RequestError` on network failures
 - ✅ Custom `JSONResponse` with UTF-8 charset for German umlauts
 - ✅ CI/CD via GitHub Actions (lint + tests on PR; build + push + deploy to Azure on main)
@@ -83,7 +84,7 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 553 unit tests passing; ~78% code coverage
+- ✅ 617 tests passing; 83.62% code coverage
   - 28 tests in `tests/unit/parsers/test_warrant_detail_parser.py`
   - 49 tests in `tests/unit/parsers/test_warrants_parser.py`
   - 13 tests in `tests/unit/core/test_database.py`
@@ -106,12 +107,20 @@ All original technical requirements are met. The following has been implemented:
   - **Sentinel value caveat**: warrants without published analytics are assigned a sentinel ≥ 1.0 by
     comdirect; combining `issuer_action=true` with upper-bound Greek filters may exclude them
     unexpectedly — documented in the `issuer_action` / `issuer_no_fee_action` Query param descriptions
-- ✅ Warrant detail cap detection (`GET /v1/warrants/{wkn}` — `WarrantReferenceData`)
+- ✅ Warrant detail cap detection (`GET /v1/warrants/{identifier}` — `WarrantReferenceData`)
   - `is_capped: bool` — `True` when a `Cap` row is present in the Stammdaten table
   - `cap: float | None` — cap level (maximum payout price of the underlying)
   - `cap_currency: str | None` — currency of the cap level (e.g. `"USD"`)
   - `_parse_reference_data` in `app/parsers/warrant_detail.py` reads the `"Cap"` Stammdaten row via
     `_td_text(table, "Cap")` and delegates to `_parse_amount_currency`
+- ✅ Warrant detail `market_data` also exposes `timestamp_utc` using the same source-time conversion and compatibility behavior as `/v1/quotes/{id}`.
+
+## History Timestamp Contract
+
+The intended `/v1/history/{instrument_id}` response uses UTC timestamps for intraday bars and
+date-only values for daily, weekly, and monthly bars. This avoids inventing midnight instants for
+date-only source records. The parser and response model have not yet been updated; current history
+records still use a datetime field for every interval.
 
 ## Open / Future Work
 

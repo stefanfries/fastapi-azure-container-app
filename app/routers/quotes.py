@@ -28,7 +28,8 @@ async def get_quote(
         instrument_id: Instrument identifier (WKN, ISIN, or search term)
         id_notation: Optional specific trading venue ID notation
     Returns:
-        Quote: Current market price data including bid, ask, spread, timestamp
+        Quote: Current market data including bid, ask, spread, the source-local timestamp,
+        and timestamp_utc (the provider's quote time in RFC 3339 UTC, not fetch time).
     """
     logger.info(
         "Fetching quote for instrument_id %s and id_notation %s",

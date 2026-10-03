@@ -196,3 +196,42 @@ class TestParseQuoteAssetClassGuard:
         ):
             with pytest.raises(Exception, match="scraping skipped"):
                 await parse_quote("846900", None)
+
+
+class TestParseQuoteTimestamp:
+    @pytest.mark.asyncio
+    async def test_returns_berlin_timestamp_and_utc_timestamp(self):
+        from datetime import UTC, datetime
+
+        from app.parsers.quotes import parse_quote
+
+        instrument = _instrument(AssetClass.STOCK)
+        html = """
+        <html>
+          <head><meta itemprop="priceCurrency" content="EUR"></head>
+          <body><div><h2>Kursdaten</h2><table>
+            <tr><th>Geld</th><td>100,00</td></tr>
+            <tr><th>Brief</th><td>101,00</td></tr>
+            <tr><th>Zeit</th><td>05.05.26 22:02</td></tr>
+            <tr><th>Börse</th><td>Xetra</td></tr>
+          </table></div></body>
+        </html>
+        """
+        with (
+            patch(
+                "app.parsers.quotes.parse_instrument_data",
+                new_callable=AsyncMock,
+                return_value=instrument,
+            ),
+            patch(
+                "app.parsers.quotes.fetch_one",
+                new_callable=AsyncMock,
+                return_value=MagicMock(content=html.encode()),
+            ),
+            patch("app.parsers.quotes.extract_name_from_h1", return_value="Example"),
+            patch("app.parsers.quotes.extract_wkn_from_h2", return_value="846900"),
+        ):
+            quote = await parse_quote("846900", None)
+
+        assert quote.timestamp == datetime(2026, 5, 5, 22, 2)
+        assert quote.timestamp_utc == datetime(2026, 5, 5, 20, 2, tzinfo=UTC)

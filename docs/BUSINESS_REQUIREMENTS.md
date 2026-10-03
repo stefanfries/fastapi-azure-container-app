@@ -6,8 +6,8 @@ The API will be used to feed other software modules with all the data required f
 
 - /instruments: returns base information of a financial instruments which are ficed and do not change over time. Examples are instrument name (perhaps short and long name), WKN, ISIN, Symbol, asset class (incl subclass if available), trading venues and internal trading venue id´s.
 - instruments should be persisted to reduce scraping of the comdirect webpage to a minimum
-- /quotes: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, timestamp, asset class
-- /history: returns historic financial data (open, high, low, close, volume) for a given instrument at a given trading venue for a given time period in given intervals
+- /quotes: returns the current price of a specific instrument at a given trading venue (ask and bid prices if available), currency, quote timestamp, and asset class. The quote time is distinct from API fetch time; expose an RFC 3339 UTC value while preserving the existing local-time field for compatibility.
+- /history: returns historic financial data (open, high, low, close, volume) for a given instrument at a given trading venue for a given time period in given intervals. The target response contract is a UTC timestamp for intraday records and a date-only value for daily, weekly, and monthly records; this contract is not yet implemented.
 
  The API supports all major asset classes like stocks, warants, fonds, etfs, certificates, bonds, indices, commodities, and currencies.
 

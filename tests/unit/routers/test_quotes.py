@@ -1,6 +1,6 @@
 """Unit tests for app.routers.quotes — GET /v1/quotes/{instrument_id}."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 from app.models.quotes import Quote
@@ -15,6 +15,7 @@ def _quote() -> Quote:
         spread_percent=0.1,
         currency="USD",
         timestamp=datetime(2024, 1, 1, 12, 0),
+        timestamp_utc=datetime(2024, 1, 1, 11, 0, tzinfo=UTC),
         trading_venue="Xetra",
         id_notation="12345",
     )
@@ -32,6 +33,7 @@ class TestGetQuote:
         body = response.json()
         assert body["wkn"] == "918422"
         assert body["bid"] == 100.0
+        assert body["timestamp_utc"] == "2024-01-01T11:00:00Z"
 
     def test_id_notation_query_param_passed(self, client):
         with patch(

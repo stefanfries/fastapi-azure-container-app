@@ -90,7 +90,12 @@ class WarrantMarketData(BaseModel):
     venue: str | None = Field(None, description="Trading venue name")
     bid: float | None = Field(None, description="Bid (Geld) price")
     ask: float | None = Field(None, description="Ask (Brief) price")
-    timestamp: datetime | None = Field(None, description="Quote timestamp")
+    timestamp: datetime | None = Field(
+        None, description="Quote timestamp as displayed by comdirect, in naive Europe/Berlin time"
+    )
+    timestamp_utc: datetime | None = Field(
+        None, description="Quote timestamp converted to UTC; this is not the API fetch time"
+    )
     spread_percent: float | None = Field(None, description="Bid-ask spread as % of ask")
     spread_homogenized: float | None = Field(None, description="Homogenised spread")
     prev_close: float | None = Field(None, description="Previous close price (Vortag)")

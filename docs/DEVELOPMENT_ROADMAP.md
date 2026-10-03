@@ -31,13 +31,13 @@ Based on a comprehensive review of the codebase against business and technical r
 - `GET /` root endpoint returns structured app metadata (name, version, api_version, data_sources, docs, health)
 - `GET /health` liveness probe and `GET /health/ready` readiness probe implemented
 - Test infrastructure set up: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
-- 600 unit tests passing; coverage reporting enabled (90%)
+- 617 tests passing; coverage reporting enabled (83.62%)
 - `app/core/security.py` — API key protection (`X-API-Key` header) on all data endpoints
 - Toolchain: `ruff` for linting and formatting (replaced `black` + `pylint`)
 
 ### ⚠️ Partially Completed
 
-- **Testing**: 600 unit tests passing (90%); no parser/scraper integration tests yet
+- **Testing**: 617 tests passing (83.62%); no parser/scraper integration tests yet
 - **Error Handling**: Basic middleware exists, could be enhanced
 - **API Documentation**: Auto-generated OpenAPI; no detailed endpoint docs beyond auto-generation
 
@@ -162,7 +162,7 @@ Priority: HIGH - Required for reliable development
 - ✅ Test infrastructure: `tests/unit/`, `tests/integration/`, `pytest-asyncio`, `pytest-mock`, `conftest.py`
 - ✅ Root `/` returns structured app metadata (`app/routers/root.py`)
 - ✅ Health endpoints implemented (`/health`, `/health/ready`) in `app/routers/health.py`
-- ✅ 600 unit tests passing; coverage reporting active (90%)
+- ✅ 617 tests passing; coverage reporting active (83.62%)
 - ✅ Toolchain: `ruff` for linting and formatting
 - [x] DB indexes on instruments collection ✅ — sparse unique indexes on `wkn` and `isin` created in `connect_to_database()`; `InstrumentRepository.save()` falls back to ISIN key for foreign instruments without a WKN; `Instrument` model validator enforces at least one of WKN/ISIN is present
 
@@ -293,6 +293,17 @@ with independent `_min` / `_max` query parameters:
   - `TestParseReferenceDataCapped` (7 tests — UN2U70-style: `is_capped=True`, cap=240 USD)
   - `TestParseReferenceDataUncapped` (5 tests — MK9L2L-style: `is_capped=False`, cap=None)
 
+#### 2.7 Quote Timestamp UTC Fields ✅ COMPLETED
+
+- [x] `GET /v1/quotes/{id}` and `GET /v1/warrants/{identifier}` include `timestamp_utc` in RFC 3339 UTC format.
+- Existing naive `timestamp` fields remain unchanged for compatibility; both fields identify the provider's quote time, not FinHub's fetch time.
+- Naive comdirect quote times are interpreted in `Europe/Berlin`; ambiguous fall-back times use the first occurrence.
+
+#### 2.8 History Timestamp Contract (Implementation Pending)
+
+- [ ] Return UTC timestamps for intraday history records and date-only values for daily, weekly, and monthly records.
+- [ ] Update the history parser and response model; currently every interval returns `data[].datetime` as a datetime value.
+
 - ✅ All 9 asset classes supported by plugin system
 - ✅ Asset-class-specific data models defined and integrated into `Instrument`
 - ✅ `GET /v1/instruments/{wkn|isin}` returns enriched `details` for ALL 9 asset classes (STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY)
@@ -301,7 +312,7 @@ with independent `_min` / `_max` query parameters:
 - ✅ `CurrencyDetails`: `base_currency`, `quote_currency`, `country`
 - ✅ `IndexMember.instrument_url` cross-links to `/v1/instruments/{isin}`
 - ✅ `GET /v1/indices/{name|isin|wkn}` accepts ISIN directly with cross-ISIN fallback
-- ✅ 600 unit tests; test layout mirrors `app/` directory structure — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
+- ✅ 617 tests; test layout mirrors `app/` directory structure — 49 tests for all pure helpers in `warrants.py` (URL building, Greek filter pairs, row parsing)
   - `tests/unit/core/test_database.py` — 13 tests for `get_database()` / `get_collection()` guard logic and `Collections` constants
   - `tests/unit/models/test_models.py` — 25 tests for `Depot`, `HistoryData`, `IndexInfo`/`IndexMember` field constraints and WKN/ISIN regex
 
@@ -375,8 +386,8 @@ Priority: MEDIUM-HIGH - Ensure reliability
 
 **Deliverables:**
 
-- ✅ Comprehensive test suite (600 unit tests)
-- ✅ 90% code coverage — above 80% target with threshold enforcement enabled
+- ✅ Comprehensive test suite (617 tests)
+- ✅ 83.62% code coverage — above 80% target with threshold enforcement enabled
 - ✅ Automated test execution in CI
 
 ---
@@ -650,7 +661,7 @@ Priority: MEDIUM - Improve developer experience
 - ✅ All routes versioned under `/v1/`
 - ✅ Root endpoint (`/`) returns structured app metadata
 - ✅ Health endpoints (`/health`, `/health/ready`) implemented
-- ✅ 600 unit tests passing; ~90% coverage
+- ✅ 617 tests passing; 83.62% coverage
 - [ ] Azure Container Apps health probe configuration in deployment pipeline
 
 ### Phase 2 (Asset Classes)
@@ -668,7 +679,7 @@ Priority: MEDIUM - Improve developer experience
 
 ### Phase 4 (Testing)
 
-- ✅ 600 unit tests passing
+- ✅ 617 tests passing
 - ✅ 90% code coverage — above 80% target
 - ✅ CI pipeline includes all tests
 - Integration and E2E tests still needed

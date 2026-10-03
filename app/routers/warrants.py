@@ -354,7 +354,8 @@ async def get_warrant_detail(identifier: str) -> WarrantDetailResponse:
     Resolves the warrant's WKN or ISIN to a comdirect detail page and parses
     three groups of information:
 
-    - **market_data** — live bid/ask prices, spread, OHLC, timestamp, venue
+        - **market_data** — live bid/ask prices, spread, OHLC, source-local timestamp,
+            `timestamp_utc` (RFC 3339 UTC quote time, not fetch time), and venue
     - **analytics** — Greeks and derived key metrics (delta, omega, IV, theta, …)
     - **reference_data** — static attributes (strike, underlying, maturity, issuer, …)
 

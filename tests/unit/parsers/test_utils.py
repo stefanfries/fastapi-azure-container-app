@@ -16,6 +16,7 @@ from fastapi import HTTPException
 
 from app.models.instruments import AssetClass, Instrument, VenueInfo
 from app.parsers.utils import (
+    berlin_to_utc,
     check_valid_id_notation,
     get_id_notation,
     get_id_notations_dict,
@@ -224,3 +225,24 @@ class TestRoundDatetime:
     def test_full_datetime_string(self):
         result = round_datetime("2024-03-15T14:30")
         assert result.startswith("2024-03-15T14:30")
+
+
+class TestBerlinToUtc:
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("2026-01-15T22:02:00", "2026-01-15T21:02:00+00:00"),
+            ("2026-05-05T22:02:00", "2026-05-05T20:02:00+00:00"),
+        ],
+    )
+    def test_applies_berlin_seasonal_offset(self, value, expected):
+        from datetime import datetime
+
+        assert berlin_to_utc(datetime.fromisoformat(value)).isoformat() == expected
+
+    def test_ambiguous_fall_back_time_uses_first_occurrence(self):
+        from datetime import datetime
+
+        value = datetime(2026, 10, 25, 2, 30)
+
+        assert berlin_to_utc(value).isoformat() == "2026-10-25T00:30:00+00:00"

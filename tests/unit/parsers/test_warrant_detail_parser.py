@@ -1,6 +1,6 @@
 """Unit tests for app.parsers.warrant_detail — helpers and reference-data parsing."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from bs4 import BeautifulSoup
@@ -127,6 +127,20 @@ class TestParseDate:
         from app.parsers.warrant_detail import _parse_date
 
         assert _parse_date(None) is None
+
+
+class TestParseMarketDataTimestamp:
+    def test_returns_berlin_timestamp_and_utc_timestamp(self):
+        from app.parsers.warrant_detail import _parse_market_data
+
+        soup = _soup_from_rows(
+            [("Zeit", "15.01.26 22:02")],
+            heading="Kursdaten",
+        )
+        market_data = _parse_market_data(soup)
+
+        assert market_data.timestamp == datetime(2026, 1, 15, 22, 2)
+        assert market_data.timestamp_utc == datetime(2026, 1, 15, 21, 2, tzinfo=UTC)
 
 
 # ---------------------------------------------------------------------------

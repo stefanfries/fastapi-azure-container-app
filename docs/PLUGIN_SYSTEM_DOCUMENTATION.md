@@ -300,7 +300,7 @@ therefore discouraged — both query param descriptions carry an explicit warnin
 
 ## Warrant Detail Parser (`app/parsers/warrant_detail.py`)
 
-This module is also **separate from the `WarrantParser` plugin**.  It drives `GET /v1/warrants/{wkn}`
+This module is also **separate from the `WarrantParser` plugin**.  It drives `GET /v1/warrants/{identifier}`
 and fetches the full warrant detail page, parsing three sections into typed Pydantic models:
 
 | Section | Source heading | Output model |
@@ -308,6 +308,12 @@ and fetches the full warrant detail page, parsing three sections into typed Pyda
 | `market_data` | Kursdaten | `WarrantMarketData` |
 | `analytics` | Kennzahlen | `WarrantAnalytics` |
 | `reference_data` | Stammdaten | `WarrantReferenceData` |
+
+`market_data.timestamp` preserves comdirect's local quote time for compatibility.
+`market_data.timestamp_utc` provides the same quote time converted from `Europe/Berlin` to UTC
+(RFC 3339, serialized with `Z`). It is the quote's timestamp, not the API fetch time. During the
+repeated local hour when daylight-saving time ends, the conversion uses the first occurrence
+because comdirect does not provide an offset.
 
 ### Cap detection
 

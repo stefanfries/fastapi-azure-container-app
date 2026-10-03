@@ -15,12 +15,24 @@ Functions:
 """
 
 from calendar import monthrange
-from datetime import date, time
+from datetime import UTC, date, datetime, time
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 
 from app.core.logging import logger
 from app.models.instruments import Instrument
+
+
+def berlin_to_utc(value: datetime) -> datetime:
+    """Interpret a naive comdirect timestamp in Europe/Berlin and return UTC.
+
+    Ambiguous fall-back times use the first occurrence because comdirect provides
+    no offset to distinguish between the two.
+    """
+    if value.tzinfo is None or value.utcoffset() is None:
+        value = value.replace(tzinfo=ZoneInfo("Europe/Berlin"), fold=0)
+    return value.astimezone(UTC)
 
 
 def check_valid_id_notation(instrument_data, id_notation) -> None:

@@ -9,7 +9,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 
 - **FastAPI Framework**: Modern, fast web framework for building APIs
 - **All 9 Asset Classes**: STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT, INDEX, COMMODITY, CURRENCY
-- **Live Quotes for 6 Asset Classes**: `GET /v1/quotes/{id}` returns real-time bid/ask prices for STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT; returns 501 for non-tradeable classes (INDEX, COMMODITY, CURRENCY) and 503 when the market is closed or the data source is unreachable
+- **Live Quotes for 6 Asset Classes**: `GET /v1/quotes/{id}` returns real-time bid/ask prices for STOCK, BOND, ETF, FONDS, CERTIFICATE, WARRANT; includes `timestamp_utc` as the provider's RFC 3339 UTC quote time while preserving the existing local `timestamp`; returns 501 for non-tradeable classes (INDEX, COMMODITY, CURRENCY) and 503 when the market is closed or the data source is unreachable
 - **Asset-Class-Specific Details**: `GET /v1/instruments/{wkn|isin}` returns a typed `details` block per asset class — all 9 classes fully implemented including `IndexDetails` (country, currency, num_constituents, constituents_url), `CommodityDetails` (currency, symbol, country), `CurrencyDetails` (base_currency, quote_currency, country)
 - **ISIN & WKN from Stammdaten**: `SpecialAssetParser` now reads ISIN, WKN, and Symbol directly from the Stammdaten table (e.g. DAX → ISIN `DE0008469008`, symbol `DAX`)
 - **Index Constituent Link**: `IndexDetails.constituents_url` carries a ready-to-use API path (e.g. `/v1/indices/DE0008469008`) linking directly to the constituent list
@@ -17,7 +17,7 @@ A FastAPI application automatically deployed to Azure Container Apps with CI/CD 
 - **Constituent Instrument Links**: Each `IndexMember` now includes `instrument_url` (e.g. `/v1/instruments/DE0007164600`) alongside the comdirect page link
 - **Plugin-Based Parser System**: Extensible architecture — each asset class has a dedicated parser with full `parse_details()` support
 - **Warrant Finder with Full Greek Filter Support**: `GET /v1/warrants/` searches the comdirect Optionsschein Finder with all 14 analytics filter dimensions — each with independent `_min` / `_max` bounds: `delta`, `omega` (effective leverage / GEARING), `moneyness`, `premium_per_annum`, `implied_volatility`, `leverage`, `spread_ask_pct`, `theta_day`, `present_value`, `theoretical_value`, `intrinsic_value`, `break_even`, `vega`, `gamma`. Dual bounds are encoded as repeated query parameters (`DELTA_VALUE=0.5&DELTA_COMPARATOR=gt&DELTA_VALUE=0.8&DELTA_COMPARATOR=lt`).
-- **Warrant Cap Detection**: `GET /v1/warrants/{wkn}` returns `is_capped`, `cap`, and `cap_currency` in `reference_data` — automatically detected from the `Cap` row in the comdirect Stammdaten table (e.g. Bull/Bear certificates-style capped warrants with a maximum payout level)
+- **Warrant Detail Data**: `GET /v1/warrants/{identifier}` returns `market_data.timestamp_utc` as the RFC 3339 UTC quote time, alongside the existing local `market_data.timestamp`; cap fields (`is_capped`, `cap`, `cap_currency`) are detected from the comdirect Stammdaten table
 - **Instrument Data Caching**: `parse_instrument_data` checks MongoDB before scraping — cache hits skip the network call entirely; stale entries (configurable TTL via `INSTRUMENT_CACHE_TTL_DAYS`) are transparently re-fetched
 - **Index Caching**: `GET /v1/indices/` and `GET /v1/indices/{name}` serve from MongoDB (`index_catalogue` / `index_members` collections) with a 3-day TTL (`INDEX_CACHE_TTL_DAYS`); `IndexInfo` now includes `isin` and `exchange` fields alongside `wkn`
 - **MongoDB Atlas**: Async persistence via PyMongo `AsyncMongoClient` (native async, no Motor)
@@ -122,7 +122,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🧪 Testing
 
-562 unit tests passing with ~79% code coverage.
+617 tests passing with 83.62% code coverage.
 
 ```bash
 # Run all tests

@@ -30,7 +30,7 @@ from app.core.logging import logger
 from app.models.quotes import Quote
 from app.parsers.instruments import parse_instrument_data
 from app.parsers.plugins.parsing_utils import extract_name_from_h1, extract_wkn_from_h2
-from app.parsers.utils import check_valid_id_notation
+from app.parsers.utils import berlin_to_utc, check_valid_id_notation
 from app.scrapers.scrape_url import fetch_one
 
 
@@ -203,6 +203,7 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
         spread_percent=spread_percent,
         currency=currency,
         timestamp=timestamp,
+        timestamp_utc=berlin_to_utc(timestamp),
         trading_venue=trading_venue,
         id_notation=id_notation,
     )

@@ -26,6 +26,7 @@ from app.models.warrants import (
     WarrantReferenceData,
 )
 from app.parsers.instruments import parse_instrument_data
+from app.parsers.utils import berlin_to_utc
 from app.scrapers.scrape_url import fetch_one
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -141,6 +142,7 @@ def _parse_market_data(soup: BeautifulSoup) -> WarrantMarketData:
         bid=bid,
         ask=ask,
         timestamp=timestamp,
+        timestamp_utc=berlin_to_utc(timestamp) if timestamp is not None else None,
         spread_percent=_parse_float(_td_text(table, "Spread")),
         spread_homogenized=_parse_float(_td_text(table, "Spread homogen")),
         prev_close=_parse_float(_td_text(table, "Vortag")),

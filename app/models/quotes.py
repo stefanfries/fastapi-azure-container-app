@@ -24,7 +24,8 @@ class Quote(BaseModel):
         ask (float): The ask price of the financial instrument.
         spread_percent (float): The spread percentage, must be greater than or equal to 0.
         currency (Currency): The currency of the financial instrument.
-        timestamp (datetime): The timestamp of the quote data.
+        timestamp (datetime): The quote timestamp as displayed by comdirect (naive Berlin time).
+        timestamp_utc (datetime): The quote timestamp converted to UTC; not the API fetch time.
         trading_venue (str): The trading venue of the financial instrument.
         id_notation (str): The notation ID of the financial instrument.
     """
@@ -36,6 +37,11 @@ class Quote(BaseModel):
     ask: float
     spread_percent: float = Field(..., ge=0)
     currency: Currency
-    timestamp: datetime
+    timestamp: datetime = Field(
+        ..., description="Quote timestamp as displayed by comdirect, in naive Europe/Berlin time"
+    )
+    timestamp_utc: datetime = Field(
+        ..., description="Quote timestamp converted to UTC; this is not the API fetch time"
+    )
     trading_venue: str
     id_notation: str

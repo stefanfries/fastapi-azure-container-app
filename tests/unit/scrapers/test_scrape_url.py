@@ -1,6 +1,6 @@
 """Unit tests for app.scrapers.scrape_url."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -68,9 +68,7 @@ class TestFetchOne:
     async def test_fetch_one_raises_on_http_error(self, mocker) -> None:
         mock_response = MagicMock(spec=httpx.Response)
         mock_response.raise_for_status = MagicMock(
-            side_effect=httpx.HTTPStatusError(
-                "404", request=MagicMock(), response=mock_response
-            )
+            side_effect=httpx.HTTPStatusError("404", request=MagicMock(), response=mock_response)
         )
 
         mock_client = AsyncMock()

@@ -61,9 +61,7 @@ class TestUpdateLogLevel:
 
     def test_rejects_invalid_log_level(self):
         client = _make_client()
-        with patch(
-            "app.routers.admin.set_runtime_log_level", side_effect=ValueError("bad level")
-        ):
+        with patch("app.routers.admin.set_runtime_log_level", side_effect=ValueError("bad level")):
             response = client.put(
                 "/v1/admin/log-level",
                 headers={"X-API-Key": "test"},

@@ -2,8 +2,6 @@
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from app.models.instruments import AssetClass
 from app.services.identifier_enrichment import (
     _derive_cusip,
@@ -122,7 +120,10 @@ class TestPickName:
 class TestBuildGlobalIdentifiers:
     async def test_skips_enrichment_for_warrant(self) -> None:
         result = await build_global_identifiers(
-            isin="DE0007164600", wkn="716460", symbol_comdirect="SIE", asset_class=AssetClass.WARRANT
+            isin="DE0007164600",
+            wkn="716460",
+            symbol_comdirect="SIE",
+            asset_class=AssetClass.WARRANT,
         )
         assert result.figi is None
         assert result.symbol_yfinance is None
@@ -136,13 +137,23 @@ class TestBuildGlobalIdentifiers:
         assert result.wkn == "716460"
 
     async def test_enriches_stock_via_isin(self) -> None:
-        mock_records = [{"exchCode": "UN", "compositeFIGI": "BBG000NVD", "ticker": "NVDA", "name": "NVIDIA CORP"}]
-        with patch(
-            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
-            new=AsyncMock(return_value=mock_records),
-        ), patch(
-            "app.services.identifier_enrichment._has_recent_yahoo_prices",
-            new=AsyncMock(return_value=True),
+        mock_records = [
+            {
+                "exchCode": "UN",
+                "compositeFIGI": "BBG000NVD",
+                "ticker": "NVDA",
+                "name": "NVIDIA CORP",
+            }
+        ]
+        with (
+            patch(
+                "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+                new=AsyncMock(return_value=mock_records),
+            ),
+            patch(
+                "app.services.identifier_enrichment._has_recent_yahoo_prices",
+                new=AsyncMock(return_value=True),
+            ),
         ):
             result = await build_global_identifiers(
                 isin="US67066G1040", wkn=None, symbol_comdirect="NVDA", asset_class=AssetClass.STOCK
@@ -153,13 +164,18 @@ class TestBuildGlobalIdentifiers:
         assert result.cusip == "67066G104"
 
     async def test_enriches_stock_via_wkn_when_no_isin(self) -> None:
-        mock_records = [{"exchCode": "GY", "compositeFIGI": "BBG000GYX", "ticker": "SIE", "name": "SIEMENS AG"}]
-        with patch(
-            "app.services.identifier_enrichment.openfigi_client.map_by_wkn",
-            new=AsyncMock(return_value=mock_records),
-        ), patch(
-            "app.services.identifier_enrichment._has_recent_yahoo_prices",
-            new=AsyncMock(return_value=True),
+        mock_records = [
+            {"exchCode": "GY", "compositeFIGI": "BBG000GYX", "ticker": "SIE", "name": "SIEMENS AG"}
+        ]
+        with (
+            patch(
+                "app.services.identifier_enrichment.openfigi_client.map_by_wkn",
+                new=AsyncMock(return_value=mock_records),
+            ),
+            patch(
+                "app.services.identifier_enrichment._has_recent_yahoo_prices",
+                new=AsyncMock(return_value=True),
+            ),
         ):
             result = await build_global_identifiers(
                 isin=None, wkn="723610", symbol_comdirect="SIE", asset_class=AssetClass.STOCK
@@ -218,12 +234,15 @@ class TestBuildGlobalIdentifiers:
             {"exchCode": "GY", "compositeFIGI": "BBG001", "ticker": "ABC", "name": "ABC AG"},
             {"exchCode": "UN", "compositeFIGI": "BBG002", "ticker": "ABCU", "name": "ABC AG"},
         ]
-        with patch(
-            "app.services.identifier_enrichment.openfigi_client.map_by_isin",
-            new=AsyncMock(return_value=records),
-        ), patch(
-            "app.services.identifier_enrichment._has_recent_yahoo_prices",
-            new=AsyncMock(side_effect=[False, True]),
+        with (
+            patch(
+                "app.services.identifier_enrichment.openfigi_client.map_by_isin",
+                new=AsyncMock(return_value=records),
+            ),
+            patch(
+                "app.services.identifier_enrichment._has_recent_yahoo_prices",
+                new=AsyncMock(side_effect=[False, True]),
+            ),
         ):
             result = await build_global_identifiers(
                 isin="DE0007164600", wkn=None, symbol_comdirect="ABC", asset_class=AssetClass.STOCK

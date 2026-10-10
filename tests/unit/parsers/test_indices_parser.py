@@ -314,9 +314,10 @@ async def test_fetch_all_members_logs_count_mismatch_warning():
         async def get(self, url: str):
             return FakeResponse(html)
 
-    with patch("app.parsers.indices.httpx.AsyncClient", return_value=FakeClient()), patch(
-        "app.parsers.indices.logger"
-    ) as mock_logger:
+    with (
+        patch("app.parsers.indices.httpx.AsyncClient", return_value=FakeClient()),
+        patch("app.parsers.indices.logger") as mock_logger,
+    ):
         members = await _fetch_all_members("US0000000001", label="S&P 500", expected_count=2)
 
     assert len(members) == 1

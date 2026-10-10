@@ -2,7 +2,8 @@
 Parser for current market quote data.
 
 Scrapes the comdirect instrument detail page to extract the current bid/ask
-prices, spread, currency, timestamp, and trading venue for a given instrument.
+prices, spread, currency, timestamp, trading venue, and (where available)
+previous close / open / high / low for a given instrument.
 
 Supported asset classes: STOCK, BOND, ETF, FONDS, WARRANT, CERTIFICATE.
 Not supported: INDEX, COMMODITY, CURRENCY (not directly tradeable — no bid/ask).
@@ -194,18 +195,27 @@ async def parse_quote(instrument_id: str, id_notation: str | None) -> Quote:
             id_notation or "",
         )
 
+    # OHLC rows exist for STOCK ("Schluss Vortag") and WARRANT ("Vortag"); absent for ETF/Fonds/Bond
+    prev_close = _extract_table_price(table, "Schluss Vortag")
+    if prev_close is None:
+        prev_close = _extract_table_price(table, "Vortag")
+
     quote = Quote(
         name=name,
         wkn=wkn,
         isin=instrument_data.isin,
+        trading_venue=trading_venue,
+        id_notation=id_notation,
+        currency=currency,
         bid=bid,
         ask=ask,
         spread_percent=spread_percent,
-        currency=currency,
+        prev_close=prev_close,
+        open=_extract_table_price(table, "Eröffnung"),
+        high=_extract_table_price(table, "Hoch"),
+        low=_extract_table_price(table, "Tief"),
         timestamp=timestamp,
         timestamp_utc=berlin_to_utc(timestamp),
-        trading_venue=trading_venue,
-        id_notation=id_notation,
     )
     logger.debug("parse_quote(%s) done", instrument_id)
     return quote

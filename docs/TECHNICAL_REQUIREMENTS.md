@@ -69,6 +69,11 @@ All original technical requirements are met. The following has been implemented:
   - Handles two distinct comdirect HTML table layouts: `realtime-indicator--value` span (STOCK, BOND, WARRANT) and plain `<td>` (ETF, FONDS); uses Rücknahmepreis/Ausgabepreis labels for Fonds
   - Trading venue resolved from `Börse` table row (BOND, CERTIFICATE) or from instrument venue map (ETF, FONDS)
 - ✅ Quote responses include `timestamp_utc` (RFC 3339 UTC) in addition to the unchanged local `timestamp`; it represents comdirect's quote time, not FinHub's fetch time. Naive source values are interpreted as `Europe/Berlin`; ambiguous fall-back times use the first occurrence.
+- ✅ Quote responses include optional `prev_close`, `open`, `high`, `low`, read from the same Kursdaten table (no extra request)
+  - STOCK: `Schluss Vortag` / `Eröffnung` / `Hoch` / `Tief`
+  - WARRANT, CERTIFICATE: `Vortag` / `Eröffnung` / `Hoch` / `Tief`
+  - ETF, FONDS, BOND: not shown by comdirect → `null`
+  - Response field order: identity (`name`, `wkn`, `isin`), venue (`trading_venue`, `id_notation`, `currency`), prices (`bid`, `ask`, `spread_percent`), day range (`prev_close`, `open`, `high`, `low`), time (`timestamp`, `timestamp_utc`)
 - ✅ `fetch_one` (scrape_url.py) enforces a 15-second request timeout; callers receive `httpx.RequestError` on network failures
 - ✅ Custom `JSONResponse` with UTF-8 charset for German umlauts
 - ✅ CI/CD via GitHub Actions (lint + tests on PR; build + push + deploy to Azure on main)
@@ -84,7 +89,7 @@ All original technical requirements are met. The following has been implemented:
   - Cache miss → scrape → `InstrumentRepository.save()` (upsert)
   - Stale entries (age ≥ `INSTRUMENT_CACHE_TTL_DAYS`) transparently re-fetched and saved
   - TTL configurable via `INSTRUMENT_CACHE_TTL_DAYS` env var (default: 7 days, via `CacheSettings` in `app/core/settings.py`)
-- ✅ 617 tests passing; 83.62% code coverage
+- ✅ 625 tests passing; 83.66% code coverage
   - 28 tests in `tests/unit/parsers/test_warrant_detail_parser.py`
   - 49 tests in `tests/unit/parsers/test_warrants_parser.py`
   - 13 tests in `tests/unit/core/test_database.py`

@@ -235,3 +235,107 @@ class TestParseQuoteTimestamp:
 
         assert quote.timestamp == datetime(2026, 5, 5, 22, 2)
         assert quote.timestamp_utc == datetime(2026, 5, 5, 20, 2, tzinfo=UTC)
+
+
+class TestParseQuoteOHLC:
+    async def _parse(self, asset_class: AssetClass, rows: str):
+        from app.parsers.quotes import parse_quote
+
+        html = f"""
+        <html>
+          <head><meta itemprop="priceCurrency" content="EUR"></head>
+          <body><div><h2>Kursdaten</h2><table>
+            <tr><th>Börse</th><td>Tradegate</td></tr>
+            <tr><th>Diff. Vortag</th><td>+3,16 %</td></tr>
+            <tr><th>Geld</th><td>105,50</td></tr>
+            <tr><th>Brief</th><td>105,74</td></tr>
+            <tr><th>Zeit</th><td>09.10.26 22:00</td></tr>
+            {rows}
+          </table></div></body>
+        </html>
+        """
+        with (
+            patch(
+                "app.parsers.quotes.parse_instrument_data",
+                new_callable=AsyncMock,
+                return_value=_instrument(asset_class),
+            ),
+            patch(
+                "app.parsers.quotes.fetch_one",
+                new_callable=AsyncMock,
+                return_value=MagicMock(content=html.encode()),
+            ),
+            patch("app.parsers.quotes.extract_name_from_h1", return_value="Example"),
+            patch("app.parsers.quotes.extract_wkn_from_h2", return_value="846900"),
+        ):
+            return await parse_quote("846900", None)
+
+    @pytest.mark.asyncio
+    async def test_stock_layout(self):
+        quote = await self._parse(
+            AssetClass.STOCK,
+            """
+            <tr><th>Schluss Vortag</th><td>102,46</td></tr>
+            <tr><th>Eröffnung</th><td>102,60</td></tr>
+            <tr><th>Hoch</th><td>105,82</td></tr>
+            <tr><th>Tief</th><td>102,42</td></tr>
+            <tr><th>52W Hoch</th><td>112,30</td></tr>
+            <tr><th>52W Tief</th><td>57,80</td></tr>
+            """,
+        )
+        assert quote.prev_close == pytest.approx(102.46)
+        assert quote.open == pytest.approx(102.60)
+        assert quote.high == pytest.approx(105.82)
+        assert quote.low == pytest.approx(102.42)
+
+    @pytest.mark.asyncio
+    async def test_warrant_layout(self):
+        quote = await self._parse(
+            AssetClass.WARRANT,
+            """
+            <tr><th>Vortag</th><td>3,225</td></tr>
+            <tr><th>Eröffnung</th><td>3,415</td></tr>
+            <tr><th>Hoch</th><td>3,605</td></tr>
+            <tr><th>Tief</th><td>3,095</td></tr>
+            """,
+        )
+        assert quote.prev_close == pytest.approx(3.225)
+        assert quote.open == pytest.approx(3.415)
+        assert quote.high == pytest.approx(3.605)
+        assert quote.low == pytest.approx(3.095)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("isin", "prev_close", "open_", "high", "low"),
+        [
+            ("DE000CT0UC86", 9.87, 9.82, 10.10, 9.82),
+            ("DE000PA02VF4", 91.84, 92.11, 95.32, 92.06),
+            ("DE000TD0MAP6", 84.84, 85.18, 88.33, 85.08),
+            ("DE000CJ5LG63", 6.85, 6.86, 7.19, 6.85),
+            ("DE000PF3CSC3", 5.35, 5.41, 5.88, 5.39),
+        ],
+    )
+    async def test_certificate_layout(self, isin, prev_close, open_, high, low):
+        # Real values from comdirect pages (09.10.26); certificates use the warrant labels
+        quote = await self._parse(
+            AssetClass.CERTIFICATE,
+            f"""
+            <tr><th>Spread homogen.</th><td>0,10</td></tr>
+            <tr><th>Vortag</th><td>{prev_close:.2f}</td></tr>
+            <tr><th>Eröffnung</th><td>{open_:.2f}</td></tr>
+            <tr><th>Hoch</th><td>{high:.2f}</td></tr>
+            <tr><th>Tief</th><td>{low:.2f}</td></tr>
+            """.replace(".", ","),
+        )
+        assert quote.prev_close == pytest.approx(prev_close)
+        assert quote.open == pytest.approx(open_)
+        assert quote.high == pytest.approx(high)
+        assert quote.low == pytest.approx(low)
+
+    @pytest.mark.asyncio
+    async def test_etf_layout_without_ohlc_rows(self):
+        quote = await self._parse(AssetClass.ETF, "")
+        assert quote.prev_close is None
+        assert quote.open is None
+        assert quote.high is None
+        assert quote.low is None

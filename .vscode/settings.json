@@ -11,6 +11,7 @@
     },
     "python.envFile": "${workspaceFolder}/.env",
     "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
     "python.venvPath": "${workspaceFolder}/.venv",
     
     // Terminal settings for auto-activation
